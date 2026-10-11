@@ -7,9 +7,9 @@ export default function Navbar({
   user,
   onOpenGoogleAuth,
   onLogout,
-  onResetSession,
   activeTab,
-  setActiveTab
+  setActiveTab,
+  onlineWorkersCount = 3
 }) {
   const formatCurrency = (val) => {
     return (val || 0).toLocaleString('vi-VN') + 'đ';
@@ -18,7 +18,7 @@ export default function Navbar({
   return (
     <header className="liquid-topbar">
       {/* Brand / Logo Capsule */}
-      <Tooltip text="MzPic Pro - Nền tảng GenAI in ấn chuẩn 300 DPI" position="bottom">
+      <Tooltip text="MzPic Pro - Về trang chủ Studio" position="bottom">
         <div
           className="liquid-brand-capsule"
           onClick={() => setActiveTab('single')}
@@ -29,32 +29,40 @@ export default function Navbar({
         </div>
       </Tooltip>
 
-      {/* Dynamic Center Badge (Image 1 style) */}
-      <Tooltip text="Chuẩn bị in offset & kỹ thuật số 300 DPI" position="bottom">
-        <div
-          style={{
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            padding: '4px 12px',
-            borderRadius: '9999px',
-            background: 'rgba(255, 255, 255, 0.65)',
-            border: '1px solid rgba(255, 255, 255, 0.8)',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-            color: '#1e293b',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px'
-          }}
-        >
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
-          <span>ToolXPrint</span>
-        </div>
-      </Tooltip>
+      {/* Center Utility Capsules: Thư viện & Máy */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {/* Thư viện */}
+        <Tooltip text="Thư viện ảnh VPS thời gian thực" position="bottom">
+          <button
+            type="button"
+            className={`liquid-pill-btn ${activeTab === 'library' ? 'active' : ''}`}
+            onClick={() => setActiveTab(activeTab === 'library' ? 'single' : 'library')}
+            style={{ padding: '4px 9px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+          >
+            <i className="bi bi-images"></i>
+            <span>Kho</span>
+          </button>
+        </Tooltip>
+
+        {/* Máy / Workers Node */}
+        <Tooltip text={`Cụm render VPS: ${onlineWorkersCount} máy trực tuyến`} position="bottom">
+          <button
+            type="button"
+            className={`liquid-pill-btn ${activeTab === 'devices' ? 'active' : ''}`}
+            onClick={() => setActiveTab(activeTab === 'devices' ? 'single' : 'devices')}
+            style={{ padding: '4px 9px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+          >
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
+            <i className="bi bi-cpu"></i>
+            <span>{onlineWorkersCount}</span>
+          </button>
+        </Tooltip>
+      </div>
 
       {/* Right Controls: Wallet & Auth */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         {/* Wallet Pill */}
-        <Tooltip text={`Số dư: ${formatCurrency(walletBalance)}. Bấm nạp thêm`} position="bottom">
+        <Tooltip text={`Số dư ví: ${formatCurrency(walletBalance)}. Bấm nạp`} position="bottom">
           <div className="liquid-wallet-capsule" onClick={onOpenTopup}>
             <span>{formatCurrency(walletBalance)}</span>
             <div className="liquid-wallet-add">
@@ -65,13 +73,13 @@ export default function Navbar({
 
         {/* User Auth */}
         {!user ? (
-          <Tooltip text="Đăng nhập tài khoản Google" position="bottom">
+          <Tooltip text="Đăng nhập Google" position="bottom">
             <button
               type="button"
               onClick={onOpenGoogleAuth}
               style={{
-                width: '32px',
-                height: '32px',
+                width: '30px',
+                height: '30px',
                 borderRadius: '50%',
                 background: '#ffffff',
                 border: '1px solid rgba(255, 255, 255, 0.8)',
@@ -82,18 +90,18 @@ export default function Navbar({
                 boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
               }}
             >
-              <i className="bi bi-person text-slate-700" style={{ fontSize: '1rem' }}></i>
+              <i className="bi bi-person text-slate-700" style={{ fontSize: '0.95rem' }}></i>
             </button>
           </Tooltip>
         ) : (
-          <Tooltip text={`Tài khoản: ${user.name} (Bấm để đăng xuất)`} position="bottom">
+          <Tooltip text={`Tài khoản: ${user.name} (Bấm đăng xuất)`} position="bottom">
             <img
               src={user.avatar}
               alt="Avatar"
               onClick={onLogout}
               style={{
-                width: '32px',
-                height: '32px',
+                width: '30px',
+                height: '30px',
                 borderRadius: '50%',
                 objectFit: 'cover',
                 border: '2px solid #ffffff',

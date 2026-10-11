@@ -439,6 +439,7 @@ export default function App() {
           onResetSession={handleResetSession}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
+          onlineWorkersCount={onlineWorkersCount}
         />
 
         {/* Content based on Active Tab */}
