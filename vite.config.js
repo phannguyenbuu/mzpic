@@ -9,7 +9,18 @@ export default defineConfig({
     host: true,
     open: false,
     proxy: {
-      // ToolXPrint AI Render Bridge trên VPS (https://render.toolxprint.com)
+      // 1. ToolXPrint GenAI VPS Hub (https://genai.toolxprint.com)
+      '/api': {
+        target: 'https://genai.toolxprint.com',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/images': {
+        target: 'https://genai.toolxprint.com',
+        changeOrigin: true,
+        secure: false,
+      },
+      // 2. ToolXPrint PrintAgent Render Bridge (https://render.toolxprint.com)
       '/render-job': {
         target: 'https://render.toolxprint.com',
         changeOrigin: true,
@@ -36,17 +47,6 @@ export default defineConfig({
         secure: false,
       },
       '/health': {
-        target: 'https://render.toolxprint.com',
-        changeOrigin: true,
-        secure: false,
-      },
-      // ToolXPrint Python AI Services trên VPS (https://toolxprint.com)
-      '/api/remove-bg': {
-        target: 'https://toolxprint.com',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/api/chat': {
         target: 'https://render.toolxprint.com',
         changeOrigin: true,
         secure: false,

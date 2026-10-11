@@ -9,14 +9,15 @@ export default function Navbar({
   onQuickDownload,
   hasResult,
   activeTab,
-  setActiveTab
+  setActiveTab,
+  onlineWorkersCount = 3
 }) {
   const tabs = [
     { id: 'single', label: 'Single', badge: null },
     { id: 'batch', label: 'Batch', badge: 'Mới', badgeClass: 'badge-blue' },
     { id: 'upscale', label: 'Kích Nét AI', badge: '10X', badgeClass: 'badge-purple' },
-    { id: 'library', label: 'Thư viện', badge: null, hasDropdown: true },
-    { id: 'devices', label: 'Máy & Extension', badge: '1', badgeClass: 'badge-green' },
+    { id: 'library', label: 'Thư viện', badge: null, hasDropdown: false },
+    { id: 'devices', label: 'Máy & Extension', badge: `${onlineWorkersCount || 3}`, badgeClass: 'badge-green' },
     { id: 'docs', label: 'API Docs', badge: 'REST', badgeClass: 'badge-blue' },
   ];
 
@@ -27,7 +28,15 @@ export default function Navbar({
   return (
     <header className="toolx-navbar">
       <div className="nav-left-group">
-        <a href="#" className="brand-mzpic" title="MzPic - Nền tảng thiết kế ấn phẩm AI">
+        <a
+          href="#"
+          className="brand-mzpic"
+          title="MzPic - Nền tảng thiết kế ấn phẩm AI (GenAI ToolXPrint)"
+          onClick={(e) => {
+            e.preventDefault();
+            setActiveTab('single');
+          }}
+        >
           <div className="brand-mzpic-logo">M</div>
           <div className="brand-mzpic-text">
             <span>Mz</span><span className="accent">Pic</span>

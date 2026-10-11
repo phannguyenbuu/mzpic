@@ -8,6 +8,11 @@ import GoogleAuthModal from './components/GoogleAuthModal';
 import TopupModal from './components/TopupModal';
 import EditImageModal from './components/EditImageModal';
 import ToastStack from './components/ToastStack';
+import GallerySection from './components/GallerySection';
+import WorkersSection from './components/WorkersSection';
+import BatchSection from './components/BatchSection';
+import UpscaleSection from './components/UpscaleSection';
+import ApiDocsSection from './components/ApiDocsSection';
 import { DESIGN_PRESETS, convertDimension, calculatePixels } from './data/presets';
 
 export default function App() {
@@ -40,6 +45,7 @@ export default function App() {
 
   // Tabs & Navigation
   const [activeTab, setActiveTab] = useState('single');
+  const [onlineWorkersCount, setOnlineWorkersCount] = useState(3);
 
   // Modals
   const [topupOpen, setTopupOpen] = useState(false);
@@ -70,7 +76,7 @@ export default function App() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Sync health from VPS ToolXPrint on load
+  // Sync health & status from VPS ToolXPrint on load
   useEffect(() => {
     fetch('/health')
       .then((res) => res.json())
@@ -79,19 +85,17 @@ export default function App() {
           showToast(`⚡ Đã kết nối VPS ToolXPrint (${data.service || 'Render Bridge'} - 300 DPI)`, 'success');
         }
       })
-      .catch(() => {
-        // Fallback direct URL check
-        fetch('https://render.toolxprint.com/health')
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.status === 'healthy') {
-              showToast('⚡ Đã kết nối trực tiếp VPS render.toolxprint.com', 'success');
-            }
-          })
-          .catch(() => {
-            console.log('VPS proxying locally.');
-          });
-      });
+      .catch(() => {});
+
+    // Fetch active workers count
+    fetch('/api/status')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.online_workers !== undefined) {
+          setOnlineWorkersCount(data.online_workers);
+        }
+      })
+      .catch(() => {});
 
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -237,7 +241,7 @@ export default function App() {
     };
 
     try {
-      // 1. Gửi request tạo render job tới VPS ToolXPrint
+      // Gửi request tạo render job tới VPS ToolXPrint
       const resp = await fetch('/render-job', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -255,9 +259,8 @@ export default function App() {
       setProgress(35);
       setProgressText('VPS đã nhận lệnh. Đang điều phối OpenAI gpt-image-1 & chuẩn hóa prompt...');
 
-      // 2. Polling kiểm tra trạng thái job trên VPS
       let attempts = 0;
-      const maxAttempts = 60; // 2 phút tối đa
+      const maxAttempts = 60;
 
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
 
@@ -269,7 +272,6 @@ export default function App() {
             const pollData = await pollResp.json();
             const job = pollData.job || {};
 
-            // Cập nhật tiến trình theo thời gian thực
             if (attempts <= 5) {
               setProgress(45);
               setProgressText('Đang sinh ảnh chi tiết với OpenAI gpt-image-1...');
@@ -340,7 +342,6 @@ export default function App() {
     setMockup3DOpen(true);
     setIsRenderingMockup(true);
 
-    // Hiển thị render 3D mô phỏng phối cảnh thực tế
     setTimeout(() => {
       setMockupUrl(resultImage);
       setIsRenderingMockup(false);
@@ -351,13 +352,11 @@ export default function App() {
   // Handle Remove Background
   const handleRemoveBg = async () => {
     if (!resultImage) return;
-
-    showToast('Đang chuyển chế độ tách nền PNG trong suốt...', 'info');
     setTransparentBg(true);
     showToast('✅ Đã kích hoạt chế độ tách nền trong suốt cho ấn phẩm!', 'success');
   };
 
-  // Handle Edit Image via VPS ToolXPrint
+  // Handle Edit Image
   const handleConfirmEdit = async (editPromptText) => {
     setIsEditing(true);
     showToast(`Đang gửi yêu cầu sửa ảnh tới VPS: "${editPromptText.slice(0, 40)}..."`, 'info');
@@ -392,6 +391,14 @@ export default function App() {
     showToast('✅ Đã tải ảnh chuẩn in 300 DPI từ VPS thành công!', 'success');
   };
 
+  // Handle Open Image from Gallery or Batch into Studio
+  const handleOpenInStudio = (imageUrl, promptText) => {
+    setResultImage(imageUrl);
+    if (promptText) setPrompt(promptText);
+    setActiveTab('single');
+    showToast('Đã nạp ấn phẩm vào Studio!', 'success');
+  };
+
   // Topup Wallet
   const handleConfirmTopup = (amount) => {
     setWalletBalance((prev) => prev + amount);
@@ -423,87 +430,130 @@ export default function App() {
         hasResult={Boolean(resultImage)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        onlineWorkersCount={onlineWorkersCount}
       />
 
-      {/* Main Workspace */}
-      <main className="workspace-wrapper">
-        <div className="toolx-grid">
-          {/* Left Column: Prompt & Print Parameters */}
-          <div className="left-col-wrapper">
-            <PromptCard
-              prompt={prompt}
-              setPrompt={setPrompt}
-              onResetSession={handleResetSession}
-              onGenerate={handleGenerate}
-              isGenerating={isGenerating}
-              progress={progress}
-              progressText={progressText}
-              onSelectTemplate={handleSelectTemplate}
-            />
+      {/* Main Workspace based on Active Tab */}
+      {activeTab === 'single' && (
+        <main className="workspace-wrapper">
+          <div className="toolx-grid">
+            {/* Left Column: Prompt & Print Parameters */}
+            <div className="left-col-wrapper">
+              <PromptCard
+                prompt={prompt}
+                setPrompt={setPrompt}
+                onResetSession={handleResetSession}
+                onGenerate={handleGenerate}
+                isGenerating={isGenerating}
+                progress={progress}
+                progressText={progressText}
+                onSelectTemplate={handleSelectTemplate}
+              />
 
-            <PrintSpecsCard
-              selectedPresetId={selectedPresetId}
-              onSelectPreset={handleSelectPreset}
-              width={width}
-              height={height}
-              setWidth={setWidth}
-              setHeight={setHeight}
-              unit={unit}
-              onUnitChange={handleUnitChange}
-              aspectRatio={aspectRatio}
-              onAspectRatioChange={handleAspectRatioChange}
-              transparentBg={transparentBg}
-              setTransparentBg={setTransparentBg}
-              selectedStyleId={selectedStyleId}
-              setSelectedStyleId={setSelectedStyleId}
-            />
+              <PrintSpecsCard
+                selectedPresetId={selectedPresetId}
+                onSelectPreset={handleSelectPreset}
+                width={width}
+                height={height}
+                setWidth={setWidth}
+                setHeight={setHeight}
+                unit={unit}
+                onUnitChange={handleUnitChange}
+                aspectRatio={aspectRatio}
+                onAspectRatioChange={handleAspectRatioChange}
+                transparentBg={transparentBg}
+                setTransparentBg={setTransparentBg}
+                selectedStyleId={selectedStyleId}
+                setSelectedStyleId={setSelectedStyleId}
+              />
+            </div>
+
+            {/* Right Column: Result Preview & Output */}
+            <div className="right-col-wrapper">
+              <ResultCard
+                resultImage={resultImage}
+                isGenerating={isGenerating}
+                width={width}
+                height={height}
+                unit={unit}
+                transparentBg={transparentBg}
+                presetId={selectedPresetId}
+                fileMeta={fileMeta}
+                onOpenEdit={() => setEditModalOpen(true)}
+                onOpenMockup3D={handleOpenMockup3D}
+                onDownload={handleDownload}
+                onRemoveBg={handleRemoveBg}
+              />
+            </div>
           </div>
 
-          {/* Right Column: Result Preview & Output */}
-          <div className="right-col-wrapper">
-            <ResultCard
-              resultImage={resultImage}
-              isGenerating={isGenerating}
-              width={width}
-              height={height}
-              unit={unit}
-              transparentBg={transparentBg}
-              presetId={selectedPresetId}
-              fileMeta={fileMeta}
-              onOpenEdit={() => setEditModalOpen(true)}
-              onOpenMockup3D={handleOpenMockup3D}
-              onDownload={handleDownload}
-              onRemoveBg={handleRemoveBg}
-            />
+          {/* Footer Disclaimer */}
+          <div className="footer-disclaimer">
+            Enterprise ChatGPT Image Generator &amp; VPS Orchestrator &bull; Kết nối trực tiếp máy chủ render.toolxprint.com &bull; 300 DPI Offset Quality
           </div>
-        </div>
+        </main>
+      )}
 
-        {/* Footer Disclaimer */}
-        <div className="footer-disclaimer">
-          Enterprise ChatGPT Image Generator &amp; VPS Orchestrator &bull; Kết nối trực tiếp máy chủ render.toolxprint.com &bull; 300 DPI Offset Quality
-        </div>
-      </main>
+      {/* Tab: BATCH */}
+      {activeTab === 'batch' && (
+        <BatchSection
+          onOpenInStudio={handleOpenInStudio}
+          showToast={showToast}
+        />
+      )}
 
-      {/* Floating Action Buttons */}
-      <div className="floating-bottom-left">
-        <button
-          className="float-round-btn"
-          id="btnFloatReload"
-          title="Tải lại phiên làm việc"
-          onClick={handleResetSession}
-        >
-          <i className="bi bi-arrow-counterclockwise"></i>
-        </button>
-        <button
-          className="float-round-btn float-blue-btn"
-          id="btnFloatSend"
-          title="Tạo ấn phẩm ngay trên VPS"
-          onClick={handleGenerate}
-          disabled={isGenerating}
-        >
-          <i className="bi bi-send-fill"></i>
-        </button>
-      </div>
+      {/* Tab: KÍCH NÉT AI */}
+      {activeTab === 'upscale' && (
+        <UpscaleSection
+          currentStudioImage={resultImage}
+          showToast={showToast}
+        />
+      )}
+
+      {/* Tab: THƯ VIỆN */}
+      {activeTab === 'library' && (
+        <GallerySection
+          onOpenInStudio={handleOpenInStudio}
+          showToast={showToast}
+        />
+      )}
+
+      {/* Tab: MÁY & EXTENSION */}
+      {activeTab === 'devices' && (
+        <WorkersSection
+          showToast={showToast}
+        />
+      )}
+
+      {/* Tab: API DOCS */}
+      {activeTab === 'docs' && (
+        <ApiDocsSection
+          showToast={showToast}
+        />
+      )}
+
+      {/* Floating Action Buttons (Active on Studio tab) */}
+      {activeTab === 'single' && (
+        <div className="floating-bottom-left">
+          <button
+            className="float-round-btn"
+            id="btnFloatReload"
+            title="Tải lại phiên làm việc"
+            onClick={handleResetSession}
+          >
+            <i className="bi bi-arrow-counterclockwise"></i>
+          </button>
+          <button
+            className="float-round-btn float-blue-btn"
+            id="btnFloatSend"
+            title="Tạo ấn phẩm ngay trên VPS"
+            onClick={handleGenerate}
+            disabled={isGenerating}
+          >
+            <i className="bi bi-send-fill"></i>
+          </button>
+        </div>
+      )}
 
       {/* Modals */}
       <Mockup3DModal
