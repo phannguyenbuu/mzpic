@@ -4,10 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 5176",
     "build": "vite build",
-    "preview": "vite preview",
-    "start": "vite"
+    "preview": "vite preview --port 5176",
+    "start": "vite --port 5176"
   },
   "dependencies": {
     "clsx": "^2.1.1",

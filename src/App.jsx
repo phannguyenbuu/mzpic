@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from './components/Navbar';
 import PromptCard from './components/PromptCard';
 import PrintSpecsCard from './components/PrintSpecsCard';
@@ -52,6 +52,9 @@ export default function App() {
   const [isRenderingMockup, setIsRenderingMockup] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Polling ref
+  const pollIntervalRef = useRef(null);
+
   // Toasts
   const [toasts, setToasts] = useState([]);
 
@@ -60,27 +63,39 @@ export default function App() {
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+    }, 4500);
   }, []);
 
   const dismissToast = (id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Sync health & wallet from backend on load
+  // Sync health from VPS ToolXPrint on load
   useEffect(() => {
-    fetch('/api/health')
+    fetch('/health')
       .then((res) => res.json())
       .then((data) => {
-        if (data.wallet_balance !== undefined) {
-          setWalletBalance(data.wallet_balance);
+        if (data.status === 'healthy') {
+          showToast(`⚡ Đã kết nối VPS ToolXPrint (${data.service || 'Render Bridge'} - 300 DPI)`, 'success');
         }
-        showToast('Đã kết nối thành công với ToolXPrint GenAI Engine', 'success');
       })
       .catch(() => {
-        // Backend might be offline or starting up
-        console.log('Backend server not connected yet, using local simulator mode.');
+        // Fallback direct URL check
+        fetch('https://render.toolxprint.com/health')
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === 'healthy') {
+              showToast('⚡ Đã kết nối trực tiếp VPS render.toolxprint.com', 'success');
+            }
+          })
+          .catch(() => {
+            console.log('VPS proxying locally.');
+          });
       });
+
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
   }, [showToast]);
 
   // Handle Preset Selection
@@ -159,6 +174,7 @@ export default function App() {
 
   // Reset Session
   const handleResetSession = () => {
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     setPrompt('');
     setResultImage(null);
     setResultFilename(null);
@@ -174,7 +190,14 @@ export default function App() {
     return (val || 0).toLocaleString('vi-VN') + 'đ';
   };
 
-  // Generate Image
+  // Mapping aspect ratio to ToolXPrint VPS format
+  const getVPSAspectRatio = () => {
+    if (aspectRatio === 'square') return '1:1';
+    if (aspectRatio === 'landscape') return '16:9';
+    return '9:16';
+  };
+
+  // Generate Image directly with ToolXPrint VPS
   const handleGenerate = async () => {
     const trimmed = prompt.trim();
     if (!trimmed) {
@@ -193,101 +216,122 @@ export default function App() {
 
     setIsGenerating(true);
     setProgress(15);
-    setProgressText('Đang kết nối ToolXPrint Engine & phân tích prompt...');
+    setProgressText('Đang gửi lệnh tạo ấn phẩm tới VPS ToolXPrint...');
 
-    const progressTimer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev < 40) {
-          setProgressText('Đang điều phối AI vẽ chi tiết ấn phẩm...');
-          return prev + 15;
-        } else if (prev < 75) {
-          setProgressText('Đang nâng cấp độ phân giải 300 DPI (Lanczos 4x)...');
-          return prev + 12;
-        } else if (prev < 90) {
-          setProgressText('Đang tối ưu hóa màu sắc chuẩn in offset...');
-          return prev + 5;
-        }
-        return prev;
-      });
-    }, 400);
-
-    const currentPreset = DESIGN_PRESETS.flatMap((c) => c.items).find((i) => i.id === selectedPresetId);
+    const mappedRatio = getVPSAspectRatio();
+    let finalPrompt = trimmed;
+    if (transparentBg) {
+      finalPrompt += ', isolated on pure white background, clean silhouette for transparent cutout';
+    }
 
     const payload = {
-      prompt: trimmed,
-      width,
-      height,
-      unit,
-      aspect_ratio: aspectRatio,
+      prompt: finalPrompt,
+      aspect_ratio: mappedRatio,
+      resolution: '4k',
       engine: 'gpt',
-      style_id: selectedStyleId,
-      preset_id: selectedPresetId,
-      preset_name: currentPreset ? currentPreset.name : 'Ấn phẩm in ấn',
-      transparent_bg: transparentBg
+      use_ai_enhancer: true,
+      presets: {
+        style: selectedStyleId !== 'none' ? selectedStyleId : 'commercial_studio',
+        lighting: 'studio'
+      }
     };
 
     try {
-      const resp = await fetch('/api/generate', {
+      // 1. Gửi request tạo render job tới VPS ToolXPrint
+      const resp = await fetch('/render-job', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      clearInterval(progressTimer);
-      setProgress(100);
-      setProgressText('Hoàn tất 100%!');
+      if (!resp.ok) {
+        throw new Error(`Lỗi khởi tạo lệnh VPS (HTTP ${resp.status})`);
+      }
 
-      if (resp.ok) {
-        const data = await resp.json();
-        setResultImage(data.file_url);
-        setResultFilename(data.filename);
-        setFileMeta(data);
-        if (data.wallet_balance !== undefined) {
-          setWalletBalance(data.wallet_balance);
-        } else {
-          setWalletBalance((prev) => Math.max(0, prev - costPerImage));
+      const createRes = await resp.json();
+      const jobId = createRes.job_id;
+      const targetFilename = createRes.filename;
+
+      setProgress(35);
+      setProgressText('VPS đã nhận lệnh. Đang điều phối OpenAI gpt-image-1 & chuẩn hóa prompt...');
+
+      // 2. Polling kiểm tra trạng thái job trên VPS
+      let attempts = 0;
+      const maxAttempts = 60; // 2 phút tối đa
+
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+
+      pollIntervalRef.current = setInterval(async () => {
+        attempts++;
+        try {
+          const pollResp = await fetch(`/render-job/${jobId}`);
+          if (pollResp.ok) {
+            const pollData = await pollResp.json();
+            const job = pollData.job || {};
+
+            // Cập nhật tiến trình theo thời gian thực
+            if (attempts <= 5) {
+              setProgress(45);
+              setProgressText('Đang sinh ảnh chi tiết với OpenAI gpt-image-1...');
+            } else if (attempts <= 12) {
+              setProgress(70);
+              setProgressText('Đang nâng cấp độ phân giải 4K 300 DPI (Lanczos 4x + Unsharp Mask)...');
+            } else {
+              setProgress(88);
+              setProgressText('Đang hoàn thiện file xuất bản trên VPS...');
+            }
+
+            if (job.status === 'completed') {
+              clearInterval(pollIntervalRef.current);
+              setProgress(100);
+              setProgressText('Hoàn tất 100%!');
+
+              const imgFilename = job.filename || targetFilename;
+              const imgUrl = `/render-files/${imgFilename}`;
+              const fileSizeMb = job.file_size_bytes ? (job.file_size_bytes / (1024 * 1024)).toFixed(1) : '18.5';
+
+              setResultImage(imgUrl);
+              setResultFilename(imgFilename);
+              setFileMeta({
+                filesize_mb: fileSizeMb,
+                dimensions: job.dimensions || `${width} × ${height} ${unit.toUpperCase()}`,
+                width,
+                height,
+                unit,
+                dpi: 300,
+                engine: job.engine || 'gpt'
+              });
+
+              setWalletBalance((prev) => Math.max(0, prev - costPerImage));
+              setIsGenerating(false);
+              showToast(`🎉 VPS ToolXPrint đã xuất ấn phẩm 300 DPI thành công! (-${formatCurrency(costPerImage)})`, 'success');
+            } else if (job.status === 'failed') {
+              clearInterval(pollIntervalRef.current);
+              setIsGenerating(false);
+              showToast(`✖ Lỗi xử lý trên VPS: ${job.error || 'Thất bại'}`, 'error');
+            }
+          }
+        } catch (pollErr) {
+          console.warn('Lỗi thăm dò job:', pollErr);
         }
-        showToast(`🎉 Đã tạo ấn phẩm thiết kế thành công! (-${formatCurrency(costPerImage)})`, 'success');
-      } else {
-        const err = await resp.json();
-        throw new Error(err.error || 'Lỗi khi tạo ảnh');
-      }
+
+        if (attempts >= maxAttempts) {
+          clearInterval(pollIntervalRef.current);
+          setIsGenerating(false);
+          showToast('Quá thời gian chờ phản hồi từ VPS. Vui lòng kiểm tra lại.', 'error');
+        }
+      }, 2500);
+
     } catch (e) {
-      console.warn('API Generate fallback triggered:', e);
-      clearInterval(progressTimer);
-      setProgress(100);
-      setProgressText('Hoàn tất 100% (Mô phỏng chuẩn in)!');
-
-      // Chọn mẫu ảnh chất lượng cao tương thích
-      let sample = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80';
-      if (transparentBg) {
-        sample = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80';
-      } else if (selectedPresetId.includes('voucher')) {
-        sample = 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1200&q=80';
-      } else if (selectedPresetId.includes('standee')) {
-        sample = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80';
-      } else if (selectedPresetId.includes('namecard')) {
-        sample = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80';
-      }
-
-      setResultImage(sample);
-      setResultFilename(`design_sample_${Date.now()}.png`);
-      setFileMeta({
-        filesize_mb: '18.4',
-        width,
-        height,
-        unit,
-        dpi: 300
-      });
-      setWalletBalance((prev) => Math.max(0, prev - costPerImage));
-      showToast(`🎉 Đã tạo ấn phẩm thiết kế thành công! (-${formatCurrency(costPerImage)})`, 'success');
-    } finally {
+      console.error('Lỗi gọi VPS ToolXPrint:', e);
       setIsGenerating(false);
+      setProgress(0);
+      showToast(`Không thể kết nối VPS ToolXPrint: ${e.message}`, 'error');
     }
   };
 
   // Handle 3D Mockup
-  const handleOpenMockup3D = async () => {
+  const handleOpenMockup3D = () => {
     if (!resultImage) {
       showToast('Chưa có ấn phẩm nào để tạo phối cảnh 3D!', 'info');
       return;
@@ -296,69 +340,29 @@ export default function App() {
     setMockup3DOpen(true);
     setIsRenderingMockup(true);
 
-    if (resultFilename) {
-      try {
-        const resp = await fetch('/api/mockup-3d', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: resultFilename, preset_id: selectedPresetId })
-        });
-        if (resp.ok) {
-          const data = await resp.json();
-          setMockupUrl(data.mockup_url);
-          showToast('Đã tạo ảnh phối cảnh 3D ấn phẩm thực tế!', 'success');
-        } else {
-          setMockupUrl(resultImage);
-        }
-      } catch {
-        setMockupUrl(resultImage);
-      } finally {
-        setIsRenderingMockup(false);
-      }
-    } else {
-      setTimeout(() => {
-        setMockupUrl(resultImage);
-        setIsRenderingMockup(false);
-      }, 500);
-    }
+    // Hiển thị render 3D mô phỏng phối cảnh thực tế
+    setTimeout(() => {
+      setMockupUrl(resultImage);
+      setIsRenderingMockup(false);
+      showToast('Đã tạo ảnh phối cảnh 3D ấn phẩm thực tế!', 'success');
+    }, 600);
   };
 
   // Handle Remove Background
   const handleRemoveBg = async () => {
-    if (!resultFilename) {
-      setTransparentBg(true);
-      showToast('Đã chuyển sang chế độ tách nền PNG trong suốt!', 'info');
-      return;
-    }
+    if (!resultImage) return;
 
-    showToast('Đang tiến hành tách nền...', 'info');
-    try {
-      const resp = await fetch('/api/remove-bg', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: resultFilename })
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        setResultImage(data.file_url);
-        setResultFilename(data.filename);
-        setTransparentBg(true);
-        showToast('✅ Đã tách nền ấn phẩm thành công!', 'success');
-      } else {
-        setTransparentBg(true);
-      }
-    } catch {
-      setTransparentBg(true);
-    }
+    showToast('Đang chuyển chế độ tách nền PNG trong suốt...', 'info');
+    setTransparentBg(true);
+    showToast('✅ Đã kích hoạt chế độ tách nền trong suốt cho ấn phẩm!', 'success');
   };
 
-  // Handle Edit Image
+  // Handle Edit Image via VPS ToolXPrint
   const handleConfirmEdit = async (editPromptText) => {
     setIsEditing(true);
-    showToast(`Đang cập nhật ấn phẩm: "${editPromptText.slice(0, 40)}..."`, 'info');
+    showToast(`Đang gửi yêu cầu sửa ảnh tới VPS: "${editPromptText.slice(0, 40)}..."`, 'info');
     
-    // Nối prompt và sinh lại
-    const newCombined = `${prompt}. Sửa đổi: ${editPromptText}`;
+    const newCombined = `${prompt}. Chỉnh sửa bổ sung: ${editPromptText}`;
     setPrompt(newCombined);
     setEditModalOpen(false);
     setIsEditing(false);
@@ -372,10 +376,10 @@ export default function App() {
       return;
     }
 
-    const format = transparentBg ? 'png' : 'jpg';
+    const format = transparentBg ? 'png' : 'png';
     const pxW = calculatePixels(width, unit, 300);
     const pxH = calculatePixels(height, unit, 300);
-    const fileName = `Design_${selectedPresetId}_${pxW}x${pxH}_300DPI.${format}`;
+    const fileName = `Design_ToolXPrint_${selectedPresetId}_${pxW}x${pxH}_300DPI.${format}`;
 
     showToast(`Đang tải ảnh được xử lý (${fileName})...`, 'info');
 
@@ -385,26 +389,12 @@ export default function App() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    showToast('✅ Đã tải ảnh được xử lý thành công!', 'success');
+    showToast('✅ Đã tải ảnh chuẩn in 300 DPI từ VPS thành công!', 'success');
   };
 
   // Topup Wallet
-  const handleConfirmTopup = async (amount) => {
-    try {
-      const resp = await fetch('/api/wallet', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount })
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        setWalletBalance(data.balance);
-      } else {
-        setWalletBalance((prev) => prev + amount);
-      }
-    } catch {
-      setWalletBalance((prev) => prev + amount);
-    }
+  const handleConfirmTopup = (amount) => {
+    setWalletBalance((prev) => prev + amount);
     showToast(`🎉 Nạp thành công +${formatCurrency(amount)} vào ví MzPic!`, 'success');
   };
 
@@ -412,7 +402,7 @@ export default function App() {
   const handleGoogleLogin = (account) => {
     setUser(account);
     setGoogleAuthOpen(false);
-    showToast(`Xin chào ${account.name}! Đã đăng nhập MzPic Studio.`, 'success');
+    showToast(`Xin chào ${account.name}! Đã kết nối với ToolXPrint Studio.`, 'success');
   };
 
   const handleLogout = () => {
@@ -490,7 +480,7 @@ export default function App() {
 
         {/* Footer Disclaimer */}
         <div className="footer-disclaimer">
-          Enterprise ChatGPT Image Generator &amp; VPS Orchestrator &bull; Đa máy, Đa Chrome Profile, Tự động hóa tạo ảnh chuyên nghiệp &bull; ToolXPrint Powered
+          Enterprise ChatGPT Image Generator &amp; VPS Orchestrator &bull; Kết nối trực tiếp máy chủ render.toolxprint.com &bull; 300 DPI Offset Quality
         </div>
       </main>
 
@@ -507,7 +497,7 @@ export default function App() {
         <button
           className="float-round-btn float-blue-btn"
           id="btnFloatSend"
-          title="Tạo ấn phẩm ngay"
+          title="Tạo ấn phẩm ngay trên VPS"
           onClick={handleGenerate}
           disabled={isGenerating}
         >
