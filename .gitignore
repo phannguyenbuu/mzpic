@@ -1,0 +1,9 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+backend/renders/*
+!backend/renders/.gitkeep
+backend/renders/.thumbs/*
+.env
+.DS_Store
