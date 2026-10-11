@@ -532,14 +532,13 @@ export default function App() {
             />
           )}
         </main>
-
-        {/* Floating Bottom Liquid Glass Pill Dock */}
-        <BottomDock
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          workersCount={onlineWorkersCount}
-        />
       </div>
+
+      {/* Floating Bottom Liquid Glass Pill Dock (Fixed to viewport bottom) */}
+      <BottomDock
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
 
       {/* Modals */}
       <Mockup3DModal
