@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { DESIGN_PRESETS, DESIGN_STYLES, convertDimension, calculatePixels } from '../data/presets';
+import React from 'react';
+import Tooltip from './Tooltip';
+import { calculatePixels } from '../data/presets';
 
 export default function PrintSpecsCard({
   selectedPresetId,
@@ -13,245 +14,252 @@ export default function PrintSpecsCard({
   aspectRatio,
   onAspectRatioChange,
   transparentBg,
-  setTransparentBg,
-  selectedStyleId,
-  setSelectedStyleId
+  setTransparentBg
 }) {
-  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
-
-  const activeCategory = DESIGN_PRESETS[activeCategoryIndex] || DESIGN_PRESETS[0];
   const pxW = calculatePixels(width, unit, 300);
   const pxH = calculatePixels(height, unit, 300);
 
-  const currentPreset = DESIGN_PRESETS.flatMap(c => c.items).find(i => i.id === selectedPresetId);
+  // 6 preset squircles directly matching Image 2 & Image 4 style
+  const primaryPresets = [
+    {
+      id: 'flyer_a4',
+      name: 'Tờ rơi A4',
+      desc: '210 × 297 mm',
+      width: 210,
+      height: 297,
+      unit: 'mm',
+      gradient: 'gradient-peach-rose',
+      icon: 'bi-file-earmark-text',
+      ratio: 'portrait',
+      hint: 'Khổ A4 tiêu chuẩn 210×297 mm cho tờ rơi, kẹp file'
+    },
+    {
+      id: 'flyer_a5',
+      name: 'Tờ rơi A5',
+      desc: '148 × 210 mm',
+      width: 148,
+      height: 210,
+      unit: 'mm',
+      gradient: 'gradient-deep-cyan',
+      icon: 'bi-file-text',
+      ratio: 'portrait',
+      hint: 'Khổ A5 nhỏ gọn 148×210 mm, tiết kiệm chi phí in'
+    },
+    {
+      id: 'voucher_std',
+      name: 'Voucher',
+      desc: '18 × 8 cm',
+      width: 18,
+      height: 8,
+      unit: 'cm',
+      gradient: 'gradient-solar-gold',
+      icon: 'bi-ticket-perforated',
+      ratio: 'landscape',
+      hint: 'Phiếu quà tặng 18×8 cm chuẩn in offset'
+    },
+    {
+      id: 'standee_std',
+      name: 'Standee',
+      desc: '0.6 × 1.6 m',
+      width: 0.6,
+      height: 1.6,
+      unit: 'm',
+      gradient: 'gradient-cyber-emerald',
+      icon: 'bi-badge-ad',
+      ratio: 'portrait',
+      hint: 'Standee đứng chữ X / cuốn nhôm sự kiện'
+    },
+    {
+      id: 'namecard_vn',
+      name: 'Namecard',
+      desc: '90 × 54 mm',
+      width: 90,
+      height: 54,
+      unit: 'mm',
+      gradient: 'gradient-sunset-amber',
+      icon: 'bi-person-badge',
+      ratio: 'landscape',
+      hint: 'Danh thiếp tiêu chuẩn Việt Nam 90×54 mm'
+    },
+    {
+      id: 'sticker_round',
+      name: 'Tem Tròn',
+      desc: '5 × 5 cm',
+      width: 5,
+      height: 5,
+      unit: 'cm',
+      gradient: 'gradient-neon-violet',
+      icon: 'bi-patch-check',
+      ratio: 'square',
+      hint: 'Tem nhãn bế tròn 5×5 cm dán hộp quà, ly trà'
+    }
+  ];
 
   return (
-    <div className="toolx-card">
-      <div className="card-header-bar">
-        <div className="card-title-group">
-          <i className="bi bi-image"></i>
-          <span>Kích thước &amp; Định dạng ấn phẩm</span>
+    <div className="liquid-card" style={{ marginBottom: '14px' }}>
+      <div className="liquid-card-glow"></div>
+
+      {/* Section Title */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Khổ In &amp; Tỉ Lệ</span>
+          <Tooltip text="Chọn nhanh ấn phẩm chuẩn in hoặc tự nhập kích thước đo lường tùy chỉnh (mm, cm, m, px)">
+            <span className="tooltip-trigger-icon">?</span>
+          </Tooltip>
         </div>
-        <div className="header-tab-pills">
-          <button className="tab-pill-btn active">
-            <i className="bi bi-sliders"></i> Thông số kích thước
-          </button>
-        </div>
+
+        {/* 300 DPI Pixel Preview Badge */}
+        <Tooltip text="Kích thước pixel tương ứng ở độ phân giải 300 DPI chuẩn in offset">
+          <span
+            style={{
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              color: '#475569',
+              background: 'rgba(255, 255, 255, 0.75)',
+              padding: '2px 8px',
+              borderRadius: '9999px',
+              fontFamily: 'var(--font-mono)'
+            }}
+          >
+            {pxW}×{pxH} px
+          </span>
+        </Tooltip>
       </div>
 
-      <div className="card-inner-body">
-        {/* 1. Danh mục & Kích thước có sẵn (Presets) */}
-        <div>
-          <div className="form-section-title">
-            <span><i className="bi bi-aspect-ratio text-primary"></i> Ấn phẩm &amp; Kích thước có sẵn</span>
-            <span style={{ color: 'var(--blue-primary)', fontSize: '0.72rem' }}>
-              {currentPreset ? `${currentPreset.name} (${currentPreset.width}×${currentPreset.height} ${currentPreset.unit})` : 'Tùy chỉnh'}
-            </span>
-          </div>
-
-          <div className="category-chips-row" style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '8px' }}>
-            {DESIGN_PRESETS.map((cat, idx) => (
-              <button
-                key={cat.category}
-                type="button"
-                className={`cat-chip ${activeCategoryIndex === idx ? 'active' : ''}`}
-                onClick={() => setActiveCategoryIndex(idx)}
-              >
-                <i className={`bi ${cat.icon}`}></i> {cat.category}
-              </button>
-            ))}
-          </div>
-
-          <div className="presets-chips-grid">
-            {activeCategory.items.map((item) => {
-              const isSelected = selectedPresetId === item.id;
-              return (
-                <div
-                  key={item.id}
-                  className={`preset-chip-item ${isSelected ? 'active' : ''}`}
-                  onClick={() => onSelectPreset(item)}
-                >
-                  <div className="preset-chip-name">
-                    <span>{item.name}</span>
-                    {item.badge && (
-                      <span style={{ fontSize: '0.6rem', color: 'var(--blue-primary)' }}>{item.badge}</span>
-                    )}
-                  </div>
-                  <div className="preset-chip-dim">
-                    {item.width} × {item.height} {item.unit}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 2. Kích thước tùy chỉnh (mm, cm, m, pt, px) */}
-        <div>
-          <div className="form-section-title">
-            <span><i className="bi bi-rulers text-primary"></i> Kích thước đo lường tùy chỉnh</span>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Quy đổi tự động</span>
-          </div>
-
-          <div className="custom-dimensions-row">
-            <div className="input-block">
-              <label htmlFor="inputWidth">Rộng (W)</label>
-              <input
-                type="number"
-                id="inputWidth"
-                className="form-input"
-                value={width}
-                min="1"
-                step="any"
-                onChange={(e) => setWidth(parseFloat(e.target.value) || 0)}
-              />
-            </div>
-
-            <div className="input-block">
-              <label htmlFor="inputHeight">Cao (H)</label>
-              <input
-                type="number"
-                id="inputHeight"
-                className="form-input"
-                value={height}
-                min="1"
-                step="any"
-                onChange={(e) => setHeight(parseFloat(e.target.value) || 0)}
-              />
-            </div>
-
-            <div className="input-block">
-              <label htmlFor="selectUnit">Đơn vị</label>
-              <select
-                id="selectUnit"
-                className="form-select"
-                value={unit}
-                onChange={(e) => onUnitChange(e.target.value)}
-              >
-                <option value="mm">mm</option>
-                <option value="cm">cm</option>
-                <option value="m">m</option>
-                <option value="pt">pt</option>
-                <option value="px">px</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="dimension-sub-banner" style={{ marginTop: '8px' }}>
-            <div>
-              <span>Quy đổi sang pixel: </span>
-              <strong id="badgeConvertedPx">{pxW} × {pxH} px</strong>
-            </div>
-            <div>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Chuẩn in 300 DPI sắc nét</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Hướng & Tỉ lệ (Vuông 1:1, Ngang, Dọc) */}
-        <div>
-          <div className="form-section-title">
-            <span><i className="bi bi-arrows-fullscreen text-primary"></i> Tỉ lệ &amp; Khổ giấy ấn phẩm</span>
-          </div>
-
-          <div className="aspect-selector-row">
-            {/* Vuông */}
-            <div
-              className={`aspect-pill-box ${aspectRatio === 'square' ? 'active' : ''}`}
-              onClick={() => onAspectRatioChange('square')}
-            >
-              <div className="aspect-info">
-                <span className="aspect-title">Vuông (1:1)</span>
-                <span className="aspect-sub">Avatar / Tem tròn</span>
-              </div>
-              <div className="aspect-icon-box">
-                <div className="rect-square"></div>
-              </div>
-            </div>
-
-            {/* Ngang */}
-            <div
-              className={`aspect-pill-box ${aspectRatio === 'landscape' ? 'active' : ''}`}
-              onClick={() => onAspectRatioChange('landscape')}
-            >
-              <div className="aspect-info">
-                <span className="aspect-title">Ngang (Landscape)</span>
-                <span className="aspect-sub">Voucher / Namecard</span>
-              </div>
-              <div className="aspect-icon-box">
-                <div className="rect-landscape"></div>
-              </div>
-            </div>
-
-            {/* Dọc */}
-            <div
-              className={`aspect-pill-box ${aspectRatio === 'portrait' ? 'active' : ''}`}
-              onClick={() => onAspectRatioChange('portrait')}
-            >
-              <div className="aspect-info">
-                <span className="aspect-title">Dọc (Portrait)</span>
-                <span className="aspect-sub">Tờ rơi / Standee</span>
-              </div>
-              <div className="aspect-icon-box">
-                <div className="rect-portrait"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 4. Phong cách in ấn chuyên nghiệp ToolXPrint */}
-        <div>
-          <div className="form-section-title">
-            <span><i className="bi bi-palette text-primary"></i> Phong cách in ấn thực tế</span>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Chất liệu &amp; Gia công</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '8px' }}>
-            {DESIGN_STYLES.map((style) => (
+      {/* 6 Liquid Squircle Presets (Exact Image 2 & 4 style) */}
+      <div className="liquid-squircle-grid" style={{ marginBottom: '14px' }}>
+        {primaryPresets.map((preset) => {
+          const isSelected = selectedPresetId === preset.id;
+          return (
+            <Tooltip key={preset.id} text={preset.hint} position="top">
               <div
-                key={style.id}
-                onClick={() => setSelectedStyleId(style.id === selectedStyleId ? 'none' : style.id)}
-                style={{
-                  border: style.id === selectedStyleId ? '2px solid var(--blue-primary)' : '1px solid var(--border-color)',
-                  background: style.id === selectedStyleId ? 'var(--blue-light)' : '#ffffff',
-                  borderRadius: '8px',
-                  padding: '8px 10px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
+                className={`liquid-squircle-tile ${preset.gradient} ${isSelected ? 'active' : ''}`}
+                onClick={() => {
+                  onSelectPreset(preset);
+                  onAspectRatioChange(preset.ratio);
                 }}
               >
-                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <i className={`bi ${style.icon}`} style={{ color: style.color }}></i>
-                  <span>{style.name}</span>
+                <div className="tile-specular"></div>
+                <div className="tile-inner-icon">
+                  <i className={`bi ${preset.icon}`}></i>
                 </div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  {style.tag}
-                </div>
+                <div className="tile-title">{preset.name}</div>
+                <div className="tile-dim">{preset.desc}</div>
               </div>
-            ))}
-          </div>
+            </Tooltip>
+          );
+        })}
+      </div>
+
+      {/* Custom Dimensions (Pill Row style from Image 4) */}
+      <div
+        style={{
+          background: 'rgba(255, 255, 255, 0.6)',
+          borderRadius: '20px',
+          padding: '10px 12px',
+          border: '1px solid rgba(255, 255, 255, 0.8)',
+          marginBottom: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>W:</span>
+          <input
+            type="number"
+            value={width}
+            onChange={(e) => setWidth(parseFloat(e.target.value) || 0)}
+            className="liquid-pill-input"
+            style={{ width: '64px', padding: '4px 8px', fontSize: '0.8rem', textAlign: 'center' }}
+          />
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>H:</span>
+          <input
+            type="number"
+            value={height}
+            onChange={(e) => setHeight(parseFloat(e.target.value) || 0)}
+            className="liquid-pill-input"
+            style={{ width: '64px', padding: '4px 8px', fontSize: '0.8rem', textAlign: 'center' }}
+          />
         </div>
 
-        {/* 5. Tách Nền (PNG) Toggle Bar */}
-        <div className="tach-nen-bar">
-          <div className="tach-nen-left">
-            <i className="bi bi-transparency"></i>
-            <div>
-              <div className="tach-nen-title">Tách nền (PNG trong suốt)</div>
-              <div className={`tach-nen-status ${transparentBg ? 'active' : ''}`}>
-                {transparentBg ? 'Đang BẬT • Xuất PNG trong suốt không phông' : 'Đang tắt • Giữ nền màu chuẩn in'}
-              </div>
-            </div>
-          </div>
-          <label className="switch-ui">
-            <input
-              type="checkbox"
-              checked={transparentBg}
-              onChange={(e) => setTransparentBg(e.target.checked)}
-            />
-            <span className="switch-track"></span>
-          </label>
+        <Tooltip text="Đơn vị đo lường (mm, cm, m, pt, px) quy đổi tự động">
+          <select
+            value={unit}
+            onChange={(e) => onUnitChange(e.target.value)}
+            className="liquid-pill-input"
+            style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700 }}
+          >
+            <option value="mm">mm</option>
+            <option value="cm">cm</option>
+            <option value="m">m</option>
+            <option value="pt">pt</option>
+            <option value="px">px</option>
+          </select>
+        </Tooltip>
+      </div>
+
+      {/* Aspect Ratio & Transparency Row (Capsule Pill style) */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+        {/* Aspect Ratio Pills */}
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <Tooltip text="Tỉ lệ vuông 1:1 (Avatar, tem tròn)">
+            <button
+              type="button"
+              className={`liquid-pill-btn ${aspectRatio === 'square' ? 'active' : ''}`}
+              onClick={() => onAspectRatioChange('square')}
+              style={{ padding: '5px 10px', fontSize: '0.72rem' }}
+            >
+              1:1
+            </button>
+          </Tooltip>
+
+          <Tooltip text="Tỉ lệ ngang 16:9 (Voucher, Namecard, Banner)">
+            <button
+              type="button"
+              className={`liquid-pill-btn ${aspectRatio === 'landscape' ? 'active' : ''}`}
+              onClick={() => onAspectRatioChange('landscape')}
+              style={{ padding: '5px 10px', fontSize: '0.72rem' }}
+            >
+              16:9
+            </button>
+          </Tooltip>
+
+          <Tooltip text="Tỉ lệ dọc 9:16 (Tờ rơi A4/A5, Standee, Poster)">
+            <button
+              type="button"
+              className={`liquid-pill-btn ${aspectRatio === 'portrait' ? 'active' : ''}`}
+              onClick={() => onAspectRatioChange('portrait')}
+              style={{ padding: '5px 10px', fontSize: '0.72rem' }}
+            >
+              9:16
+            </button>
+          </Tooltip>
         </div>
 
+        {/* Transparent Toggle Capsule */}
+        <Tooltip text="Tách nền trong suốt: Xuất file PNG không phông để ghép thiết kế">
+          <div
+            onClick={() => setTransparentBg(!transparentBg)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              background: transparentBg ? '#dbeafe' : 'rgba(255,255,255,0.7)',
+              border: transparentBg ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.9)',
+              borderRadius: '9999px',
+              padding: '4px 10px',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <i className={`bi bi-transparency ${transparentBg ? 'text-blue-600' : 'text-slate-500'}`} style={{ fontSize: '0.85rem' }}></i>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: transparentBg ? '#1d4ed8' : '#475569' }}>
+              Tách nền
+            </span>
+          </div>
+        </Tooltip>
       </div>
     </div>
   );

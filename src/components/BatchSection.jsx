@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import Tooltip from './Tooltip';
 import { DESIGN_PRESETS, DESIGN_STYLES } from '../data/presets';
 
 export default function BatchSection({ onOpenInStudio, showToast }) {
   const [promptsText, setPromptsText] = useState(
-    '1. Tờ rơi khai trương tiệm trà bánh phong cách ấm cúng organic\n2. Voucher giảm giá 100k cho khách hàng thân thiết dập nổi viền vàng\n3. Standee đứng giới thiệu khóa học lập trình AI đồ họa 2026'
+    'Tờ rơi khai trương tiệm trà bánh organic\nVoucher giảm giá 100k viền dập vàng\nStandee đứng khóa học lập trình AI 2026'
   );
   const [selectedPresetId, setSelectedPresetId] = useState('flyer_a4');
   const [selectedStyleId, setSelectedStyleId] = useState('style_foil_luxury');
@@ -13,7 +14,7 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
   const startBatch = async () => {
     const rawLines = promptsText.split('\n').map((l) => l.replace(/^[0-9]+[.)]\s*/, '').trim()).filter(Boolean);
     if (rawLines.length === 0) {
-      if (showToast) showToast('Vui lòng nhập ít nhất 1 prompt cho tác vụ Batch!', 'info');
+      if (showToast) showToast('Vui lòng nhập ít nhất 1 prompt!', 'info');
       return;
     }
 
@@ -28,9 +29,8 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
 
     setBatchItems(items);
     setIsProcessing(true);
-    if (showToast) showToast(`Bắt đầu chạy batch ${items.length} ấn phẩm qua ToolXPrint VPS...`, 'info');
+    if (showToast) showToast(`Bắt đầu chạy batch ${items.length} ấn phẩm...`, 'info');
 
-    // Chạy tuần tự từng item trong batch
     for (let i = 0; i < items.length; i++) {
       setBatchItems((prev) =>
         prev.map((item, idx) => (idx === i ? { ...item, status: 'processing', progress: 30 } : item))
@@ -54,7 +54,6 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
           const resData = await resp.json();
           const jobId = resData.job_id;
 
-          // Polling
           let completed = false;
           let attempts = 0;
           while (!completed && attempts < 25) {
@@ -78,7 +77,6 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
           }
 
           if (!completed) {
-            // Demo fallback sample if timeout
             setBatchItems((prev) =>
               prev.map((item, idx) =>
                 idx === i
@@ -105,162 +103,131 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
     }
 
     setIsProcessing(false);
-    if (showToast) showToast('🎉 Hoàn tất toàn bộ tác vụ Batch!', 'success');
+    if (showToast) showToast('🎉 Hoàn tất tác vụ Batch!', 'success');
   };
 
   return (
-    <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '20px 24px' }}>
-      {/* Header Bar */}
-      <div className="card-header-bar" style={{ background: '#ffffff', borderRadius: '12px', padding: '16px 20px', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <i className="bi bi-stack" style={{ fontSize: '1.4rem', color: 'var(--blue-primary)' }}></i>
-          <div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              Tạo &amp; Sửa Ấn Phẩm Hàng Loạt (Batch Mode)
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Nhập danh sách prompts để hệ thống tự động sinh hàng loạt ấn phẩm theo quy chuẩn in ấn
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 450px) 1fr', gap: '20px' }}>
-        {/* Left: Input parameters */}
-        <div className="toolx-card" style={{ padding: '18px' }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
-            <i className="bi bi-card-text text-primary"></i> Danh sách Prompts (Mỗi dòng 1 ấn phẩm):
-          </div>
-
-          <textarea
-            className="prompt-textarea-main"
-            rows={8}
-            value={promptsText}
-            onChange={(e) => setPromptsText(e.target.value)}
-            placeholder="Nhập mỗi dòng 1 mô tả ấn phẩm bạn muốn tạo..."
-            style={{ marginBottom: '14px' }}
-          />
-
-          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
-            Khổ ấn phẩm áp dụng:
-          </div>
-          <select
-            className="form-select"
-            value={selectedPresetId}
-            onChange={(e) => setSelectedPresetId(e.target.value)}
-            style={{ marginBottom: '14px' }}
-          >
-            {DESIGN_PRESETS.flatMap((c) => c.items).map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name} ({item.width}×{item.height} {item.unit})
-              </option>
-            ))}
-          </select>
-
-          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
-            Phong cách in ấn áp dụng:
-          </div>
-          <select
-            className="form-select"
-            value={selectedStyleId}
-            onChange={(e) => setSelectedStyleId(e.target.value)}
-            style={{ marginBottom: '16px' }}
-          >
-            {DESIGN_STYLES.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.tag})
-              </option>
-            ))}
-          </select>
-
-          <button
-            className="btn-run-generate"
-            onClick={startBatch}
-            disabled={isProcessing}
-            style={{ width: '100%' }}
-          >
-            <span className="btn-gen-text">
-              {isProcessing ? (
-                <>
-                  <i className="bi bi-arrow-repeat spin"></i> Đang xử lý Batch...
-                </>
-              ) : (
-                <>
-                  <i className="bi bi-play-fill"></i> Khởi chạy Batch ngay
-                </>
-              )}
-            </span>
-          </button>
+    <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Input Card */}
+      <div className="liquid-card">
+        <div className="liquid-card-glow"></div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Batch Prompts</span>
+          <Tooltip text="Nhập mỗi dòng một mô tả ấn phẩm để hệ thống tự động sinh hàng loạt qua VPS">
+            <span className="tooltip-trigger-icon">?</span>
+          </Tooltip>
         </div>
 
-        {/* Right: Batch Queue Progress */}
-        <div className="toolx-card" style={{ padding: '18px' }}>
-          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>
-              <i className="bi bi-list-check text-primary"></i> Hàng Đợi Tiến Trình Batch ({batchItems.length} mục)
-            </span>
-          </div>
+        <textarea
+          rows={4}
+          value={promptsText}
+          onChange={(e) => setPromptsText(e.target.value)}
+          className="liquid-pill-input"
+          placeholder="Mỗi dòng một mô tả ấn phẩm..."
+          style={{ width: '100%', borderRadius: '18px', resize: 'none', padding: '10px 12px', marginBottom: '10px', fontSize: '0.82rem' }}
+        />
 
-          {batchItems.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-              <i className="bi bi-stack" style={{ fontSize: '2.5rem' }}></i>
-              <div style={{ marginTop: '10px', fontWeight: 600 }}>Chưa có tác vụ Batch nào được khởi tạo</div>
-              <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>
-                Nhập danh sách prompts bên trái và nhấn &quot;Khởi chạy Batch ngay&quot;
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {batchItems.map((item, idx) => (
-                <div
-                  key={item.id}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: item.status === 'completed' ? '#f0fdf4' : (item.status === 'processing' ? '#eff6ff' : '#f8fafc'),
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '12px'
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                      #{idx + 1}. {item.prompt}
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span>Trạng thái: <strong>{item.status.toUpperCase()}</strong></span>
-                      {item.status === 'processing' && <span>Tiến độ: {item.progress}%</span>}
-                    </div>
-                  </div>
-
-                  {item.resultUrl ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <img
-                        src={item.resultUrl}
-                        alt="Kết quả"
-                        style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px' }}
-                      />
-                      <button
-                        className="tab-pill-btn active"
-                        style={{ fontSize: '0.72rem', padding: '5px 10px' }}
-                        onClick={() => onOpenInStudio(item.resultUrl, item.prompt)}
-                      >
-                        <i className="bi bi-box-arrow-up-right"></i> Mở
-                      </button>
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      {item.status === 'processing' ? <i className="bi bi-arrow-repeat spin text-primary"></i> : <i className="bi bi-clock"></i>}
-                    </div>
-                  )}
-                </div>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          <Tooltip text="Khổ ấn phẩm áp dụng cho toàn bộ danh sách">
+            <select
+              value={selectedPresetId}
+              onChange={(e) => setSelectedPresetId(e.target.value)}
+              className="liquid-pill-input"
+              style={{ flex: 1, fontSize: '0.75rem', padding: '6px 8px' }}
+            >
+              {DESIGN_PRESETS.flatMap((c) => c.items).map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
               ))}
-            </div>
-          )}
+            </select>
+          </Tooltip>
+
+          <Tooltip text="Phong cách gia công in ấn">
+            <select
+              value={selectedStyleId}
+              onChange={(e) => setSelectedStyleId(e.target.value)}
+              className="liquid-pill-input"
+              style={{ flex: 1, fontSize: '0.75rem', padding: '6px 8px' }}
+            >
+              {DESIGN_STYLES.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </Tooltip>
         </div>
+
+        <button
+          type="button"
+          className="btn-liquid-primary"
+          onClick={startBatch}
+          disabled={isProcessing}
+        >
+          {isProcessing ? (
+            <>
+              <i className="bi bi-arrow-repeat spin"></i>
+              <span>Đang chạy Batch...</span>
+            </>
+          ) : (
+            <>
+              <i className="bi bi-play-fill"></i>
+              <span>Chạy Batch Ngay</span>
+            </>
+          )}
+        </button>
       </div>
+
+      {/* Results List */}
+      {batchItems.length > 0 && (
+        <div className="liquid-card" style={{ padding: '14px' }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', marginBottom: '10px' }}>
+            Tiến độ Batch ({batchItems.length} mục)
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {batchItems.map((item, idx) => (
+              <div
+                key={item.id}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: '16px',
+                  background: item.status === 'completed' ? '#f0fdf4' : (item.status === 'processing' ? '#eff6ff' : '#f8fafc'),
+                  border: '1px solid rgba(226, 232, 240, 0.8)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px'
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    #{idx + 1}. {item.prompt}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                    {item.status.toUpperCase()}
+                  </div>
+                </div>
+
+                {item.resultUrl ? (
+                  <button
+                    type="button"
+                    className="liquid-pill-btn active"
+                    style={{ fontSize: '0.68rem', padding: '4px 8px' }}
+                    onClick={() => onOpenInStudio(item.resultUrl, item.prompt)}
+                  >
+                    Xem
+                  </button>
+                ) : (
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    {item.status === 'processing' ? <i className="bi bi-arrow-repeat spin text-blue-600"></i> : <i className="bi bi-clock"></i>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

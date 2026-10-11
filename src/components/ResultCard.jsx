@@ -1,4 +1,5 @@
 import React from 'react';
+import Tooltip from './Tooltip';
 import { calculatePixels } from '../data/presets';
 
 export default function ResultCard({
@@ -17,149 +18,223 @@ export default function ResultCard({
 }) {
   const pxW = calculatePixels(width, unit, 300);
   const pxH = calculatePixels(height, unit, 300);
-  const specStr = `${width} × ${height} ${unit.toUpperCase()} (${pxW} × ${pxH} px)`;
 
   return (
-    <div className="toolx-card result-box-card">
-      <div className="card-header-bar">
-        <div className="card-title-group">
-          <i className="bi bi-stars" style={{ color: '#ea580c' }}></i>
-          <span>Result</span>
-        </div>
-        <span className="result-badge" id="resultDimensionBadge">
-          {specStr}
-        </span>
-      </div>
+    <div className="liquid-card" style={{ padding: '12px', marginBottom: '14px' }}>
+      <div className="liquid-card-glow"></div>
 
-      {/* Preview Stage */}
+      {/* Main Preview Screen */}
       <div
-        className={`result-image-stage ${transparentBg ? 'transparent-mode' : ''}`}
-        id="resultImageStage"
+        style={{
+          position: 'relative',
+          width: '100%',
+          minHeight: '260px',
+          maxHeight: '340px',
+          borderRadius: '22px',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: transparentBg ? '#f1f5f9' : '#ffffff',
+          boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.04)',
+        }}
+        className={transparentBg ? 'transparent-checkered' : ''}
       >
+        {/* Empty State */}
         {!resultImage && !isGenerating && (
-          <div className="result-empty-placeholder">
-            <i className="bi bi-image"></i>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>Chưa có kết quả thiết kế</div>
-            <div style={{ fontSize: '0.75rem' }}>
-              Nhập prompt bên trái và bấm &quot;Tạo ấn phẩm ngay&quot; để hiển thị kết quả tại đây
-            </div>
-          </div>
-        )}
-
-        {isGenerating && (
-          <div className="result-empty-placeholder">
-            <div className="spinner-border text-primary" role="status" style={{ width: '2.5rem', height: '2.5rem' }}>
-              <i className="bi bi-arrow-repeat spin" style={{ fontSize: '2.2rem', color: 'var(--blue-primary)' }}></i>
-            </div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--blue-primary)', marginTop: '8px' }}>
-              Đang tạo &amp; xử lý ấn phẩm chuẩn 300 DPI...
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Đang áp dụng bộ lọc Lanczos 4x &amp; Unsharp Mask cho in ấn
-            </div>
-          </div>
-        )}
-
-        {resultImage && !isGenerating && (
-          <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img
-              id="resultImagePreview"
-              className="result-preview-image visible"
-              src={resultImage}
-              alt="Kết quả thiết kế ấn phẩm"
-            />
-            <a
-              href={resultImage}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Mở ảnh gốc toàn màn hình"
+          <div style={{ textAlign: 'center', padding: '30px 16px', color: '#64748b' }}>
+            <div
               style={{
-                position: 'absolute',
-                top: '12px',
-                right: '12px',
-                background: 'rgba(15, 23, 42, 0.75)',
-                color: '#ffffff',
-                padding: '6px 10px',
-                borderRadius: '6px',
-                fontSize: '0.75rem',
-                backdropFilter: 'blur(4px)',
-                textDecoration: 'none',
-                display: 'flex',
+                width: '54px',
+                height: '54px',
+                borderRadius: '18px',
+                background: 'rgba(255,255,255,0.85)',
+                boxShadow: '0 8px 20px -4px rgba(0,0,0,0.06)',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px'
+                justifyContent: 'center',
+                fontSize: '1.5rem',
+                color: '#3b82f6',
+                marginBottom: '10px'
               }}
             >
-              <i className="bi bi-arrows-fullscreen"></i>
-              <span>Xem kích thước gốc</span>
-            </a>
+              <i className="bi bi-image"></i>
+            </div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>
+              Chưa có kết quả thiết kế
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+              Nhập prompt &amp; bấm Tạo ấn phẩm để xuất file 300 DPI
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {isGenerating && (
+          <div style={{ textAlign: 'center', padding: '30px', color: '#2563eb' }}>
+            <div
+              style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '50%',
+                background: 'rgba(37, 99, 235, 0.1)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '12px'
+              }}
+            >
+              <i className="bi bi-arrow-repeat spin" style={{ fontSize: '1.8rem' }}></i>
+            </div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
+              Đang render VPS ToolXPrint...
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>
+              Nâng cấp độ phân giải Lanczos 4x 300 DPI
+            </div>
+          </div>
+        )}
+
+        {/* Generated Image */}
+        {resultImage && !isGenerating && (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img
+              src={resultImage}
+              alt="Kết quả"
+              style={{
+                maxWidth: '100%',
+                maxHeight: '340px',
+                objectFit: 'contain',
+                borderRadius: '16px'
+              }}
+            />
+
+            {/* Floating Top Specs Pills */}
+            <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '6px' }}>
+              <Tooltip text="Kích thước pixel ở tiêu chuẩn in ấn 300 DPI">
+                <span
+                  style={{
+                    background: 'rgba(15, 23, 42, 0.72)',
+                    backdropFilter: 'blur(10px)',
+                    color: '#ffffff',
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '9999px',
+                    fontFamily: 'var(--font-mono)'
+                  }}
+                >
+                  {pxW}×{pxH} px
+                </span>
+              </Tooltip>
+              <Tooltip text="Chuẩn bị in offset & KTS độ nét cao">
+                <span
+                  style={{
+                    background: '#10b981',
+                    color: '#ffffff',
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '9999px'
+                  }}
+                >
+                  300 DPI
+                </span>
+              </Tooltip>
+            </div>
+
+            {/* Expand Fullscreen */}
+            <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
+              <Tooltip text="Mở xem kích thước gốc toàn màn hình">
+                <a
+                  href={resultImage}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: 'rgba(15, 23, 42, 0.7)',
+                    backdropFilter: 'blur(10px)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    textDecoration: 'none'
+                  }}
+                >
+                  <i className="bi bi-arrows-fullscreen"></i>
+                </a>
+              </Tooltip>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Meta Specs Row */}
-      <div className="result-meta-box">
-        <div className="meta-specs-row">
-          <div>
-            Dung lượng:{' '}
-            <strong id="metaFileSize">
-              {fileMeta?.filesize_mb ? `${fileMeta.filesize_mb} MB` : (resultImage ? '18.4 MB' : '--')}
-            </strong>
-          </div>
-          <div>
-            Kích thước ấn phẩm:{' '}
-            <strong id="metaDimensionText">
-              {width} × {height} {unit.toUpperCase()}
-            </strong>
-          </div>
-          <div>
-            Độ phân giải: <strong>Sắc nét chuẩn in 300 DPI</strong>
-          </div>
-        </div>
-      </div>
-
-      {/* Result Actions Footer */}
-      <div className="result-actions-footer">
-        <div className="result-actions-left">
-          <button
-            className="btn-result-action"
-            onClick={onOpenEdit}
-            disabled={!resultImage || isGenerating}
-            title="Sửa ấn phẩm này bằng prompt bổ sung"
-          >
-            <i className="bi bi-pencil"></i> Sửa hình này
-          </button>
-
-          {/* NÚT TẠO ẢNH PHỐI CẢNH 3D */}
-          <button
-            className="btn-result-action btn-mockup-3d-toolx"
-            onClick={onOpenMockup3D}
-            disabled={!resultImage || isGenerating}
-            title="Tạo ảnh phối cảnh 3D thực tế trên bàn làm việc / sự kiện"
-          >
-            <i className="bi bi-box-seam"></i> Tạo ảnh phối cảnh 3D
-          </button>
-
-          {!transparentBg && resultImage && (
+      {/* Floating Action Glass Capsule Bar (Image 1 style) */}
+      <div
+        style={{
+          marginTop: '10px',
+          padding: '6px 8px',
+          background: 'rgba(255, 255, 255, 0.75)',
+          borderRadius: '18px',
+          border: '1px solid rgba(255, 255, 255, 0.9)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '6px'
+        }}
+      >
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <Tooltip text="Chỉnh sửa bổ sung ảnh này bằng AI">
             <button
-              className="btn-result-action"
-              onClick={onRemoveBg}
-              disabled={isGenerating}
-              title="Tách nền tạo PNG trong suốt"
+              type="button"
+              className="liquid-pill-btn"
+              onClick={onOpenEdit}
+              disabled={!resultImage || isGenerating}
             >
-              <i className="bi bi-transparency"></i> Tách nền
+              <i className="bi bi-pencil"></i> Sửa
             </button>
+          </Tooltip>
+
+          <Tooltip text="Xem phối cảnh 3D trên bàn làm việc / sự kiện thực tế">
+            <button
+              type="button"
+              className="liquid-pill-btn"
+              onClick={onOpenMockup3D}
+              disabled={!resultImage || isGenerating}
+            >
+              <i className="bi bi-box-seam"></i> 3D Mockup
+            </button>
+          </Tooltip>
+
+          {!transparentBg && (
+            <Tooltip text="Xóa phông nền tạo file PNG trong suốt">
+              <button
+                type="button"
+                className="liquid-pill-btn"
+                onClick={onRemoveBg}
+                disabled={!resultImage || isGenerating}
+              >
+                <i className="bi bi-transparency"></i> Tách nền
+              </button>
+            </Tooltip>
           )}
         </div>
 
-        {/* NÚT DUY NHẤT: TẢI ẢNH ĐƯỢC XỬ LÝ */}
-        <button
-          className="btn-download-toolx"
-          onClick={onDownload}
-          disabled={!resultImage || isGenerating}
-          title="Tải ảnh chuẩn in 300 DPI"
-        >
-          <i className="bi bi-download"></i> Tải ảnh được xử lý
-        </button>
+        {/* Primary Download Button */}
+        <Tooltip text="Tải trực tiếp file ảnh độ nét cao chuẩn in 300 DPI">
+          <button
+            type="button"
+            className="liquid-pill-btn active"
+            onClick={onDownload}
+            disabled={!resultImage || isGenerating}
+            style={{ fontWeight: 700 }}
+          >
+            <i className="bi bi-download"></i> Tải về
+          </button>
+        </Tooltip>
       </div>
     </div>
   );

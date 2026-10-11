@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from './components/Navbar';
+import BottomDock from './components/BottomDock';
 import PromptCard from './components/PromptCard';
 import PrintSpecsCard from './components/PrintSpecsCard';
 import ResultCard from './components/ResultCard';
@@ -418,27 +419,49 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
-      {/* Top Navigation */}
-      <Navbar
-        walletBalance={walletBalance}
-        onOpenTopup={() => setTopupOpen(true)}
-        user={user}
-        onOpenGoogleAuth={() => setGoogleAuthOpen(true)}
-        onLogout={handleLogout}
-        onQuickDownload={handleDownload}
-        hasResult={Boolean(resultImage)}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onlineWorkersCount={onlineWorkersCount}
-      />
+    <div style={{ position: 'relative', minHeight: '100vh', overflowX: 'hidden' }}>
+      {/* Ambient Fluid Glow Mesh behind the mobile shell (Image 1 & 4) */}
+      <div className="ambient-canvas" aria-hidden="true">
+        <div className="ambient-blob-1"></div>
+        <div className="ambient-blob-2"></div>
+        <div className="ambient-blob-3"></div>
+      </div>
 
-      {/* Main Workspace based on Active Tab */}
-      {activeTab === 'single' && (
-        <main className="workspace-wrapper">
-          <div className="toolx-grid">
-            {/* Left Column: Prompt & Print Parameters */}
-            <div className="left-col-wrapper">
+      {/* Mobile & Narrow PC App Shell (max-width: 440px) */}
+      <div className="liquid-app-shell">
+        {/* Top Dynamic Island / Capsule Bar */}
+        <Navbar
+          walletBalance={walletBalance}
+          onOpenTopup={() => setTopupOpen(true)}
+          user={user}
+          onOpenGoogleAuth={() => setGoogleAuthOpen(true)}
+          onLogout={handleLogout}
+          onResetSession={handleResetSession}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
+
+        {/* Content based on Active Tab */}
+        <main style={{ padding: '12px 14px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {activeTab === 'single' && (
+            <>
+              {/* Top Focal Stage: Result & High-res preview */}
+              <ResultCard
+                resultImage={resultImage}
+                isGenerating={isGenerating}
+                width={width}
+                height={height}
+                unit={unit}
+                transparentBg={transparentBg}
+                presetId={selectedPresetId}
+                fileMeta={fileMeta}
+                onOpenEdit={() => setEditModalOpen(true)}
+                onOpenMockup3D={handleOpenMockup3D}
+                onDownload={handleDownload}
+                onRemoveBg={handleRemoveBg}
+              />
+
+              {/* Prompt & Inspiration Cards */}
               <PromptCard
                 prompt={prompt}
                 setPrompt={setPrompt}
@@ -450,6 +473,7 @@ export default function App() {
                 onSelectTemplate={handleSelectTemplate}
               />
 
+              {/* Print Specifications & Liquid Squircle Presets */}
               <PrintSpecsCard
                 selectedPresetId={selectedPresetId}
                 onSelectPreset={handleSelectPreset}
@@ -466,94 +490,55 @@ export default function App() {
                 selectedStyleId={selectedStyleId}
                 setSelectedStyleId={setSelectedStyleId}
               />
-            </div>
+            </>
+          )}
 
-            {/* Right Column: Result Preview & Output */}
-            <div className="right-col-wrapper">
-              <ResultCard
-                resultImage={resultImage}
-                isGenerating={isGenerating}
-                width={width}
-                height={height}
-                unit={unit}
-                transparentBg={transparentBg}
-                presetId={selectedPresetId}
-                fileMeta={fileMeta}
-                onOpenEdit={() => setEditModalOpen(true)}
-                onOpenMockup3D={handleOpenMockup3D}
-                onDownload={handleDownload}
-                onRemoveBg={handleRemoveBg}
-              />
-            </div>
-          </div>
+          {/* Tab: BATCH */}
+          {activeTab === 'batch' && (
+            <BatchSection
+              onOpenInStudio={handleOpenInStudio}
+              showToast={showToast}
+            />
+          )}
 
-          {/* Footer Disclaimer */}
-          <div className="footer-disclaimer">
-            Enterprise ChatGPT Image Generator &amp; VPS Orchestrator &bull; Kết nối trực tiếp máy chủ render.toolxprint.com &bull; 300 DPI Offset Quality
-          </div>
+          {/* Tab: KÍCH NÉT AI */}
+          {activeTab === 'upscale' && (
+            <UpscaleSection
+              currentStudioImage={resultImage}
+              showToast={showToast}
+            />
+          )}
+
+          {/* Tab: THƯ VIỆN */}
+          {activeTab === 'library' && (
+            <GallerySection
+              onOpenInStudio={handleOpenInStudio}
+              showToast={showToast}
+            />
+          )}
+
+          {/* Tab: MÁY & EXTENSION */}
+          {activeTab === 'devices' && (
+            <WorkersSection
+              showToast={showToast}
+            />
+          )}
+
+          {/* Tab: API DOCS */}
+          {activeTab === 'docs' && (
+            <ApiDocsSection
+              showToast={showToast}
+            />
+          )}
         </main>
-      )}
 
-      {/* Tab: BATCH */}
-      {activeTab === 'batch' && (
-        <BatchSection
-          onOpenInStudio={handleOpenInStudio}
-          showToast={showToast}
+        {/* Floating Bottom Liquid Glass Pill Dock */}
+        <BottomDock
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          workersCount={onlineWorkersCount}
         />
-      )}
-
-      {/* Tab: KÍCH NÉT AI */}
-      {activeTab === 'upscale' && (
-        <UpscaleSection
-          currentStudioImage={resultImage}
-          showToast={showToast}
-        />
-      )}
-
-      {/* Tab: THƯ VIỆN */}
-      {activeTab === 'library' && (
-        <GallerySection
-          onOpenInStudio={handleOpenInStudio}
-          showToast={showToast}
-        />
-      )}
-
-      {/* Tab: MÁY & EXTENSION */}
-      {activeTab === 'devices' && (
-        <WorkersSection
-          showToast={showToast}
-        />
-      )}
-
-      {/* Tab: API DOCS */}
-      {activeTab === 'docs' && (
-        <ApiDocsSection
-          showToast={showToast}
-        />
-      )}
-
-      {/* Floating Action Buttons (Active on Studio tab) */}
-      {activeTab === 'single' && (
-        <div className="floating-bottom-left">
-          <button
-            className="float-round-btn"
-            id="btnFloatReload"
-            title="Tải lại phiên làm việc"
-            onClick={handleResetSession}
-          >
-            <i className="bi bi-arrow-counterclockwise"></i>
-          </button>
-          <button
-            className="float-round-btn float-blue-btn"
-            id="btnFloatSend"
-            title="Tạo ấn phẩm ngay trên VPS"
-            onClick={handleGenerate}
-            disabled={isGenerating}
-          >
-            <i className="bi bi-send-fill"></i>
-          </button>
-        </div>
-      )}
+      </div>
 
       {/* Modals */}
       <Mockup3DModal

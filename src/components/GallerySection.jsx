@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import Tooltip from './Tooltip';
 
 export default function GallerySection({ onOpenInStudio, showToast }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
-  const [copiedId, setCopiedId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 12;
+  const pageSize = 8;
 
   const fetchGallery = async () => {
     setLoading(true);
@@ -48,15 +48,13 @@ export default function GallerySection({ onOpenInStudio, showToast }) {
     return filteredItems.slice(start, start + pageSize);
   }, [filteredItems, currentPage, pageSize]);
 
-  const handleCopyLink = (url, id) => {
+  const handleCopyLink = (url) => {
     if (!url) return;
     navigator.clipboard.writeText(url);
-    setCopiedId(id);
-    if (showToast) showToast('Đã sao chép link ảnh CDN trên VPS!', 'success');
-    setTimeout(() => setCopiedId(null), 2000);
+    if (showToast) showToast('Đã sao chép link ảnh CDN VPS!', 'success');
   };
 
-  const handleDownload = (url, promptText) => {
+  const handleDownload = (url) => {
     if (!url) return;
     const a = document.createElement('a');
     a.href = url;
@@ -68,191 +66,203 @@ export default function GallerySection({ onOpenInStudio, showToast }) {
   };
 
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '20px 24px' }}>
-      {/* Header bar */}
-      <div className="card-header-bar" style={{ background: '#ffffff', borderRadius: '12px', padding: '16px 20px', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <i className="bi bi-images" style={{ fontSize: '1.4rem', color: 'var(--blue-primary)' }}></i>
-          <div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              Thư viện Ấn phẩm GenAI ToolXPrint
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Đồng bộ thời gian thực từ kho lưu trữ máy chủ VPS ({items.length} ấn phẩm đã tạo)
-            </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Top Search & Filter Bar */}
+      <div className="liquid-card" style={{ padding: '12px' }}>
+        <div className="liquid-card-glow"></div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Thư Viện VPS</span>
+            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>({items.length} ảnh)</span>
+            <Tooltip text="Kho lưu trữ file ảnh chuẩn in 300 DPI trên VPS ToolXPrint">
+              <span className="tooltip-trigger-icon">?</span>
+            </Tooltip>
           </div>
+
+          <Tooltip text="Làm mới danh sách từ VPS">
+            <button
+              type="button"
+              onClick={fetchGallery}
+              disabled={loading}
+              style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
+            >
+              <i className={`bi bi-arrow-clockwise ${loading ? 'spin' : ''}`}></i>
+            </button>
+          </Tooltip>
         </div>
 
-        <button
-          className="btn-reset-session"
-          onClick={fetchGallery}
-          disabled={loading}
-          style={{ padding: '6px 14px' }}
-        >
-          <i className={`bi bi-arrow-clockwise ${loading ? 'spin' : ''}`}></i> Làm mới
-        </button>
-      </div>
+        {/* Search input */}
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+          placeholder="Tìm theo prompt, phong cách..."
+          className="liquid-pill-input"
+          style={{ width: '100%', padding: '6px 12px', fontSize: '0.8rem', marginBottom: '8px' }}
+        />
 
-      {/* Filter and Search Bar */}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
-          <i className="bi bi-search" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}></i>
-          <input
-            type="text"
-            className="form-input"
-            placeholder="Tìm kiếm theo nội dung prompt hoặc phong cách..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-            style={{ paddingLeft: '36px' }}
-          />
-        </div>
-
+        {/* Filter Pills */}
         <div style={{ display: 'flex', gap: '6px' }}>
-          <button
-            type="button"
-            className={`cat-chip ${sourceFilter === 'all' ? 'active' : ''}`}
-            onClick={() => { setSourceFilter('all'); setCurrentPage(1); }}
-          >
-            Tất cả ({items.length})
-          </button>
-          <button
-            type="button"
-            className={`cat-chip ${sourceFilter === 'web' ? 'active' : ''}`}
-            onClick={() => { setSourceFilter('web'); setCurrentPage(1); }}
-          >
-            Web Studio
-          </button>
-          <button
-            type="button"
-            className={`cat-chip ${sourceFilter === 'api' ? 'active' : ''}`}
-            onClick={() => { setSourceFilter('api'); setCurrentPage(1); }}
-          >
-            API / Python
-          </button>
+          {[
+            { id: 'all', label: 'Tất cả' },
+            { id: 'web', label: 'Web Studio' },
+            { id: 'api', label: 'API Caller' }
+          ].map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className={`liquid-pill-btn ${sourceFilter === f.id ? 'active' : ''}`}
+              style={{ fontSize: '0.7rem', padding: '3px 10px' }}
+              onClick={() => { setSourceFilter(f.id); setCurrentPage(1); }}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Gallery Grid */}
+      {/* Grid of 2 columns */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '80px 20px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <i className="bi bi-arrow-repeat spin" style={{ fontSize: '2.5rem', color: 'var(--blue-primary)' }}></i>
-          <div style={{ marginTop: '12px', fontWeight: 600, color: 'var(--text-main)' }}>
-            Đang tải dữ liệu thư viện từ VPS ToolXPrint...
-          </div>
+        <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+          <i className="bi bi-arrow-repeat spin" style={{ fontSize: '1.8rem', color: '#3b82f6' }}></i>
+          <div style={{ fontSize: '0.8rem', marginTop: '8px' }}>Đang nạp thư viện từ VPS...</div>
         </div>
       ) : paginatedItems.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <i className="bi bi-inbox" style={{ fontSize: '2.5rem', color: 'var(--text-muted)' }}></i>
-          <div style={{ marginTop: '10px', fontWeight: 600, color: 'var(--text-main)' }}>Không tìm thấy ấn phẩm nào</div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Thử thay đổi từ khóa tìm kiếm hoặc quay lại Studio tạo ấn phẩm mới
-          </div>
+        <div className="liquid-card" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+          <i className="bi bi-inbox" style={{ fontSize: '2rem', color: '#94a3b8' }}></i>
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, marginTop: '8px' }}>Không có ấn phẩm nào</div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
-          {paginatedItems.map((item, idx) => {
-            const imgUrl = item.vpsUrl || `/images/${item.localPath || item.filename}`;
-            const id = item.id || `img_${idx}`;
-            return (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+          {paginatedItems.map((item) => (
+            <div
+              key={item.id}
+              className="liquid-card"
+              style={{
+                padding: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                borderRadius: '20px',
+                overflow: 'hidden'
+              }}
+            >
+              {/* Image Container */}
               <div
-                key={id}
-                className="toolx-card"
-                style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', transition: 'transform 0.2s', boxShadow: 'var(--shadow-card)' }}
+                style={{
+                  position: 'relative',
+                  width: '100%',
+                  aspectRatio: '1',
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  background: '#f1f5f9'
+                }}
               >
-                {/* Image Stage */}
-                <div style={{ position: 'relative', width: '100%', height: '220px', background: '#f1f5f9', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img
-                    src={imgUrl}
-                    alt={item.prompt || 'Ấn phẩm'}
-                    loading="lazy"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80';
+                <img
+                  src={item.url}
+                  alt={item.prompt}
+                  loading="lazy"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+
+                {/* 300 DPI chip */}
+                <div style={{ position: 'absolute', top: '6px', left: '6px' }}>
+                  <span
+                    style={{
+                      background: 'rgba(15, 23, 42, 0.7)',
+                      backdropFilter: 'blur(8px)',
+                      color: '#ffffff',
+                      fontSize: '0.55rem',
+                      fontWeight: 700,
+                      padding: '2px 6px',
+                      borderRadius: '9999px'
                     }}
-                  />
-                  <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '6px' }}>
-                    {item.aspectRatio && (
-                      <span className="result-badge" style={{ fontSize: '0.65rem', padding: '2px 6px', background: 'rgba(15,23,42,0.7)', color: '#ffffff' }}>
-                        {item.aspectRatio}
-                      </span>
-                    )}
-                  </div>
+                  >
+                    300 DPI
+                  </span>
                 </div>
+              </div>
 
-                {/* Content */}
-                <div style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-main)', lineHeight: '1.4', maxHeight: '42px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', fontWeight: 500 }}>
-                    {item.prompt || 'Ấn phẩm không có prompt mô tả'}
-                  </div>
+              {/* Title / Prompt */}
+              <div
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  marginTop: '6px',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  lineHeight: '1.3'
+                }}
+              >
+                {item.prompt || 'Ấn phẩm in'}
+              </div>
 
-                  <div style={{ marginTop: 'auto', paddingTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                    <span>
-                      <i className="bi bi-clock"></i> {item.timestamp || 'Gần đây'}
-                    </span>
-                    {item.caller_system && (
-                      <span style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
-                        {item.caller_system}
-                      </span>
-                    )}
-                  </div>
+              {/* Quick Actions Bar */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', paddingTop: '6px', borderTop: '1px solid rgba(226, 232, 240, 0.6)' }}>
+                <Tooltip text="Nạp ảnh này vào Studio">
+                  <button
+                    type="button"
+                    className="liquid-pill-btn active"
+                    style={{ fontSize: '0.62rem', padding: '2px 8px' }}
+                    onClick={() => onOpenInStudio(item.url, item.prompt)}
+                  >
+                    Studio
+                  </button>
+                </Tooltip>
 
-                  {/* Actions */}
-                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '6px' }}>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <Tooltip text="Sao chép link CDN">
                     <button
-                      className="tab-pill-btn active"
-                      style={{ flex: 1, fontSize: '0.72rem', padding: '5px', textAlign: 'center' }}
-                      onClick={() => onOpenInStudio(imgUrl, item.prompt)}
-                      title="Mở ảnh này trong Studio để sửa hoặc xem 3D Mockup"
+                      type="button"
+                      onClick={() => handleCopyLink(item.url)}
+                      style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem' }}
                     >
-                      <i className="bi bi-magic"></i> Mở Studio
+                      <i className="bi bi-link-45deg"></i>
                     </button>
+                  </Tooltip>
+
+                  <Tooltip text="Tải ảnh về máy">
                     <button
-                      className="tab-pill-btn"
-                      style={{ fontSize: '0.72rem', padding: '5px 8px' }}
-                      onClick={() => handleCopyLink(imgUrl, id)}
-                      title="Sao chép link CDN máy chủ VPS"
-                    >
-                      <i className={`bi ${copiedId === id ? 'bi-check2 text-success' : 'bi-link-45deg'}`}></i>
-                    </button>
-                    <button
-                      className="tab-pill-btn"
-                      style={{ fontSize: '0.72rem', padding: '5px 8px' }}
-                      onClick={() => handleDownload(imgUrl, item.prompt)}
-                      title="Tải ảnh gốc về máy"
+                      type="button"
+                      onClick={() => handleDownload(item.url)}
+                      style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem' }}
                     >
                       <i className="bi bi-download"></i>
                     </button>
-                  </div>
+                  </Tooltip>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Pagination Controls */}
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginTop: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '6px' }}>
           <button
-            className="tab-pill-btn"
-            disabled={currentPage <= 1}
+            type="button"
+            className="liquid-pill-btn"
+            disabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            style={{ fontSize: '0.72rem', padding: '4px 10px' }}
           >
-            <i className="bi bi-chevron-left"></i> Trang trước
+            Trước
           </button>
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)' }}>
-            Trang {currentPage} / {totalPages}
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>
+            {currentPage} / {totalPages}
           </span>
           <button
-            className="tab-pill-btn"
-            disabled={currentPage >= totalPages}
+            type="button"
+            className="liquid-pill-btn"
+            disabled={currentPage === totalPages}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            style={{ fontSize: '0.72rem', padding: '4px 10px' }}
           >
-            Trang sau <i className="bi bi-chevron-right"></i>
+            Sau
           </button>
         </div>
       )}

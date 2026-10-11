@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Tooltip from './Tooltip';
 
 export default function TopupModal({ isOpen, onClose, currentBalance, onConfirmTopup }) {
   const [selectedAmount, setSelectedAmount] = useState(50000);
@@ -21,70 +22,100 @@ export default function TopupModal({ isOpen, onClose, currentBalance, onConfirmT
   };
 
   return (
-    <div className="topup-modal active" onClick={onClose}>
-      <div className="topup-card" onClick={(e) => e.stopPropagation()}>
-        <div className="topup-header">
-          <h3>
-            <i className="bi bi-wallet2 text-primary"></i> Nạp Tiền Vào Ví MzPic
-          </h3>
-          <button className="btn-close-modal" onClick={onClose} title="Đóng">
+    <div className="liquid-modal-backdrop" onClick={onClose}>
+      <div className="liquid-modal-card" onClick={(e) => e.stopPropagation()} style={{ padding: '20px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
+              <i className="bi bi-wallet2"></i>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                Nạp Tiền Vào Ví MzPic
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                Số dư hiện tại: <strong style={{ color: '#2563eb' }}>{formatCurrency(currentBalance)}</strong>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: 'rgba(0,0,0,0.05)',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#64748b'
+            }}
+          >
             &times;
           </button>
         </div>
 
-        <div className="topup-body">
-          <div className="topup-current-box">
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Số dư hiện tại:</span>
-            <strong id="modalCurrentBalance" style={{ fontSize: '1.1rem', color: 'var(--blue-primary)', fontFamily: 'var(--font-mono)' }}>
-              {formatCurrency(currentBalance)}
-            </strong>
-          </div>
-
-          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '8px' }}>
-            Chọn gói nạp:
-          </div>
-
-          <div className="topup-packages-grid">
-            {packages.map((pkg) => (
+        {/* Packages Grid */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+          {packages.map((pkg) => {
+            const isSelected = selectedAmount === pkg.amount;
+            return (
               <div
                 key={pkg.amount}
-                className={`package-item ${selectedAmount === pkg.amount ? 'active' : ''}`}
                 onClick={() => setSelectedAmount(pkg.amount)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 14px',
+                  borderRadius: '16px',
+                  border: isSelected ? '2px solid #2563eb' : '1px solid rgba(226, 232, 240, 0.8)',
+                  background: isSelected ? '#eff6ff' : 'rgba(255, 255, 255, 0.65)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
               >
-                {pkg.badge && <span className="pkg-badge">{pkg.badge}</span>}
-                <span className="pkg-amount">{pkg.label}</span>
-                <span className="pkg-gens">{pkg.gens}</span>
+                <div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
+                    {pkg.label}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                    {pkg.gens}
+                  </div>
+                </div>
+
+                {pkg.badge && (
+                  <span
+                    style={{
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      color: '#ffffff',
+                      background: '#3b82f6',
+                      padding: '3px 8px',
+                      borderRadius: '9999px'
+                    }}
+                  >
+                    {pkg.badge}
+                  </span>
+                )}
               </div>
-            ))}
-          </div>
-
-          <div
-            style={{
-              fontSize: '0.74rem',
-              color: 'var(--text-muted)',
-              background: '#f8fafc',
-              border: '1px dashed #cbd5e1',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              marginTop: '10px'
-            }}
-          >
-            <i className="bi bi-shield-check text-success"></i> Chi phí chỉ <strong>2.000đ</strong> cho mỗi bức ảnh ấn phẩm in ấn phân giải cao 300 DPI.
-          </div>
+            );
+          })}
         </div>
 
-        <div className="topup-footer">
-          <button className="btn-cancel-auth" onClick={onClose}>
-            Hủy
-          </button>
-          <button
-            className="btn-download-toolx"
-            onClick={handleConfirm}
-            style={{ padding: '7px 20px' }}
-          >
-            <i className="bi bi-lightning-charge-fill"></i> Xác nhận nạp {formatCurrency(selectedAmount)}
-          </button>
-        </div>
+        {/* Action Button */}
+        <button
+          type="button"
+          className="btn-liquid-primary"
+          onClick={handleConfirm}
+        >
+          <i className="bi bi-lightning-charge-fill"></i>
+          <span>Xác nhận nạp {formatCurrency(selectedAmount)}</span>
+        </button>
       </div>
     </div>
   );

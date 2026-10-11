@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Tooltip from './Tooltip';
 
 export default function UpscaleSection({ currentStudioImage, showToast }) {
   const [imageSrc, setImageSrc] = useState(
@@ -8,7 +9,6 @@ export default function UpscaleSection({ currentStudioImage, showToast }) {
   const [targetDpi, setTargetDpi] = useState(300);
   const [isUpscaling, setIsUpscaling] = useState(false);
   const [upscaledUrl, setUpscaledUrl] = useState(null);
-  const [sliderPos, setSliderPos] = useState(50);
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -43,145 +43,207 @@ export default function UpscaleSection({ currentStudioImage, showToast }) {
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px 24px' }}>
-      {/* Header Bar */}
-      <div className="card-header-bar" style={{ background: '#ffffff', borderRadius: '12px', padding: '16px 20px', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <i className="bi bi-arrows-angle-expand" style={{ fontSize: '1.4rem', color: '#9333ea' }}></i>
-          <div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              Kích Nét AI Siêu Độ Phân Giải (10X / 16X Super-Resolution)
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Phục vụ in ấn khổ lớn (Standee, Poster, Biển bạt) với độ sắc nét tuyệt đối 300 - 600 DPI
-            </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Top Preview Stage */}
+      <div className="liquid-card" style={{ padding: '12px' }}>
+        <div className="liquid-card-glow"></div>
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            minHeight: '260px',
+            maxHeight: '340px',
+            borderRadius: '22px',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#ffffff',
+            boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.04)',
+          }}
+        >
+          <img
+            src={upscaledUrl || imageSrc}
+            alt="Preview"
+            style={{
+              maxWidth: '100%',
+              maxHeight: '340px',
+              objectFit: 'contain',
+              borderRadius: '16px',
+              filter: upscaledUrl ? 'contrast(1.05) sharpness(1.2)' : 'none'
+            }}
+          />
+
+          {/* Floating Badges */}
+          <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '6px' }}>
+            <Tooltip text="Chuẩn phân giải in ấn cao cấp">
+              <span
+                style={{
+                  background: '#10b981',
+                  color: '#ffffff',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  padding: '3px 8px',
+                  borderRadius: '9999px'
+                }}
+              >
+                {targetDpi} DPI
+              </span>
+            </Tooltip>
+            <Tooltip text="Độ phóng đại siêu phân giải">
+              <span
+                style={{
+                  background: 'rgba(15, 23, 42, 0.72)',
+                  backdropFilter: 'blur(10px)',
+                  color: '#ffffff',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  padding: '3px 8px',
+                  borderRadius: '9999px',
+                  fontFamily: 'var(--font-mono)'
+                }}
+              >
+                {scale}X Super-Res
+              </span>
+            </Tooltip>
           </div>
+
+          {upscaledUrl && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '10px',
+                right: '10px',
+                background: 'rgba(16, 185, 129, 0.85)',
+                backdropFilter: 'blur(8px)',
+                color: '#ffffff',
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                padding: '4px 10px',
+                borderRadius: '9999px'
+              }}
+            >
+              <i className="bi bi-shield-check"></i> Đã hoàn tất {scale}X
+            </div>
+          )}
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '20px' }}>
-        {/* Controls Column */}
-        <div className="toolx-card" style={{ padding: '18px' }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px' }}>
-            <i className="bi bi-sliders text-primary"></i> Tùy chọn Kích Nét
+      {/* Controls Card */}
+      <div className="liquid-card">
+        <div className="liquid-card-glow"></div>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Kích Nét AI 10X</span>
+            <Tooltip text="Khử vỡ hạt, phục hồi chi tiết và nâng độ phân giải lên 300-600 DPI cho Standee & Biển bạt">
+              <span className="tooltip-trigger-icon">?</span>
+            </Tooltip>
           </div>
 
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>
-              Nguồn ảnh:
-            </label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {currentStudioImage && (
+          {/* Source toggles */}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {currentStudioImage && (
+              <Tooltip text="Lấy ảnh hiện tại đang làm trong Studio">
                 <button
                   type="button"
-                  className="tab-pill-btn active"
-                  style={{ fontSize: '0.75rem', flex: 1 }}
+                  className="liquid-pill-btn active"
+                  style={{ fontSize: '0.68rem', padding: '3px 8px' }}
                   onClick={() => { setImageSrc(currentStudioImage); setUpscaledUrl(null); }}
                 >
-                  <i className="bi bi-magic"></i> Ảnh Studio
+                  Ảnh Studio
                 </button>
-              )}
-              <label className="tab-pill-btn" style={{ fontSize: '0.75rem', flex: 1, textAlign: 'center', cursor: 'pointer' }}>
-                <i className="bi bi-upload"></i> Tải ảnh lên
+              </Tooltip>
+            )}
+            <Tooltip text="Chọn ảnh từ thiết bị để kích nét">
+              <label
+                className="liquid-pill-btn"
+                style={{ fontSize: '0.68rem', padding: '3px 8px', cursor: 'pointer' }}
+              >
+                <i className="bi bi-upload"></i> Tải lên
                 <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
               </label>
-            </div>
+            </Tooltip>
           </div>
+        </div>
 
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>
-              Hệ số phóng to (Scale Factor):
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
-              {[2, 4, 8, 10, 16].map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className={`tab-pill-btn ${scale === s ? 'active' : ''}`}
-                  onClick={() => setScale(s)}
-                  style={{ fontSize: '0.75rem', padding: '6px 0', textAlign: 'center' }}
-                >
-                  {s}X
-                </button>
-              ))}
-            </div>
+        {/* Scale Multiplier */}
+        <div style={{ marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>Hệ số phóng to:</span>
+            <Tooltip text="Hệ số nhân pixel nguyên bản (2X đến 16X)">
+              <span className="tooltip-trigger-icon">?</span>
+            </Tooltip>
           </div>
-
-          <div style={{ marginBottom: '18px' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>
-              Chuẩn DPI In ấn mục tiêu:
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-              {[150, 300, 600].map((dpi) => (
-                <button
-                  key={dpi}
-                  type="button"
-                  className={`tab-pill-btn ${targetDpi === dpi ? 'active' : ''}`}
-                  onClick={() => setTargetDpi(dpi)}
-                  style={{ fontSize: '0.75rem', padding: '6px 0', textAlign: 'center' }}
-                >
-                  {dpi} DPI
-                </button>
-              ))}
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
+            {[2, 4, 8, 10, 16].map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`liquid-pill-btn ${scale === s ? 'active' : ''}`}
+                style={{ justifyContent: 'center', padding: '6px 0', fontSize: '0.75rem', fontWeight: 700 }}
+                onClick={() => setScale(s)}
+              >
+                {s}X
+              </button>
+            ))}
           </div>
+        </div>
 
-          <button
-            className="btn-run-generate"
-            onClick={handleStartUpscale}
-            disabled={isUpscaling}
-            style={{ width: '100%' }}
-          >
-            <span className="btn-gen-text">
-              {isUpscaling ? (
-                <>
-                  <i className="bi bi-arrow-repeat spin"></i> Đang Kích Nét AI...
-                </>
-              ) : (
-                <>
-                  <i className="bi bi-stars"></i> Bắt đầu Kích Nét {scale}X
-                </>
-              )}
-            </span>
-          </button>
+        {/* Target DPI */}
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>Độ phân giải in mục tiêu:</span>
+            <Tooltip text="150 DPI cho bạt Hiflex / màn chiếu; 300 DPI cho in offset & KTS; 600 DPI cho photobook nghệ thuật">
+              <span className="tooltip-trigger-icon">?</span>
+            </Tooltip>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+            {[150, 300, 600].map((dpi) => (
+              <button
+                key={dpi}
+                type="button"
+                className={`liquid-pill-btn ${targetDpi === dpi ? 'active' : ''}`}
+                style={{ justifyContent: 'center', padding: '6px 0', fontSize: '0.75rem', fontWeight: 700 }}
+                onClick={() => setTargetDpi(dpi)}
+              >
+                {dpi} DPI
+              </button>
+            ))}
+          </div>
+        </div>
 
-          {upscaledUrl && (
-            <button
-              className="btn-download-toolx"
-              onClick={handleDownload}
-              style={{ width: '100%', marginTop: '10px', padding: '8px' }}
-            >
-              <i className="bi bi-download"></i> Tải ảnh {scale}X ({targetDpi} DPI)
-            </button>
+        {/* Action Button */}
+        <button
+          type="button"
+          className="btn-liquid-primary"
+          onClick={handleStartUpscale}
+          disabled={isUpscaling}
+        >
+          {isUpscaling ? (
+            <>
+              <i className="bi bi-arrow-repeat spin"></i>
+              <span>Đang Kích Nét AI...</span>
+            </>
+          ) : (
+            <>
+              <i className="bi bi-stars"></i>
+              <span>Bắt đầu Kích Nét {scale}X</span>
+            </>
           )}
-        </div>
+        </button>
 
-        {/* Preview Area */}
-        <div className="toolx-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px' }}>
-            <i className="bi bi-eye text-primary"></i> Khung So Sánh &amp; Xem Trước Độ Nét
-          </div>
-
-          <div style={{ flex: 1, minHeight: '440px', background: '#f8fafc', borderRadius: '10px', overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img
-              src={upscaledUrl || imageSrc}
-              alt="Xem trước"
-              style={{
-                maxHeight: '460px',
-                maxWidth: '100%',
-                objectFit: 'contain',
-                borderRadius: '8px',
-                filter: upscaledUrl ? 'contrast(1.05) sharpness(1.2)' : 'none'
-              }}
-            />
-
-            {upscaledUrl && (
-              <div style={{ position: 'absolute', bottom: '14px', right: '14px', background: 'rgba(15, 23, 42, 0.8)', color: '#ffffff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', backdropFilter: 'blur(4px)' }}>
-                <i className="bi bi-shield-check text-success"></i> Đã kích nét {scale}X ({targetDpi} DPI hoàn tất)
-              </div>
-            )}
-          </div>
-        </div>
+        {upscaledUrl && (
+          <button
+            type="button"
+            className="liquid-pill-btn active"
+            onClick={handleDownload}
+            style={{ width: '100%', marginTop: '10px', padding: '10px', justifyContent: 'center', fontWeight: 700 }}
+          >
+            <i className="bi bi-download"></i> Tải ảnh {scale}X ({targetDpi} DPI)
+          </button>
+        )}
       </div>
     </div>
   );

@@ -1,12 +1,13 @@
 import React from 'react';
+import Tooltip from './Tooltip';
 
 export default function Mockup3DModal({ isOpen, onClose, mockupUrl, originalImage, isRenderingMockup }) {
   if (!isOpen) return null;
 
   const handleDownload = () => {
-    if (!mockupUrl) return;
+    if (!mockupUrl && !originalImage) return;
     const a = document.createElement('a');
-    a.href = mockupUrl;
+    a.href = mockupUrl || originalImage;
     a.download = `Mockup_3D_MzPic_${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
@@ -14,61 +15,103 @@ export default function Mockup3DModal({ isOpen, onClose, mockupUrl, originalImag
   };
 
   return (
-    <div className="mockup-3d-modal active" onClick={onClose}>
-      <div className="mockup-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '850px' }}>
-        <div className="mockup-modal-header">
-          <h3>
-            <i className="bi bi-box-seam text-primary"></i> Phối Cảnh 3D Ấn Phẩm Thực Tế
-          </h3>
-          <button className="btn-close-modal" onClick={onClose} title="Đóng">
+    <div className="liquid-modal-backdrop" onClick={onClose}>
+      <div className="liquid-modal-card" onClick={(e) => e.stopPropagation()} style={{ padding: '20px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
+              <i className="bi bi-box-seam"></i>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                Phối Cảnh 3D Ấn Phẩm
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                Mô phỏng góc nghiêng và đổ bóng thực tế
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: 'rgba(0,0,0,0.05)',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#64748b'
+            }}
+          >
             &times;
           </button>
         </div>
 
-        <div className="mockup-stage-box" style={{ minHeight: '450px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* 3D Stage */}
+        <div
+          style={{
+            minHeight: '280px',
+            maxHeight: '340px',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+            borderRadius: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.04)'
+          }}
+        >
           {isRenderingMockup ? (
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <i className="bi bi-arrow-repeat spin" style={{ fontSize: '2.5rem', color: 'var(--blue-primary)' }}></i>
-              <div style={{ marginTop: '12px', fontWeight: 600, color: 'var(--text-main)' }}>
-                Đang tạo phối cảnh 3D góc nghiêng và đổ bóng tự nhiên...
+            <div style={{ textAlign: 'center' }}>
+              <i className="bi bi-arrow-repeat spin" style={{ fontSize: '2rem', color: '#2563eb' }}></i>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a', marginTop: '8px' }}>
+                Đang tạo chiều sâu 3D...
               </div>
             </div>
-          ) : mockupUrl ? (
-            <div className="mockup-persp-wrapper" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-              <img
-                src={mockupUrl}
-                alt="Phối cảnh 3D ấn phẩm"
-                style={{ maxHeight: '520px', maxWidth: '100%', objectFit: 'contain', borderRadius: '10px' }}
-              />
-            </div>
           ) : (
-            <div className="mockup-persp-wrapper" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-              <img
-                src={originalImage}
-                alt="Phối cảnh 3D ấn phẩm"
-                style={{ maxHeight: '480px', maxWidth: '100%', objectFit: 'contain', borderRadius: '8px', transform: 'rotate(-4deg) skewY(3deg)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)' }}
-              />
-            </div>
+            <img
+              src={mockupUrl || originalImage}
+              alt="3D Mockup"
+              style={{
+                maxHeight: '260px',
+                maxWidth: '90%',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                transform: 'rotate(-5deg) skewY(3deg) scale(0.92)',
+                boxShadow: '0 25px 45px -10px rgba(15, 23, 42, 0.45)',
+                transition: 'transform 0.3s ease'
+              }}
+            />
           )}
         </div>
 
-        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            <i className="bi bi-check-circle-fill text-success"></i> Phối cảnh 3D độ nét cao, sẵn sàng gửi khách hàng duyệt mẫu
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="btn-cancel-auth" onClick={onClose}>
-              Đóng
-            </button>
-            <button
-              className="btn-download-toolx"
-              onClick={handleDownload}
-              disabled={!mockupUrl && !originalImage}
-              style={{ padding: '7px 16px' }}
-            >
-              <i className="bi bi-download"></i> Tải Mockup 3D
-            </button>
-          </div>
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+          <button
+            type="button"
+            className="liquid-pill-btn"
+            style={{ flex: 1, padding: '10px 0', justifyContent: 'center' }}
+            onClick={onClose}
+          >
+            Đóng
+          </button>
+
+          <button
+            type="button"
+            className="btn-liquid-primary"
+            style={{ flex: 2, padding: '10px 0' }}
+            onClick={handleDownload}
+            disabled={isRenderingMockup}
+          >
+            <i className="bi bi-download"></i> Tải Mockup 3D
+          </button>
         </div>
       </div>
     </div>
