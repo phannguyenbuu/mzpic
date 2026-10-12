@@ -319,9 +319,9 @@ body {
   box-shadow: 0 8px 24px -4px rgba(6, 182, 212, 0.55), inset 0 1px 1.5px rgba(255, 255, 255, 0.7);
 }
 
-/* Center item: HÌNH VUÔNG CHUẨN (chiều ngang = chiều cao, border-radius: 0) */
+/* Center item: Mở rộng fill active của nút Batch ở giữa ra rộng gấp đôi (116px = 58px * 2) */
 .dock-item-center {
-  width: 58px;
+  width: 116px;
   height: 58px;
   flex-shrink: 0;
   border-radius: 0;
@@ -329,6 +329,7 @@ body {
 }
 
 .dock-item-center.active {
+  width: 116px;
   background: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 50%, #0284c7 100%);
   color: #ffffff;
   border-radius: 0;
@@ -404,9 +405,9 @@ body {
 }
 
 .dock-item-center .dock-badge {
-  right: 6px;
+  right: calc(50% - 28px);
   top: 4px;
-  padding: 1px 4px;
+  padding: 1px 5px;
 }
 
 .dock-badge.badge-active {
