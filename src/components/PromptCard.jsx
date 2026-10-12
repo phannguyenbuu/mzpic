@@ -44,75 +44,83 @@ export default function PromptCard({
   const primaryPresets = [
     {
       id: 'flyer_a4',
-      name: 'Tờ rơi A4',
+      name: 'A4',
+      fullName: 'Tờ rơi A4',
       desc: '210 × 297 mm',
       width: 210,
       height: 297,
       unit: 'mm',
-      gradient: 'gradient-peach-rose',
+      ringColor: '#0284c7', // Olympic Blue
+      activeGlow: '0 0 16px rgba(2, 132, 199, 0.55)',
+      activeBg: 'linear-gradient(135deg, rgba(2, 132, 199, 0.18) 0%, rgba(56, 189, 248, 0.28) 100%)',
       icon: 'bi-file-earmark-text',
       ratio: 'portrait',
+      offsetY: '-5px',
       hint: 'Khổ A4 tiêu chuẩn 210×297 mm cho tờ rơi, kẹp file'
     },
     {
       id: 'flyer_a5',
-      name: 'Tờ rơi A5',
+      name: 'A5',
+      fullName: 'Tờ rơi A5',
       desc: '148 × 210 mm',
       width: 148,
       height: 210,
       unit: 'mm',
-      gradient: 'gradient-deep-cyan',
+      ringColor: '#eab308', // Olympic Yellow
+      activeGlow: '0 0 16px rgba(234, 179, 8, 0.55)',
+      activeBg: 'linear-gradient(135deg, rgba(234, 179, 8, 0.18) 0%, rgba(250, 204, 21, 0.28) 100%)',
       icon: 'bi-file-text',
       ratio: 'portrait',
+      offsetY: '5px',
       hint: 'Khổ A5 nhỏ gọn 148×210 mm, tiết kiệm chi phí in'
     },
     {
       id: 'voucher_std',
       name: 'Voucher',
+      fullName: 'Voucher VIP',
       desc: '18 × 8 cm',
       width: 18,
       height: 8,
       unit: 'cm',
-      gradient: 'gradient-solar-gold',
+      ringColor: '#1e293b', // Olympic Black
+      activeGlow: '0 0 16px rgba(30, 41, 59, 0.55)',
+      activeBg: 'linear-gradient(135deg, rgba(30, 41, 59, 0.18) 0%, rgba(71, 85, 105, 0.28) 100%)',
       icon: 'bi-ticket-perforated',
       ratio: 'landscape',
+      offsetY: '-5px',
       hint: 'Phiếu quà tặng 18×8 cm chuẩn in offset'
     },
     {
       id: 'standee_std',
       name: 'Standee',
+      fullName: 'Standee',
       desc: '0.6 × 1.6 m',
       width: 0.6,
       height: 1.6,
       unit: 'm',
-      gradient: 'gradient-cyber-emerald',
+      ringColor: '#16a34a', // Olympic Green
+      activeGlow: '0 0 16px rgba(22, 163, 74, 0.55)',
+      activeBg: 'linear-gradient(135deg, rgba(22, 163, 74, 0.18) 0%, rgba(52, 211, 153, 0.28) 100%)',
       icon: 'bi-badge-ad',
       ratio: 'portrait',
+      offsetY: '5px',
       hint: 'Standee đứng chữ X / cuốn nhôm sự kiện'
     },
     {
       id: 'namecard_vn',
-      name: 'Namecard',
+      name: 'Card',
+      fullName: 'Namecard',
       desc: '90 × 54 mm',
       width: 90,
       height: 54,
       unit: 'mm',
-      gradient: 'gradient-sunset-amber',
+      ringColor: '#dc2626', // Olympic Red
+      activeGlow: '0 0 16px rgba(220, 38, 38, 0.55)',
+      activeBg: 'linear-gradient(135deg, rgba(220, 38, 38, 0.18) 0%, rgba(248, 113, 113, 0.28) 100%)',
       icon: 'bi-person-badge',
       ratio: 'landscape',
+      offsetY: '-5px',
       hint: 'Danh thiếp tiêu chuẩn Việt Nam 90×54 mm'
-    },
-    {
-      id: 'sticker_round',
-      name: 'Tem Tròn',
-      desc: '5 × 5 cm',
-      width: 5,
-      height: 5,
-      unit: 'cm',
-      gradient: 'gradient-neon-violet',
-      icon: 'bi-patch-check',
-      ratio: 'square',
-      hint: 'Tem nhãn bế tròn 5×5 cm dán hộp quà, ly trà'
     }
   ];
 
@@ -300,139 +308,342 @@ export default function PromptCard({
       {/* Tab Content: KHỔ IN */}
       {subTab === 'specs' && (
         <div>
-          {/* 6 Squircle Presets */}
-          <div className="liquid-squircle-grid" style={{ marginBottom: '10px' }}>
+          {/* 5 Olympic Rings Presets (Spanning 100% full width) */}
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 2px 14px',
+              marginBottom: '4px'
+            }}
+          >
             {primaryPresets.map((preset) => {
               const isSelected = selectedPresetId === preset.id;
               return (
-                <Tooltip key={preset.id} text={preset.hint} position="top">
-                  <div
-                    className={`liquid-squircle-tile ${preset.gradient} ${isSelected ? 'active' : ''}`}
+                <Tooltip key={preset.id} text={`${preset.fullName} (${preset.desc}) - ${preset.hint}`} position="top">
+                  <button
+                    type="button"
                     onClick={() => {
                       if (onSelectPreset) onSelectPreset(preset);
                       if (onAspectRatioChange) onAspectRatioChange(preset.ratio);
                     }}
+                    style={{
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: '50%',
+                      border: isSelected ? `3.5px solid ${preset.ringColor}` : `2.5px solid ${preset.ringColor}`,
+                      background: isSelected
+                        ? preset.activeBg
+                        : 'rgba(255, 255, 255, 0.88)',
+                      boxShadow: isSelected
+                        ? `${preset.activeGlow}, inset 0 2px 6px rgba(255,255,255,0.9)`
+                        : '0 3px 10px rgba(0, 0, 0, 0.05), inset 0 1px 2px rgba(255,255,255,0.85)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: 0,
+                      transform: isSelected
+                        ? `scale(1.08) translateY(${preset.offsetY})`
+                        : `translateY(${preset.offsetY})`,
+                      transition: 'all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                      position: 'relative',
+                      flexShrink: 0
+                    }}
                   >
-                    <div className="tile-specular"></div>
-                    <div className="tile-inner-icon">
-                      <i className={`bi ${preset.icon}`}></i>
-                    </div>
-                    <div className="tile-title">{preset.name}</div>
-                    <div className="tile-dim">{preset.desc}</div>
-                  </div>
+                    <i
+                      className={`bi ${preset.icon}`}
+                      style={{
+                        fontSize: '0.95rem',
+                        color: preset.ringColor,
+                        marginBottom: '1px'
+                      }}
+                    ></i>
+                    <span
+                      style={{
+                        fontSize: '0.62rem',
+                        fontWeight: 800,
+                        color: isSelected ? preset.ringColor : '#334155',
+                        lineHeight: 1
+                      }}
+                    >
+                      {preset.name}
+                    </span>
+                    {isSelected && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '-2px',
+                          right: '-2px',
+                          width: '15px',
+                          height: '15px',
+                          borderRadius: '50%',
+                          background: preset.ringColor,
+                          color: '#ffffff',
+                          fontSize: '0.6rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.3)'
+                        }}
+                      >
+                        <i className="bi bi-check"></i>
+                      </div>
+                    )}
+                  </button>
                 </Tooltip>
               );
             })}
           </div>
 
-          {/* Custom W / H input row */}
+          {/* Custom W / H input row (Spanning full 100% width) */}
           <div
             style={{
-              background: 'rgba(255, 255, 255, 0.6)',
-              borderRadius: '18px',
-              padding: '8px 12px',
-              border: '1px solid rgba(255, 255, 255, 0.8)',
-              marginBottom: '8px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '8px'
+              width: '100%',
+              gap: '8px',
+              marginBottom: '8px'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>W:</span>
+            {/* Input W */}
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                background: 'rgba(255, 255, 255, 0.88)',
+                border: '1.5px solid rgba(226, 232, 240, 0.95)',
+                borderRadius: '16px',
+                padding: '0 12px',
+                height: '42px',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)'
+              }}
+            >
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0284c7', marginRight: '8px' }}>W:</span>
               <input
                 type="number"
                 value={width}
                 onChange={(e) => setWidth && setWidth(parseFloat(e.target.value) || 0)}
-                className="liquid-pill-input"
-                style={{ width: '60px', padding: '4px 6px', fontSize: '0.8rem', textAlign: 'center' }}
+                placeholder="Rộng"
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  background: 'transparent',
+                  outline: 'none',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  color: '#0f172a'
+                }}
               />
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>H:</span>
+            </div>
+
+            {/* Input H */}
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                background: 'rgba(255, 255, 255, 0.88)',
+                border: '1.5px solid rgba(226, 232, 240, 0.95)',
+                borderRadius: '16px',
+                padding: '0 12px',
+                height: '42px',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)'
+              }}
+            >
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0284c7', marginRight: '8px' }}>H:</span>
               <input
                 type="number"
                 value={height}
                 onChange={(e) => setHeight && setHeight(parseFloat(e.target.value) || 0)}
-                className="liquid-pill-input"
-                style={{ width: '60px', padding: '4px 6px', fontSize: '0.8rem', textAlign: 'center' }}
+                placeholder="Cao"
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  background: 'transparent',
+                  outline: 'none',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  color: '#0f172a'
+                }}
               />
             </div>
 
+            {/* Unit Selector */}
             <Tooltip text="Đơn vị đo lường (mm, cm, m, pt, px)">
-              <select
-                value={unit}
-                onChange={(e) => onUnitChange && onUnitChange(e.target.value)}
-                className="liquid-pill-input"
-                style={{ padding: '4px 8px', fontSize: '0.75rem', fontWeight: 700 }}
+              <div
+                style={{
+                  width: '74px',
+                  height: '42px',
+                  background: 'rgba(255, 255, 255, 0.88)',
+                  border: '1.5px solid rgba(226, 232, 240, 0.95)',
+                  borderRadius: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0 8px',
+                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
+                  position: 'relative'
+                }}
               >
-                <option value="mm">mm</option>
-                <option value="cm">cm</option>
-                <option value="m">m</option>
-                <option value="pt">pt</option>
-                <option value="px">px</option>
-              </select>
+                <select
+                  value={unit}
+                  onChange={(e) => onUnitChange && onUnitChange(e.target.value)}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                    background: 'transparent',
+                    outline: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    color: '#0f172a',
+                    cursor: 'pointer',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    textAlign: 'center',
+                    paddingRight: '14px'
+                  }}
+                >
+                  <option value="mm">mm</option>
+                  <option value="cm">cm</option>
+                  <option value="m">m</option>
+                  <option value="pt">pt</option>
+                  <option value="px">px</option>
+                </select>
+                <i
+                  className="bi bi-chevron-down"
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    pointerEvents: 'none',
+                    fontSize: '0.62rem',
+                    color: '#64748b'
+                  }}
+                ></i>
+              </div>
             </Tooltip>
           </div>
 
-          {/* Aspect Ratio & Transparency Row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '2px' }}>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              <Tooltip text="Tỉ lệ vuông 1:1">
-                <button
-                  type="button"
-                  className={`liquid-pill-btn ${aspectRatio === 'square' ? 'active' : ''}`}
-                  onClick={() => onAspectRatioChange && onAspectRatioChange('square')}
-                  style={{ padding: '4px 8px', fontSize: '0.7rem' }}
-                >
-                  1:1
-                </button>
-              </Tooltip>
+          {/* Tỉ lệ Aspect Ratio Capsule (Spanning full 100% width) */}
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              background: 'rgba(241, 245, 249, 0.85)',
+              padding: '3px',
+              borderRadius: '16px',
+              border: '1px solid rgba(226, 232, 240, 0.9)',
+              gap: '4px',
+              marginBottom: '8px'
+            }}
+          >
+            <button
+              type="button"
+              className={`liquid-pill-btn ${aspectRatio === 'square' ? 'active' : ''}`}
+              onClick={() => onAspectRatioChange && onAspectRatioChange('square')}
+              style={{
+                flex: 1,
+                height: '38px',
+                justifyContent: 'center',
+                borderRadius: '13px',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                gap: '6px'
+              }}
+            >
+              <i className="bi bi-square" style={{ fontSize: '0.75rem' }}></i>
+              <span>1:1 Vuông</span>
+            </button>
 
-              <Tooltip text="Tỉ lệ ngang 16:9">
-                <button
-                  type="button"
-                  className={`liquid-pill-btn ${aspectRatio === 'landscape' ? 'active' : ''}`}
-                  onClick={() => onAspectRatioChange && onAspectRatioChange('landscape')}
-                  style={{ padding: '4px 8px', fontSize: '0.7rem' }}
-                >
-                  16:9
-                </button>
-              </Tooltip>
+            <button
+              type="button"
+              className={`liquid-pill-btn ${aspectRatio === 'landscape' ? 'active' : ''}`}
+              onClick={() => onAspectRatioChange && onAspectRatioChange('landscape')}
+              style={{
+                flex: 1,
+                height: '38px',
+                justifyContent: 'center',
+                borderRadius: '13px',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                gap: '6px'
+              }}
+            >
+              <i className="bi bi-aspect-ratio" style={{ fontSize: '0.75rem' }}></i>
+              <span>16:9 Ngang</span>
+            </button>
 
-              <Tooltip text="Tỉ lệ dọc 9:16">
-                <button
-                  type="button"
-                  className={`liquid-pill-btn ${aspectRatio === 'portrait' ? 'active' : ''}`}
-                  onClick={() => onAspectRatioChange && onAspectRatioChange('portrait')}
-                  style={{ padding: '4px 8px', fontSize: '0.7rem' }}
-                >
-                  9:16
-                </button>
-              </Tooltip>
+            <button
+              type="button"
+              className={`liquid-pill-btn ${aspectRatio === 'portrait' ? 'active' : ''}`}
+              onClick={() => onAspectRatioChange && onAspectRatioChange('portrait')}
+              style={{
+                flex: 1,
+                height: '38px',
+                justifyContent: 'center',
+                borderRadius: '13px',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                gap: '6px'
+              }}
+            >
+              <i className="bi bi-phone" style={{ fontSize: '0.75rem' }}></i>
+              <span>9:16 Dọc</span>
+            </button>
+          </div>
+
+          {/* Tách nền toggle (Spanning full 100% width) */}
+          <div
+            onClick={() => setTransparentBg && setTransparentBg(!transparentBg)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '8px 12px',
+              borderRadius: '14px',
+              background: transparentBg ? 'rgba(219, 234, 254, 0.85)' : 'rgba(255, 255, 255, 0.75)',
+              border: transparentBg ? '1.5px solid #3b82f6' : '1px solid rgba(226, 232, 240, 0.85)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              marginBottom: '2px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <i className={`bi bi-transparency ${transparentBg ? 'text-blue-600' : 'text-slate-500'}`} style={{ fontSize: '0.95rem' }}></i>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: transparentBg ? '#1d4ed8' : '#334155' }}>
+                Tách nền trong suốt (PNG không phông)
+              </span>
             </div>
 
-            {/* Transparent Toggle */}
-            <Tooltip text="Tách nền trong suốt: Xuất file PNG không phông">
+            <div
+              style={{
+                width: '34px',
+                height: '18px',
+                borderRadius: '9999px',
+                background: transparentBg ? '#2563eb' : '#cbd5e1',
+                position: 'relative',
+                transition: 'background 0.2s ease'
+              }}
+            >
               <div
-                onClick={() => setTransparentBg && setTransparentBg(!transparentBg)}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  cursor: 'pointer',
-                  background: transparentBg ? '#dbeafe' : 'rgba(255,255,255,0.7)',
-                  border: transparentBg ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.9)',
-                  borderRadius: '9999px',
-                  padding: '3px 8px',
-                  transition: 'all 0.15s ease'
+                  position: 'absolute',
+                  top: '2px',
+                  left: transparentBg ? '18px' : '2px',
+                  width: '14px',
+                  height: '14px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  transition: 'left 0.2s ease',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
                 }}
-              >
-                <i className={`bi bi-transparency ${transparentBg ? 'text-blue-600' : 'text-slate-500'}`} style={{ fontSize: '0.8rem' }}></i>
-                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: transparentBg ? '#1d4ed8' : '#475569' }}>
-                  Tách nền
-                </span>
-              </div>
-            </Tooltip>
+              />
+            </div>
           </div>
         </div>
       )}
