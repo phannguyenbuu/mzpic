@@ -136,7 +136,7 @@ export default function UpscaleSection({ currentStudioImage, showToast }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Kích Nét AI 10X</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Kích Nét AI (2X, 4X, 8X)</span>
             <Tooltip text="Khử vỡ hạt, phục hồi chi tiết và nâng độ phân giải lên 300-600 DPI cho Standee & Biển bạt">
               <span className="tooltip-trigger-icon">?</span>
             </Tooltip>
@@ -172,17 +172,24 @@ export default function UpscaleSection({ currentStudioImage, showToast }) {
         <div style={{ marginBottom: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>Hệ số phóng to:</span>
-            <Tooltip text="Hệ số nhân pixel nguyên bản (2X đến 16X)">
+            <Tooltip text="Hệ số nhân pixel nguyên bản (2X, 4X, 8X)">
               <span className="tooltip-trigger-icon">?</span>
             </Tooltip>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
-            {[2, 4, 8, 10, 16].map((s) => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+            {[2, 4, 8].map((s) => (
               <button
                 key={s}
                 type="button"
                 className={`liquid-pill-btn ${scale === s ? 'active' : ''}`}
-                style={{ justifyContent: 'center', padding: '6px 0', fontSize: '0.75rem', fontWeight: 700 }}
+                style={{
+                  height: '38px',
+                  justifyContent: 'center',
+                  padding: '6px 0',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  borderRadius: '14px'
+                }}
                 onClick={() => setScale(s)}
               >
                 {s}X
