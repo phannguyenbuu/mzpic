@@ -311,24 +311,24 @@ body {
   color: #ffffff;
   border-top-left-radius: 9999px;
   border-bottom-left-radius: 9999px;
-  border-top-right-radius: 28px;
-  border-bottom-right-radius: 28px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
   box-shadow: 0 8px 24px -4px rgba(6, 182, 212, 0.55), inset 0 1px 1.5px rgba(255, 255, 255, 0.7);
 }
 
-/* Center item: chiều ngang = chiều cao (aspect-ratio: 1) */
+/* Center item: HÌNH VUÔNG CHUẨN (chiều ngang = chiều cao, border-radius: 0) */
 .dock-item-center {
   width: 58px;
   height: 58px;
   flex-shrink: 0;
-  border-radius: 9999px;
+  border-radius: 0;
   margin: 0 auto;
 }
 
 .dock-item-center.active {
   background: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 50%, #0284c7 100%);
   color: #ffffff;
-  border-radius: 9999px;
+  border-radius: 0;
   box-shadow: 0 8px 24px -4px rgba(6, 182, 212, 0.55), inset 0 1px 1.5px rgba(255, 255, 255, 0.7);
 }
 
@@ -342,8 +342,8 @@ body {
   color: #ffffff;
   border-top-right-radius: 9999px;
   border-bottom-right-radius: 9999px;
-  border-top-left-radius: 28px;
-  border-bottom-left-radius: 28px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
   box-shadow: 0 8px 24px -4px rgba(6, 182, 212, 0.55), inset 0 1px 1.5px rgba(255, 255, 255, 0.7);
 }
 
