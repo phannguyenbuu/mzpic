@@ -387,9 +387,6 @@ export default function PromptCard({
                   }}
                 ></div>
               </div>
-              <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '4px', textAlign: 'center' }}>
-                {progressText || `Tiến độ: ${progress}%`}
-              </div>
             </div>
           )}
         </div>

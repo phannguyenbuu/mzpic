@@ -105,9 +105,6 @@ export default function ResultCard({
             <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
               Đang render VPS ToolXPrint...
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>
-              Nâng cấp độ phân giải Lanczos 4x 300 DPI
-            </div>
           </div>
         )}
 
