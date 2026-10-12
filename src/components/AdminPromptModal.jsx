@@ -15,7 +15,7 @@ export default function AdminPromptModal({
   const [localList, setLocalList] = useState(templates || []);
   const [localGeneralComment, setLocalGeneralComment] = useState(generalComment || '');
   const [editingId, setEditingId] = useState(null);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // New item form state
   const [newName, setNewName] = useState('');
@@ -105,7 +105,7 @@ export default function AdminPromptModal({
     setNewName('');
     setNewBadge('');
     setNewHiddenPrompt('');
-    setShowAddForm(false);
+    setShowAddModal(false);
     if (showToast) showToast(`Đã thêm & tự động lưu: "${newItem.name}"`, 'success');
   };
 
@@ -137,104 +137,68 @@ export default function AdminPromptModal({
           padding: 0
         }}
       >
-        {/* Header */}
+        {/* Top Action Bar (Header removed per user request) */}
         <div
           style={{
-            padding: '16px 18px',
-            borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
+            padding: '12px 18px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'rgba(255, 255, 255, 0.85)'
+            background: 'rgba(255, 255, 255, 0.95)',
+            borderBottom: '1px solid rgba(226, 232, 240, 0.8)'
           }}
         >
-          <div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <i className="bi bi-sliders text-blue-600"></i>
-              <span>Quản Trị Prompt Mẫu Dropdown</span>
-            </div>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
-              Nội dung prompt mẫu được giấu kín, chỉ gửi ngầm lên VPS
-            </div>
-          </div>
-
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '0.68rem',
-                color: '#15803d',
-                background: 'rgba(34, 197, 94, 0.12)',
-                border: '1px solid rgba(34, 197, 94, 0.25)',
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                fontWeight: 700
-              }}
-            >
-              <i className="bi bi-cloud-check-fill"></i> Tự động lưu
-            </span>
-
             <button
               type="button"
-              onClick={onClose}
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                background: '#f1f5f9',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#64748b'
-              }}
-              title="Đóng bảng quản trị"
+              className="liquid-pill-btn active"
+              style={{ fontSize: '0.74rem', padding: '5px 12px', fontWeight: 700 }}
+              onClick={() => setShowAddModal(true)}
             >
-              <i className="bi bi-x-lg" style={{ fontSize: '0.8rem' }}></i>
+              <i className="bi bi-plus-lg"></i>
+              <span>Thêm tùy chọn mới</span>
             </button>
-          </div>
-        </div>
 
-        {/* Action bar */}
-        <div
-          style={{
-            padding: '10px 18px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: 'rgba(248, 250, 252, 0.7)',
-            borderBottom: '1px solid rgba(226, 232, 240, 0.6)'
-          }}
-        >
+            <Tooltip text="Khôi phục danh sách tùy chọn và comment chung về mặc định">
+              <button
+                type="button"
+                onClick={handleResetDefaults}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#64748b',
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <i className="bi bi-arrow-counterclockwise"></i> Mặc định
+              </button>
+            </Tooltip>
+          </div>
+
           <button
             type="button"
-            className="liquid-pill-btn active"
-            style={{ fontSize: '0.72rem', padding: '4px 10px' }}
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={onClose}
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: '#f1f5f9',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#64748b'
+            }}
+            title="Đóng bảng quản trị"
           >
-            <i className={`bi ${showAddForm ? 'bi-chevron-up' : 'bi-plus-lg'}`}></i>
-            <span>{showAddForm ? 'Đóng form thêm' : 'Thêm tùy chọn mới'}</span>
+            <i className="bi bi-x-lg" style={{ fontSize: '0.8rem' }}></i>
           </button>
-
-          <Tooltip text="Khôi phục danh sách tùy chọn và prompt ẩn ban đầu">
-            <button
-              type="button"
-              onClick={handleResetDefaults}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#64748b',
-                fontSize: '0.72rem',
-                cursor: 'pointer',
-                fontWeight: 600
-              }}
-            >
-              <i className="bi bi-arrow-counterclockwise"></i> Mặc định
-            </button>
-          </Tooltip>
         </div>
 
         {/* Body Scrollable */}
@@ -310,90 +274,6 @@ export default function AdminPromptModal({
               <span>Tự động ghép ngầm vào cuối prompt của mọi lượt render (giấu kín với người dùng).</span>
             </div>
           </div>
-
-          {/* Add form */}
-          {showAddForm && (
-            <form
-              onSubmit={handleAddNew}
-              style={{
-                background: '#ffffff',
-                border: '1.5px solid #93c5fd',
-                borderRadius: '18px',
-                padding: '12px',
-                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.08)'
-              }}
-            >
-              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1e40af', marginBottom: '8px' }}>
-                Tạo tùy chọn mới vào Dropdown
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                <input
-                  type="text"
-                  placeholder="Tên tùy chọn (VD: Voucher VIP)"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="liquid-pill-input"
-                  style={{ flex: 1, fontSize: '0.75rem', padding: '6px 10px' }}
-                  required
-                />
-                <input
-                  type="text"
-                  placeholder="Badge (ngắn)"
-                  value={newBadge}
-                  onChange={(e) => setNewBadge(e.target.value)}
-                  className="liquid-pill-input"
-                  style={{ width: '80px', fontSize: '0.75rem', padding: '6px 8px' }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '8px' }}>
-                <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                  Khổ in liên kết tự động:
-                </label>
-                <select
-                  value={newPresetId}
-                  onChange={(e) => setNewPresetId(e.target.value)}
-                  className="liquid-pill-input"
-                  style={{ width: '100%', fontSize: '0.75rem', padding: '6px 10px' }}
-                >
-                  <option value="">(Không thay đổi khổ in)</option>
-                  {allPresets.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.width}×{p.height} {p.unit})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ marginBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>
-                    Prompt mẫu ẩn (sẽ ghép ngầm khi gửi VPS):
-                  </label>
-                  <span style={{ fontSize: '0.62rem', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
-                    {newHiddenPrompt.length} ký tự
-                  </span>
-                </div>
-                <textarea
-                  rows={3}
-                  placeholder="Nhập phong cách, ánh sáng, chất liệu, tiêu chuẩn 300 DPI... (chỉ gửi đi, không hiện trên ô prompt chính)"
-                  value={newHiddenPrompt}
-                  onChange={(e) => setNewHiddenPrompt(e.target.value)}
-                  className="liquid-pill-input"
-                  style={{ width: '100%', fontSize: '0.75rem', padding: '8px 10px', resize: 'vertical' }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="btn-liquid-primary"
-                style={{ padding: '8px 14px', fontSize: '0.78rem' }}
-              >
-                <i className="bi bi-check-lg"></i> Thêm vào Dropdown
-              </button>
-            </form>
-          )}
 
           {/* List of existing templates */}
           <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -524,6 +404,164 @@ export default function AdminPromptModal({
           </div>
         </div>
       </div>
+
+      {/* Sub-modal: Tạo tùy chọn mới đè lên modal cũ */}
+      {showAddModal && (
+        <div
+          className="liquid-modal-backdrop"
+          onClick={() => setShowAddModal(false)}
+          style={{ zIndex: 10002, background: 'rgba(15, 23, 42, 0.55)' }}
+        >
+          <div
+            className="liquid-modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '380px',
+              width: '92%',
+              padding: '18px 20px',
+              borderRadius: '22px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45)',
+              border: '1px solid rgba(255, 255, 255, 0.95)'
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <i className="bi bi-plus-circle-fill text-blue-600"></i>
+                <span>Tạo tùy chọn mới vào Dropdown</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                style={{
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '50%',
+                  background: '#f1f5f9',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#64748b'
+                }}
+              >
+                <i className="bi bi-x-lg" style={{ fontSize: '0.75rem' }}></i>
+              </button>
+            </div>
+
+            <form onSubmit={handleAddNew}>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                    Tên tùy chọn:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="VD: Sửa ảnh kiến trúc"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="liquid-pill-input"
+                    style={{ width: '100%', fontSize: '0.78rem', padding: '8px 10px' }}
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div style={{ width: '90px' }}>
+                  <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                    Badge (ngắn):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Badge..."
+                    value={newBadge}
+                    onChange={(e) => setNewBadge(e.target.value)}
+                    className="liquid-pill-input"
+                    style={{ width: '100%', fontSize: '0.78rem', padding: '8px 8px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                  Khổ in liên kết tự động:
+                </label>
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <select
+                    value={newPresetId}
+                    onChange={(e) => setNewPresetId(e.target.value)}
+                    className="liquid-pill-input"
+                    style={{
+                      width: '100%',
+                      fontSize: '0.76rem',
+                      padding: '8px 30px 8px 10px',
+                      appearance: 'none',
+                      WebkitAppearance: 'none'
+                    }}
+                  >
+                    <option value="">(Không thay đổi khổ in)</option>
+                    {allPresets.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.width}×{p.height} {p.unit})
+                      </option>
+                    ))}
+                  </select>
+                  <i
+                    className="bi bi-chevron-down"
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      pointerEvents: 'none',
+                      color: '#64748b',
+                      fontSize: '0.72rem'
+                    }}
+                  ></i>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#475569' }}>
+                    Prompt mẫu ẩn (sẽ ghép ngầm khi gửi VPS):
+                  </label>
+                  <span style={{ fontSize: '0.62rem', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
+                    {newHiddenPrompt.length} ký tự
+                  </span>
+                </div>
+                <textarea
+                  rows={4}
+                  placeholder="Nhập phong cách, ánh sáng, chất liệu, tiêu chuẩn 300 DPI... (chỉ gửi đi, không hiện trên ô prompt chính)"
+                  value={newHiddenPrompt}
+                  onChange={(e) => setNewHiddenPrompt(e.target.value)}
+                  className="liquid-pill-input"
+                  style={{ width: '100%', fontSize: '0.75rem', padding: '8px 10px', resize: 'vertical', lineHeight: '1.4' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="liquid-pill-btn"
+                  style={{ flex: 1, padding: '9px 0', justifyContent: 'center', fontSize: '0.76rem' }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="btn-liquid-primary"
+                  style={{ flex: 2, padding: '9px 0', fontSize: '0.78rem' }}
+                >
+                  <i className="bi bi-check-lg"></i>
+                  <span>Thêm vào Dropdown</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
