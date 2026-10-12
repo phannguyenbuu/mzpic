@@ -176,36 +176,38 @@ export default function ResultCard({
       <div
         style={{
           marginTop: '10px',
-          padding: '6px 8px',
+          padding: '6px 10px',
           background: 'rgba(255, 255, 255, 0.75)',
           borderRadius: '18px',
           border: '1px solid rgba(255, 255, 255, 0.9)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '6px'
+          gap: '8px'
         }}
       >
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <Tooltip text="Chỉnh sửa bổ sung ảnh này bằng AI">
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Tooltip text="Chỉnh sửa bổ sung ảnh này bằng AI (Ctrl + E)">
             <button
               type="button"
-              className="liquid-pill-btn"
+              className="liquid-icon-btn"
               onClick={onOpenEdit}
               disabled={!resultImage || isGenerating}
+              aria-label="Sửa ảnh"
             >
-              <i className="bi bi-pencil"></i> Sửa
+              <i className="bi bi-pencil-fill"></i>
             </button>
           </Tooltip>
 
           <Tooltip text="Xem phối cảnh 3D trên bàn làm việc / sự kiện thực tế">
             <button
               type="button"
-              className="liquid-pill-btn"
+              className="liquid-icon-btn"
               onClick={onOpenMockup3D}
               disabled={!resultImage || isGenerating}
+              aria-label="3D Mockup"
             >
-              <i className="bi bi-box-seam"></i> 3D Mockup
+              <i className="bi bi-box-seam-fill"></i>
             </button>
           </Tooltip>
 
@@ -213,26 +215,27 @@ export default function ResultCard({
             <Tooltip text="Xóa phông nền tạo file PNG trong suốt">
               <button
                 type="button"
-                className="liquid-pill-btn"
+                className="liquid-icon-btn"
                 onClick={onRemoveBg}
                 disabled={!resultImage || isGenerating}
+                aria-label="Tách nền"
               >
-                <i className="bi bi-transparency"></i> Tách nền
+                <i className="bi bi-transparency"></i>
               </button>
             </Tooltip>
           )}
         </div>
 
-        {/* Primary Download Button */}
+        {/* Primary Download Button (Icon only) */}
         <Tooltip text="Tải trực tiếp file ảnh độ nét cao chuẩn in 300 DPI">
           <button
             type="button"
-            className="liquid-pill-btn active"
+            className="liquid-icon-btn primary-download"
             onClick={onDownload}
             disabled={!resultImage || isGenerating}
-            style={{ fontWeight: 700 }}
+            aria-label="Tải về file 300 DPI"
           >
-            <i className="bi bi-download"></i> Tải về
+            <i className="bi bi-download"></i>
           </button>
         </Tooltip>
       </div>

@@ -692,7 +692,7 @@ export default function PromptCard({
             disabled={isGenerating}
             style={{
               width: 'auto',
-              minWidth: '104px',
+              minWidth: '130px',
               height: '46px',
               padding: '0 16px',
               borderRadius: '18px',
@@ -709,18 +709,20 @@ export default function PromptCard({
               </>
             ) : (
               <>
-                <i className="bi bi-send-fill" style={{ fontSize: '0.85rem' }}></i>
+                <i className="bi bi-sparkles" style={{ fontSize: '0.88rem' }}></i>
                 <span>Tạo</span>
                 <span
                   style={{
-                    background: 'rgba(255, 255, 255, 0.25)',
-                    padding: '2px 6px',
+                    background: 'rgba(255, 255, 255, 0.28)',
+                    padding: '2px 7px',
                     borderRadius: '9999px',
-                    fontSize: '0.68rem',
-                    fontFamily: 'var(--font-mono)'
+                    fontSize: '0.65rem',
+                    fontWeight: 800,
+                    letterSpacing: '-0.02em',
+                    boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.6)'
                   }}
                 >
-                  2k
+                  2.000đ/ảnh
                 </span>
               </>
             )}

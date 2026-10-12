@@ -30,7 +30,7 @@ export default function Navbar({
         </div>
       </Tooltip>
 
-      {/* Center Utility Capsules: Thư viện & Máy & Admin */}
+      {/* Center Utility Capsules: Thư viện */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         {/* Thư viện */}
         <Tooltip text="Thư viện ảnh VPS thời gian thực" position="bottom">
@@ -44,34 +44,6 @@ export default function Navbar({
             <span>Kho</span>
           </button>
         </Tooltip>
-
-        {/* Máy / Workers Node */}
-        <Tooltip text={`Cụm render VPS: ${onlineWorkersCount} máy trực tuyến`} position="bottom">
-          <button
-            type="button"
-            className={`liquid-pill-btn ${activeTab === 'devices' ? 'active' : ''}`}
-            onClick={() => setActiveTab(activeTab === 'devices' ? 'single' : 'devices')}
-            style={{ padding: '4px 9px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-          >
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
-            <i className="bi bi-cpu"></i>
-            <span>{onlineWorkersCount}</span>
-          </button>
-        </Tooltip>
-
-        {/* Admin Prompt Gear */}
-        {onOpenAdmin && (
-          <Tooltip text="Trang Admin: Tùy chỉnh Dropdown & Prompt ẩn" position="bottom">
-            <button
-              type="button"
-              className="liquid-pill-btn"
-              onClick={onOpenAdmin}
-              style={{ padding: '4px 8px', fontSize: '0.72rem' }}
-            >
-              <i className="bi bi-gear-fill text-slate-600"></i>
-            </button>
-          </Tooltip>
-        )}
       </div>
 
       {/* Right Controls: Wallet & Auth */}
