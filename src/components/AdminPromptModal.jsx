@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Tooltip from './Tooltip';
 import { DESIGN_PRESETS } from '../data/presets';
-import { resetPromptTemplates } from '../data/promptTemplates';
+import { resetPromptTemplates, DEFAULT_GENERAL_COMMENT, resetGeneralComment } from '../data/promptTemplates';
 
 export default function AdminPromptModal({
   isOpen,
   onClose,
   templates,
   onSaveTemplates,
+  generalComment = '',
+  onSaveGeneralComment,
   showToast
 }) {
   const [localList, setLocalList] = useState(templates || []);
+  const [localGeneralComment, setLocalGeneralComment] = useState(generalComment || '');
   const [editingId, setEditingId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -19,6 +22,14 @@ export default function AdminPromptModal({
   const [newBadge, setNewBadge] = useState('');
   const [newPresetId, setNewPresetId] = useState('flyer_a4');
   const [newHiddenPrompt, setNewHiddenPrompt] = useState('');
+
+  useEffect(() => {
+    if (templates) setLocalList(templates);
+  }, [templates]);
+
+  useEffect(() => {
+    if (generalComment !== undefined) setLocalGeneralComment(generalComment || '');
+  }, [generalComment, isOpen]);
 
   if (!isOpen) return null;
 
@@ -76,7 +87,10 @@ export default function AdminPromptModal({
 
   const handleSaveAll = () => {
     onSaveTemplates(localList);
-    if (showToast) showToast('🎉 Đã lưu cấu hình Prompt Dropdown thành công!', 'success');
+    if (onSaveGeneralComment) {
+      onSaveGeneralComment(localGeneralComment);
+    }
+    if (showToast) showToast('🎉 Đã lưu cấu hình Admin & Comment chung thành công!', 'success');
     onClose();
   };
 
@@ -84,7 +98,12 @@ export default function AdminPromptModal({
     const defaults = resetPromptTemplates();
     setLocalList(defaults);
     onSaveTemplates(defaults);
-    if (showToast) showToast('Đã khôi phục danh sách Prompt mẫu về mặc định!', 'info');
+    const defaultComment = resetGeneralComment();
+    setLocalGeneralComment(defaultComment);
+    if (onSaveGeneralComment) {
+      onSaveGeneralComment(defaultComment);
+    }
+    if (showToast) showToast('Đã khôi phục danh sách tùy chọn và comment chung về mặc định!', 'info');
   };
 
   return (
@@ -183,6 +202,73 @@ export default function AdminPromptModal({
 
         {/* Body Scrollable */}
         <div style={{ padding: '14px 18px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* General Comment Card (Comment chung áp dụng toàn hệ thống) */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(240, 253, 250, 0.95) 0%, rgba(239, 246, 255, 0.95) 100%)',
+              border: '1.5px solid rgba(14, 165, 233, 0.3)',
+              borderRadius: '18px',
+              padding: '12px 14px',
+              boxShadow: '0 4px 14px -3px rgba(14, 165, 233, 0.1)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <i className="bi bi-chat-square-quote-fill" style={{ color: '#0284c7', fontSize: '0.85rem' }}></i>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0369a1' }}>
+                  Comment chung (General Comment)
+                </span>
+                <Tooltip text="Nội dung này được tự động ghép ngầm vào TẤT CẢ các lượt tạo ảnh trên VPS (bất kể tùy chọn dropdown nào được chọn).">
+                  <span className="tooltip-trigger-icon" style={{ width: '16px', height: '16px', fontSize: '0.62rem' }}>?</span>
+                </Tooltip>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.65rem', color: '#0284c7', fontFamily: 'var(--font-mono)' }}>
+                  {localGeneralComment.length} ký tự
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setLocalGeneralComment(DEFAULT_GENERAL_COMMENT)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#0284c7',
+                    fontSize: '0.68rem',
+                    cursor: 'pointer',
+                    padding: 0,
+                    textDecoration: 'underline',
+                    fontWeight: 600
+                  }}
+                  title="Điền mẫu comment chung chuẩn in 300 DPI"
+                >
+                  Mẫu chuẩn
+                </button>
+              </div>
+            </div>
+
+            <textarea
+              rows={3}
+              value={localGeneralComment}
+              onChange={(e) => setLocalGeneralComment(e.target.value)}
+              placeholder="Nhập nội dung comment chung (VD: chuẩn in ấn thương mại 300 DPI, màu sắc CMYK tươi sáng, không lỗi font...)"
+              className="liquid-pill-input"
+              style={{
+                width: '100%',
+                fontSize: '0.74rem',
+                lineHeight: '1.4',
+                padding: '8px 10px',
+                background: 'rgba(255, 255, 255, 0.9)',
+                border: '1px solid rgba(14, 165, 233, 0.25)',
+                resize: 'vertical'
+              }}
+            />
+            <div style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <i className="bi bi-info-circle" style={{ fontSize: '0.65rem', color: '#0284c7' }}></i>
+              <span>Tự động ghép ngầm vào cuối prompt của mọi lượt render (giấu kín với người dùng).</span>
+            </div>
+          </div>
+
           {/* Add form */}
           {showAddForm && (
             <form

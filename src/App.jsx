@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from './components/Navbar';
 import BottomDock from './components/BottomDock';
 import PromptCard from './components/PromptCard';
-import PrintSpecsCard from './components/PrintSpecsCard';
 import ResultCard from './components/ResultCard';
 import Mockup3DModal from './components/Mockup3DModal';
 import GoogleAuthModal from './components/GoogleAuthModal';
@@ -16,7 +15,7 @@ import BatchSection from './components/BatchSection';
 import UpscaleSection from './components/UpscaleSection';
 import ApiDocsSection from './components/ApiDocsSection';
 import { DESIGN_PRESETS, convertDimension, calculatePixels } from './data/presets';
-import { getPromptTemplates, savePromptTemplates } from './data/promptTemplates';
+import { getPromptTemplates, savePromptTemplates, getGeneralComment, saveGeneralComment } from './data/promptTemplates';
 
 export default function App() {
   // App States
@@ -35,6 +34,7 @@ export default function App() {
     const list = getPromptTemplates();
     return list[0]?.id || 'tpl_voucher_gold';
   });
+  const [generalComment, setGeneralComment] = useState(getGeneralComment);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   
   // Ví & Tài khoản
@@ -196,6 +196,12 @@ export default function App() {
     }
   };
 
+  // Handle saving general comment from Admin Modal
+  const handleSaveGeneralComment = (newComment) => {
+    setGeneralComment(newComment);
+    saveGeneralComment(newComment);
+  };
+
   // Reset Session
   const handleResetSession = () => {
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -249,6 +255,11 @@ export default function App() {
     const activeTpl = promptTemplates.find((t) => t.id === selectedTemplateId);
     if (activeTpl && activeTpl.hiddenPrompt && activeTpl.hiddenPrompt.trim()) {
       finalPrompt += `, ${activeTpl.hiddenPrompt.trim()}`;
+    }
+
+    // Ghép ngầm nội dung comment chung (General Comment) từ Admin
+    if (generalComment && generalComment.trim()) {
+      finalPrompt += `, ${generalComment.trim()}`;
     }
 
     if (transparentBg) {
@@ -489,7 +500,7 @@ export default function App() {
                 onRemoveBg={handleRemoveBg}
               />
 
-              {/* Prompt & Action Controls */}
+              {/* Prompt & Khổ In Unified 2-Tab Liquid Card */}
               <PromptCard
                 prompt={prompt}
                 setPrompt={setPrompt}
@@ -502,10 +513,6 @@ export default function App() {
                 selectedTemplateId={selectedTemplateId}
                 onSelectTemplateId={handleSelectTemplateId}
                 onOpenAdmin={() => setAdminModalOpen(true)}
-              />
-
-              {/* Print Specifications & Liquid Squircle Presets */}
-              <PrintSpecsCard
                 selectedPresetId={selectedPresetId}
                 onSelectPreset={handleSelectPreset}
                 width={width}
@@ -518,8 +525,6 @@ export default function App() {
                 onAspectRatioChange={handleAspectRatioChange}
                 transparentBg={transparentBg}
                 setTransparentBg={setTransparentBg}
-                selectedStyleId={selectedStyleId}
-                setSelectedStyleId={setSelectedStyleId}
               />
             </>
           )}
@@ -600,12 +605,14 @@ export default function App() {
         isEditing={isEditing}
       />
 
-      {/* Admin Custom Prompts Modal */}
+      {/* Admin Custom Prompts & General Comment Modal */}
       <AdminPromptModal
         isOpen={adminModalOpen}
         onClose={() => setAdminModalOpen(false)}
         templates={promptTemplates}
         onSaveTemplates={handleSaveTemplates}
+        generalComment={generalComment}
+        onSaveGeneralComment={handleSaveGeneralComment}
         showToast={showToast}
       />
 

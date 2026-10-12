@@ -62,7 +62,11 @@ export const DEFAULT_PROMPT_TEMPLATES = [
   }
 ];
 
+export const DEFAULT_GENERAL_COMMENT =
+  "chuẩn in ấn thương mại độ nét cao 300 DPI, màu sắc tươi sáng chuẩn hệ màu in CMYK, bố cục phân cấp thị giác chuyên nghiệp, không lỗi font, typography sắc sảo cao cấp";
+
 const STORAGE_KEY = 'mzpic_custom_prompt_templates_v2';
+const GENERAL_COMMENT_KEY = 'mzpic_admin_general_comment_v1';
 
 export function getPromptTemplates() {
   try {
@@ -92,4 +96,31 @@ export function resetPromptTemplates() {
     localStorage.removeItem(STORAGE_KEY);
   } catch (e) {}
   return DEFAULT_PROMPT_TEMPLATES;
+}
+
+export function getGeneralComment() {
+  try {
+    const saved = localStorage.getItem(GENERAL_COMMENT_KEY);
+    if (saved !== null && saved !== undefined) {
+      return saved;
+    }
+  } catch (e) {
+    console.error('Lỗi nạp general comment:', e);
+  }
+  return DEFAULT_GENERAL_COMMENT;
+}
+
+export function saveGeneralComment(comment) {
+  try {
+    localStorage.setItem(GENERAL_COMMENT_KEY, comment);
+  } catch (e) {
+    console.error('Lỗi lưu general comment:', e);
+  }
+}
+
+export function resetGeneralComment() {
+  try {
+    localStorage.removeItem(GENERAL_COMMENT_KEY);
+  } catch (e) {}
+  return DEFAULT_GENERAL_COMMENT;
 }
