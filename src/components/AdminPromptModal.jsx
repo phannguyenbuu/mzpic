@@ -35,10 +35,26 @@ export default function AdminPromptModal({
 
   const allPresets = DESIGN_PRESETS.flatMap((c) => c.items);
 
+  const persistTemplates = (list) => {
+    onSaveTemplates(list);
+    savePromptTemplates(list);
+  };
+
+  const persistGeneralComment = (comment) => {
+    if (onSaveGeneralComment) {
+      onSaveGeneralComment(comment);
+    }
+    saveGeneralComment(comment);
+  };
+
   const handleUpdateHiddenPrompt = (id, newPrompt) => {
     setLocalList((prev) =>
       prev.map((item) => (item.id === id ? { ...item, hiddenPrompt: newPrompt } : item))
     );
+  };
+
+  const handleBlurHiddenPrompt = () => {
+    persistTemplates(localList);
   };
 
   const handleUpdateName = (id, newName) => {
@@ -47,10 +63,14 @@ export default function AdminPromptModal({
     );
   };
 
+  const handleBlurName = () => {
+    persistTemplates(localList);
+  };
+
   const handleUpdatePreset = (id, newPresetId) => {
-    setLocalList((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, presetId: newPresetId } : item))
-    );
+    const updated = localList.map((item) => (item.id === id ? { ...item, presetId: newPresetId } : item));
+    setLocalList(updated);
+    persistTemplates(updated);
   };
 
   const handleDelete = (id) => {
@@ -58,8 +78,10 @@ export default function AdminPromptModal({
       if (showToast) showToast('Cần giữ lại ít nhất 1 tùy chọn trong Dropdown!', 'error');
       return;
     }
-    setLocalList((prev) => prev.filter((item) => item.id !== id));
-    if (showToast) showToast('Đã xóa tùy chọn khỏi danh sách.', 'info');
+    const updated = localList.filter((item) => item.id !== id);
+    setLocalList(updated);
+    persistTemplates(updated);
+    if (showToast) showToast('Đã xóa và tự động lưu cấu hình.', 'info');
   };
 
   const handleAddNew = (e) => {
@@ -77,33 +99,28 @@ export default function AdminPromptModal({
       hiddenPrompt: newHiddenPrompt.trim()
     };
 
-    setLocalList((prev) => [newItem, ...prev]);
+    const updated = [newItem, ...localList];
+    setLocalList(updated);
+    persistTemplates(updated);
     setNewName('');
     setNewBadge('');
     setNewHiddenPrompt('');
     setShowAddForm(false);
-    if (showToast) showToast(`Đã thêm tùy chọn: "${newItem.name}"`, 'success');
+    if (showToast) showToast(`Đã thêm & tự động lưu: "${newItem.name}"`, 'success');
   };
 
-  const handleSaveAll = () => {
-    onSaveTemplates(localList);
-    if (onSaveGeneralComment) {
-      onSaveGeneralComment(localGeneralComment);
-    }
-    if (showToast) showToast('🎉 Đã lưu cấu hình Admin & Comment chung thành công!', 'success');
-    onClose();
+  const handleBlurGeneralComment = () => {
+    persistGeneralComment(localGeneralComment);
   };
 
   const handleResetDefaults = () => {
     const defaults = resetPromptTemplates();
     setLocalList(defaults);
-    onSaveTemplates(defaults);
+    persistTemplates(defaults);
     const defaultComment = resetGeneralComment();
     setLocalGeneralComment(defaultComment);
-    if (onSaveGeneralComment) {
-      onSaveGeneralComment(defaultComment);
-    }
-    if (showToast) showToast('Đã khôi phục danh sách tùy chọn và comment chung về mặc định!', 'info');
+    persistGeneralComment(defaultComment);
+    if (showToast) showToast('Đã khôi phục danh sách và tự động lưu!', 'info');
   };
 
   return (
@@ -141,24 +158,44 @@ export default function AdminPromptModal({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '50%',
-              background: '#f1f5f9',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#64748b'
-            }}
-          >
-            <i className="bi bi-x-lg" style={{ fontSize: '0.8rem' }}></i>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '0.68rem',
+                color: '#15803d',
+                background: 'rgba(34, 197, 94, 0.12)',
+                border: '1px solid rgba(34, 197, 94, 0.25)',
+                padding: '2px 8px',
+                borderRadius: '9999px',
+                fontWeight: 700
+              }}
+            >
+              <i className="bi bi-cloud-check-fill"></i> Tự động lưu
+            </span>
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: '#f1f5f9',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748b'
+              }}
+              title="Đóng bảng quản trị"
+            >
+              <i className="bi bi-x-lg" style={{ fontSize: '0.8rem' }}></i>
+            </button>
+          </div>
         </div>
 
         {/* Action bar */}
@@ -229,7 +266,11 @@ export default function AdminPromptModal({
                 </span>
                 <button
                   type="button"
-                  onClick={() => setLocalGeneralComment(DEFAULT_GENERAL_COMMENT)}
+                  onClick={() => {
+                    setLocalGeneralComment(DEFAULT_GENERAL_COMMENT);
+                    persistGeneralComment(DEFAULT_GENERAL_COMMENT);
+                    if (showToast) showToast('Đã áp dụng mẫu comment chung & tự động lưu!', 'success');
+                  }}
                   style={{
                     background: 'transparent',
                     border: 'none',
@@ -251,6 +292,7 @@ export default function AdminPromptModal({
               rows={3}
               value={localGeneralComment}
               onChange={(e) => setLocalGeneralComment(e.target.value)}
+              onBlur={handleBlurGeneralComment}
               placeholder="Nhập nội dung comment chung (VD: chuẩn in ấn thương mại 300 DPI, màu sắc CMYK tươi sáng, không lỗi font...)"
               className="liquid-pill-input"
               style={{
@@ -381,6 +423,7 @@ export default function AdminPromptModal({
                     type="text"
                     value={tpl.name}
                     onChange={(e) => handleUpdateName(tpl.id, e.target.value)}
+                    onBlur={handleBlurName}
                     className="liquid-pill-input"
                     style={{ flex: 1, fontSize: '0.78rem', fontWeight: 700, padding: '4px 8px' }}
                   />
@@ -442,6 +485,7 @@ export default function AdminPromptModal({
                   rows={2}
                   value={tpl.hiddenPrompt || ''}
                   onChange={(e) => handleUpdateHiddenPrompt(tpl.id, e.target.value)}
+                  onBlur={handleBlurHiddenPrompt}
                   placeholder="Nhập nội dung prompt mẫu ẩn..."
                   className="liquid-pill-input"
                   style={{
@@ -456,35 +500,28 @@ export default function AdminPromptModal({
               </div>
             </div>
           ))}
-        </div>
 
-        {/* Footer save */}
-        <div
-          style={{
-            padding: '12px 18px',
-            borderTop: '1px solid rgba(226, 232, 240, 0.8)',
-            background: 'rgba(255, 255, 255, 0.9)',
-            display: 'flex',
-            gap: '8px'
-          }}
-        >
-          <button
-            type="button"
-            className="liquid-pill-btn"
-            onClick={onClose}
-            style={{ flex: 1, justifyContent: 'center', padding: '10px' }}
+          {/* Auto-save notification note */}
+          <div
+            style={{
+              padding: '10px 14px',
+              borderRadius: '14px',
+              background: 'rgba(240, 253, 244, 0.85)',
+              border: '1px solid rgba(187, 247, 208, 0.9)',
+              textAlign: 'center',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              color: '#15803d',
+              marginTop: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
           >
-            Đóng
-          </button>
-          <button
-            type="button"
-            className="btn-liquid-primary"
-            onClick={handleSaveAll}
-            style={{ flex: 2, padding: '10px' }}
-          >
-            <i className="bi bi-save"></i>
-            <span>Lưu thay đổi Dropdown</span>
-          </button>
+            <i className="bi bi-shield-check" style={{ fontSize: '0.85rem' }}></i>
+            <span>Tất cả thay đổi được tự động lưu ngay khi bạn rời khỏi ô nhập hoặc dropdown.</span>
+          </div>
         </div>
       </div>
     </div>

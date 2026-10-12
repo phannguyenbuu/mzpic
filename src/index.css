@@ -427,9 +427,9 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-/* Center item: Mở rộng fill active của nút Batch ở giữa ra rộng gấp đôi (116px = 58px * 2) */
+/* Center item: Mở rộng fill active của nút Batch ở giữa ra rộng gấp đôi (120px = 60px * 2) */
 .dock-item-center {
-  width: 116px;
+  width: 120px;
   height: 58px;
   flex-shrink: 0;
   border-radius: 0;
@@ -437,7 +437,7 @@ body {
 }
 
 .dock-item-center.active {
-  width: 116px;
+  width: 120px;
   background: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 45%, #2563eb 100%);
   color: #ffffff;
   border-radius: 0;
@@ -494,6 +494,7 @@ body {
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+  white-space: nowrap;
   transition: all 0.2s ease;
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Tooltip from './Tooltip';
 import { DESIGN_PRESETS, DESIGN_STYLES } from '../data/presets';
 
@@ -10,6 +10,33 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
   const [selectedStyleId, setSelectedStyleId] = useState('style_foil_luxury');
   const [batchItems, setBatchItems] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [referenceImage, setReferenceImage] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      if (showToast) showToast('Vui lòng chọn file hình ảnh (PNG, JPG, WEBP)!', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setReferenceImage({
+        url: event.target.result,
+        name: file.name,
+        sizeMb: (file.size / (1024 * 1024)).toFixed(2)
+      });
+      if (showToast) showToast(`Đã tải ảnh cũ lên: ${file.name}`, 'success');
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleRemoveImage = () => {
+    setReferenceImage(null);
+    if (showToast) showToast('Đã gỡ ảnh cũ tham chiếu', 'info');
+  };
 
   const startBatch = async () => {
     const rawLines = promptsText.split('\n').map((l) => l.replace(/^[0-9]+[.)]\s*/, '').trim()).filter(Boolean);
@@ -37,16 +64,22 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
       );
 
       try {
+        let promptPayload = items[i].prompt;
+        if (referenceImage) {
+          promptPayload += ', reference base image provided, refine and restyle based on this source image';
+        }
+
         const resp = await fetch('/render-job', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            prompt: items[i].prompt,
+            prompt: promptPayload,
             aspect_ratio: '1:1',
             resolution: '1080p',
             engine: 'gpt',
             use_ai_enhancer: true,
-            presets: { style: selectedStyleId }
+            presets: { style: selectedStyleId },
+            init_image: referenceImage ? referenceImage.url : undefined
           })
         });
 
@@ -112,11 +145,95 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
       <div className="liquid-card">
         <div className="liquid-card-glow"></div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Batch Prompts</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Danh Sách Prompt Hàng Loạt</span>
           <Tooltip text="Nhập mỗi dòng một mô tả ấn phẩm để hệ thống tự động sinh hàng loạt qua VPS">
             <span className="tooltip-trigger-icon">?</span>
           </Tooltip>
         </div>
+
+        {/* Reference / Old Image Upload Section */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          style={{ display: 'none' }}
+        />
+
+        {!referenceImage ? (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="liquid-pill-btn"
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              justifyContent: 'center',
+              fontSize: '0.76rem',
+              fontWeight: 700,
+              border: '1.5px dashed rgba(59, 130, 246, 0.45)',
+              background: 'rgba(239, 246, 255, 0.7)',
+              color: '#1d4ed8',
+              marginBottom: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <i className="bi bi-cloud-arrow-up" style={{ fontSize: '0.95rem' }}></i>
+            <span>Up ảnh cũ lên để GenAI sửa hàng loạt</span>
+          </button>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '6px 10px',
+              background: 'rgba(240, 249, 255, 0.9)',
+              border: '1px solid rgba(186, 230, 253, 0.95)',
+              borderRadius: '16px',
+              marginBottom: '10px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <img
+                src={referenceImage.url}
+                alt="Ảnh cũ tham chiếu"
+                style={{ width: '38px', height: '38px', borderRadius: '10px', objectFit: 'cover', border: '1.5px solid #0284c7' }}
+              />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <i className="bi bi-image-fill"></i>
+                  <span>Ảnh cũ tham chiếu</span>
+                </div>
+                <div style={{ fontSize: '0.64rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {referenceImage.name} ({referenceImage.sizeMb} MB)
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleRemoveImage}
+              style={{
+                width: '26px',
+                height: '26px',
+                borderRadius: '50%',
+                background: '#fee2e2',
+                border: 'none',
+                color: '#ef4444',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.78rem'
+              }}
+              title="Gỡ ảnh cũ"
+            >
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
+        )}
 
         <textarea
           rows={4}
@@ -127,35 +244,82 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
           style={{ width: '100%', borderRadius: '18px', resize: 'none', padding: '10px 12px', marginBottom: '10px', fontSize: '0.82rem' }}
         />
 
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+        {/* 2 Dropdowns stacked Vertically (trên / dưới) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+          {/* Dropdown 1 (Trên): Khổ ấn phẩm */}
           <Tooltip text="Khổ ấn phẩm áp dụng cho toàn bộ danh sách">
-            <select
-              value={selectedPresetId}
-              onChange={(e) => setSelectedPresetId(e.target.value)}
-              className="liquid-pill-input"
-              style={{ flex: 1, fontSize: '0.75rem', padding: '6px 8px' }}
-            >
-              {DESIGN_PRESETS.flatMap((c) => c.items).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
+            <div style={{ position: 'relative', width: '100%' }}>
+              <select
+                value={selectedPresetId}
+                onChange={(e) => setSelectedPresetId(e.target.value)}
+                className="liquid-pill-input"
+                style={{
+                  width: '100%',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  padding: '9px 32px 9px 12px',
+                  borderRadius: '16px',
+                  appearance: 'none',
+                  WebkitAppearance: 'none'
+                }}
+              >
+                {DESIGN_PRESETS.flatMap((c) => c.items).map((item) => (
+                  <option key={item.id} value={item.id}>
+                    Khổ in: {item.name} ({item.width} × {item.height} {item.unit})
+                  </option>
+                ))}
+              </select>
+              <i
+                className="bi bi-chevron-down"
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                  color: '#64748b',
+                  fontSize: '0.72rem'
+                }}
+              ></i>
+            </div>
           </Tooltip>
 
+          {/* Dropdown 2 (Dưới): Phong cách gia công */}
           <Tooltip text="Phong cách gia công in ấn">
-            <select
-              value={selectedStyleId}
-              onChange={(e) => setSelectedStyleId(e.target.value)}
-              className="liquid-pill-input"
-              style={{ flex: 1, fontSize: '0.75rem', padding: '6px 8px' }}
-            >
-              {DESIGN_STYLES.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            <div style={{ position: 'relative', width: '100%' }}>
+              <select
+                value={selectedStyleId}
+                onChange={(e) => setSelectedStyleId(e.target.value)}
+                className="liquid-pill-input"
+                style={{
+                  width: '100%',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  padding: '9px 32px 9px 12px',
+                  borderRadius: '16px',
+                  appearance: 'none',
+                  WebkitAppearance: 'none'
+                }}
+              >
+                {DESIGN_STYLES.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    Phong cách: {s.name}
+                  </option>
+                ))}
+              </select>
+              <i
+                className="bi bi-chevron-down"
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                  color: '#64748b',
+                  fontSize: '0.72rem'
+                }}
+              ></i>
+            </div>
           </Tooltip>
         </div>
 

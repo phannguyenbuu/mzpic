@@ -3,8 +3,8 @@ import Tooltip from './Tooltip';
 
 export default function BottomDock({ activeTab, setActiveTab }) {
   const items = [
-    { id: 'single', label: 'Single', icon: 'bi-stars', hint: 'Tạo & Sửa ấn phẩm đơn lẻ', pos: 'left' },
-    { id: 'batch', label: 'Batch', icon: 'bi-stack', badge: 'Mới', hint: 'Tạo ấn phẩm hàng loạt theo danh sách', pos: 'center' },
+    { id: 'single', label: 'Ảnh Đơn', icon: 'bi-stars', hint: 'Tạo & Sửa ấn phẩm đơn lẻ', pos: 'left' },
+    { id: 'batch', label: 'Tạo Hàng Loạt', icon: 'bi-stack', hint: 'Tạo ấn phẩm hàng loạt theo danh sách', pos: 'center' },
     { id: 'upscale', label: 'Kích Nét', icon: 'bi-arrows-angle-expand', badge: '8X', hint: 'Kích nét siêu phân giải 2X, 4X, 8X', pos: 'right' },
   ];
 

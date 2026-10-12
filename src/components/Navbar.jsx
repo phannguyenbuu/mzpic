@@ -32,15 +32,24 @@ export default function Navbar({
 
       {/* Center Utility Capsules: Thư viện */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        {/* Thư viện */}
+        {/* Thư viện - Tăng bề rộng gấp đôi */}
         <Tooltip text="Thư viện ảnh VPS thời gian thực" position="bottom">
           <button
             type="button"
             className={`liquid-pill-btn ${activeTab === 'library' ? 'active' : ''}`}
             onClick={() => setActiveTab(activeTab === 'library' ? 'single' : 'library')}
-            style={{ padding: '4px 9px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+            style={{
+              minWidth: '108px',
+              padding: '5px 18px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
           >
-            <i className="bi bi-images"></i>
+            <i className="bi bi-images" style={{ fontSize: '0.85rem' }}></i>
             <span>Kho</span>
           </button>
         </Tooltip>

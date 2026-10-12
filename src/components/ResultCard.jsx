@@ -5,6 +5,7 @@ import { calculatePixels } from '../data/presets';
 export default function ResultCard({
   resultImage,
   isGenerating,
+  referenceImage,
   width,
   height,
   unit,
@@ -40,8 +41,8 @@ export default function ResultCard({
         }}
         className={transparentBg ? 'transparent-checkered' : ''}
       >
-        {/* Empty State */}
-        {!resultImage && !isGenerating && (
+        {/* Empty State (No image, no reference image) */}
+        {!resultImage && !isGenerating && !referenceImage && (
           <div style={{ textAlign: 'center', padding: '30px 16px', color: '#64748b' }}>
             <div
               style={{
@@ -64,7 +65,22 @@ export default function ResultCard({
               Chưa có kết quả thiết kế
             </div>
             <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-              Nhập prompt &amp; bấm Tạo ấn phẩm để xuất file 300 DPI
+              Nhập prompt &amp; bấm Tạo để xuất file 300 DPI (hoặc tải ảnh cũ lên để sửa)
+            </div>
+          </div>
+        )}
+
+        {/* Reference Image Pre-Generation Preview */}
+        {!resultImage && !isGenerating && referenceImage && (
+          <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+            <img
+              src={referenceImage.url}
+              alt="Ảnh cũ tham chiếu"
+              style={{ maxWidth: '85%', maxHeight: '200px', objectFit: 'contain', borderRadius: '16px', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
+            />
+            <div style={{ marginTop: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(240, 249, 255, 0.95)', border: '1px solid #bae6fd', padding: '4px 12px', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: 700, color: '#0369a1' }}>
+              <i className="bi bi-cloud-check-fill text-blue-600"></i>
+              <span>Đã tải ảnh cũ. Nhập prompt sửa và bấm Tạo!</span>
             </div>
           </div>
         )}

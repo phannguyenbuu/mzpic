@@ -17,6 +17,35 @@ import ApiDocsSection from './components/ApiDocsSection';
 import { DESIGN_PRESETS, convertDimension, calculatePixels } from './data/presets';
 import { getPromptTemplates, savePromptTemplates, getGeneralComment, saveGeneralComment } from './data/promptTemplates';
 
+// Route synchronizer: mỗi tab là 1 route
+const ROUTE_MAP = {
+  '/': 'single',
+  '/single': 'single',
+  '/batch': 'batch',
+  '/upscale': 'upscale',
+  '/library': 'library',
+  '/devices': 'devices',
+  '/workers': 'devices',
+  '/docs': 'docs'
+};
+
+const TAB_TO_ROUTE = {
+  single: '/single',
+  batch: '/batch',
+  upscale: '/upscale',
+  library: '/library',
+  devices: '/devices',
+  docs: '/docs'
+};
+
+const getInitialTab = () => {
+  const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
+  if (ROUTE_MAP[path]) return ROUTE_MAP[path];
+  const hash = window.location.hash.toLowerCase().replace(/^#\/?/, '/');
+  if (ROUTE_MAP[hash]) return ROUTE_MAP[hash];
+  return 'single';
+};
+
 export default function App() {
   // App States
   const [prompt, setPrompt] = useState('');
@@ -27,6 +56,7 @@ export default function App() {
   const [transparentBg, setTransparentBg] = useState(false);
   const [selectedPresetId, setSelectedPresetId] = useState('flyer_a4');
   const [selectedStyleId, setSelectedStyleId] = useState('none');
+  const [referenceImage, setReferenceImage] = useState(null);
 
   // Custom Prompt Templates & Admin
   const [promptTemplates, setPromptTemplates] = useState(getPromptTemplates);
@@ -54,9 +84,33 @@ export default function App() {
   const [resultFilename, setResultFilename] = useState(null);
   const [fileMeta, setFileMeta] = useState(null);
 
-  // Tabs & Navigation
-  const [activeTab, setActiveTab] = useState('single');
+  // Tabs & Routing
+  const [activeTab, setActiveTabState] = useState(getInitialTab);
   const [onlineWorkersCount, setOnlineWorkersCount] = useState(3);
+
+  const setActiveTab = useCallback((newTab) => {
+    setActiveTabState(newTab);
+    const targetRoute = TAB_TO_ROUTE[newTab] || '/single';
+    if (window.location.pathname !== targetRoute) {
+      window.history.pushState({ tab: newTab }, '', targetRoute);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = (e) => {
+      const tabFromState = e.state?.tab;
+      if (tabFromState) {
+        setActiveTabState(tabFromState);
+      } else {
+        const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
+        const tab = ROUTE_MAP[path] || 'single';
+        setActiveTabState(tab);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Modals
   const [topupOpen, setTopupOpen] = useState(false);
@@ -209,10 +263,34 @@ export default function App() {
     setResultImage(null);
     setResultFilename(null);
     setFileMeta(null);
+    setReferenceImage(null);
     setProgress(0);
     setProgressText('');
     setMockupUrl(null);
     showToast('Đã reset phiên làm việc!', 'info');
+  };
+
+  // Handle Reference Image Upload (Ảnh cũ để AI sửa)
+  const handleUploadReferenceImage = (file) => {
+    if (!file.type.startsWith('image/')) {
+      showToast('Vui lòng chọn file hình ảnh (PNG, JPG, WEBP)!', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setReferenceImage({
+        url: event.target.result,
+        name: file.name,
+        sizeMb: (file.size / (1024 * 1024)).toFixed(2)
+      });
+      showToast(`Đã tải ảnh cũ lên: ${file.name}`, 'success');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveReferenceImage = () => {
+    setReferenceImage(null);
+    showToast('Đã gỡ ảnh cũ tham chiếu', 'info');
   };
 
   // Format Currency
@@ -230,8 +308,8 @@ export default function App() {
   // Generate Image directly with ToolXPrint VPS
   const handleGenerate = async () => {
     const trimmed = prompt.trim();
-    if (!trimmed) {
-      showToast('Vui lòng nhập mô tả bức ảnh bạn muốn tạo ra!', 'info');
+    if (!trimmed && !referenceImage) {
+      showToast('Vui lòng nhập mô tả bức ảnh bạn muốn tạo ra hoặc tải ảnh cũ lên!', 'info');
       return;
     }
 
@@ -249,7 +327,12 @@ export default function App() {
     setProgressText('Đang gửi lệnh tạo ấn phẩm tới VPS ToolXPrint...');
 
     const mappedRatio = getVPSAspectRatio();
-    let finalPrompt = trimmed;
+    let finalPrompt = trimmed || 'Làm mới và nâng cấp chất lượng ấn phẩm';
+
+    // Ghép tham chiếu ảnh cũ nếu có
+    if (referenceImage) {
+      finalPrompt += ', reference base image provided, refine, edit and restyle based on this source image';
+    }
 
     // Ghép ngầm nội dung prompt mẫu ẩn từ dropdown (giấu đi nội dung này chỉ gửi đi thôi)
     const activeTpl = promptTemplates.find((t) => t.id === selectedTemplateId);
@@ -272,6 +355,7 @@ export default function App() {
       resolution: '4k',
       engine: 'gpt',
       use_ai_enhancer: true,
+      init_image: referenceImage ? referenceImage.url : undefined,
       presets: {
         style: selectedStyleId !== 'none' ? selectedStyleId : 'commercial_studio',
         lighting: 'studio'
@@ -488,6 +572,7 @@ export default function App() {
               <ResultCard
                 resultImage={resultImage}
                 isGenerating={isGenerating}
+                referenceImage={referenceImage}
                 width={width}
                 height={height}
                 unit={unit}
@@ -513,6 +598,9 @@ export default function App() {
                 selectedTemplateId={selectedTemplateId}
                 onSelectTemplateId={handleSelectTemplateId}
                 onOpenAdmin={() => setAdminModalOpen(true)}
+                referenceImage={referenceImage}
+                onUploadReferenceImage={handleUploadReferenceImage}
+                onRemoveReferenceImage={handleRemoveReferenceImage}
                 selectedPresetId={selectedPresetId}
                 onSelectPreset={handleSelectPreset}
                 width={width}

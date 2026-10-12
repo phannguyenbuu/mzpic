@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Tooltip from './Tooltip';
 import { calculatePixels } from '../data/presets';
 
@@ -14,6 +14,9 @@ export default function PromptCard({
   selectedTemplateId,
   onSelectTemplateId,
   onOpenAdmin,
+  referenceImage,
+  onUploadReferenceImage,
+  onRemoveReferenceImage,
   // Khổ in specs props
   selectedPresetId,
   onSelectPreset,
@@ -29,6 +32,14 @@ export default function PromptCard({
   setTransparentBg
 }) {
   const [subTab, setSubTab] = useState('prompt'); // 'prompt' | 'specs'
+  const fileInputRef = useRef(null);
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (onUploadReferenceImage) onUploadReferenceImage(file);
+    e.target.value = '';
+  };
 
   const handleKeyDown = (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -244,6 +255,90 @@ export default function PromptCard({
       {/* Tab Content: PROMPT */}
       {subTab === 'prompt' && (
         <div>
+          {/* Reference / Old Image Upload Section */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            style={{ display: 'none' }}
+          />
+
+          {!referenceImage ? (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="liquid-pill-btn"
+              style={{
+                width: '100%',
+                padding: '7px 12px',
+                justifyContent: 'center',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                border: '1.5px dashed rgba(59, 130, 246, 0.45)',
+                background: 'rgba(239, 246, 255, 0.65)',
+                color: '#1d4ed8',
+                marginBottom: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <i className="bi bi-cloud-arrow-up" style={{ fontSize: '0.95rem' }}></i>
+              <span>Up ảnh cũ lên để GenAI sửa</span>
+            </button>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '6px 10px',
+                background: 'rgba(240, 249, 255, 0.9)',
+                border: '1px solid rgba(186, 230, 253, 0.95)',
+                borderRadius: '16px',
+                marginBottom: '10px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <img
+                  src={referenceImage.url}
+                  alt="Ảnh cũ tham chiếu"
+                  style={{ width: '38px', height: '38px', borderRadius: '10px', objectFit: 'cover', border: '1.5px solid #0284c7' }}
+                />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <i className="bi bi-image-fill"></i>
+                    <span>Ảnh cũ tham chiếu</span>
+                  </div>
+                  <div style={{ fontSize: '0.64rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {referenceImage.name} ({referenceImage.sizeMb} MB)
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onRemoveReferenceImage}
+                style={{
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '50%',
+                  background: '#fee2e2',
+                  border: 'none',
+                  color: '#ef4444',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.78rem'
+                }}
+                title="Gỡ ảnh cũ"
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+          )}
+
           {/* Textarea */}
           <div style={{ position: 'relative' }}>
             <textarea
