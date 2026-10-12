@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function Tooltip({ text, children, position = 'top' }) {
+export default function Tooltip({ text, children, position = 'top', className = '', style = {} }) {
   const [visible, setVisible] = useState(false);
 
   if (!text) return children;
@@ -37,7 +37,8 @@ export default function Tooltip({ text, children, position = 'top' }) {
 
   return (
     <div
-      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
+      className={className}
+      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', ...style }}
       onMouseEnter={() => setVisible(true)}
       onMouseLeave={() => setVisible(false)}
       onTouchStart={() => setVisible(!visible)}
