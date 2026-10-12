@@ -23,7 +23,7 @@ export default function UpscaleSection({ currentStudioImage, showToast }) {
 
   const handleStartUpscale = () => {
     setIsUpscaling(true);
-    if (showToast) showToast(`Đang kích nét AI x${scale} với chuẩn ${targetDpi} DPI...`, 'info');
+    if (showToast) showToast(`Đang kích nét x${scale} với chuẩn ${targetDpi} DPI...`, 'info');
 
     setTimeout(() => {
       setIsUpscaling(false);
@@ -136,7 +136,7 @@ export default function UpscaleSection({ currentStudioImage, showToast }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Kích Nét AI (2X, 4X, 8X)</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Kích Nét Chuẩn In (2X, 4X, 8X)</span>
             <Tooltip text="Khử vỡ hạt, phục hồi chi tiết và nâng độ phân giải lên 300-600 DPI cho Standee & Biển bạt">
               <span className="tooltip-trigger-icon">?</span>
             </Tooltip>
@@ -231,7 +231,7 @@ export default function UpscaleSection({ currentStudioImage, showToast }) {
           {isUpscaling ? (
             <>
               <i className="bi bi-arrow-repeat spin"></i>
-              <span>Đang Kích Nét AI...</span>
+              <span>Đang Kích Nét...</span>
             </>
           ) : (
             <>

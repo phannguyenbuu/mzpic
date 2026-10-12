@@ -7,7 +7,7 @@ export default function GallerySection({ onOpenInStudio, showToast }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 8;
+  const pageSize = 12;
 
   const fetchGallery = async () => {
     setLoading(true);
@@ -135,108 +135,122 @@ export default function GallerySection({ onOpenInStudio, showToast }) {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-          {paginatedItems.map((item) => (
-            <div
-              key={item.id}
-              className="liquid-card"
-              style={{
-                padding: '8px',
-                display: 'flex',
-                flexDirection: 'column',
-                borderRadius: '20px',
-                overflow: 'hidden'
-              }}
-            >
-              {/* Image Container */}
+          {paginatedItems.map((item) => {
+            const thumbUrl = item.thumbnail || item.vpsUrl || (item.filename ? `/images/${item.filename}` : '');
+            const fullUrl = item.vpsUrl || (item.filename ? `/images/${item.filename}` : '') || thumbUrl;
+
+            return (
               <div
+                key={item.id}
+                className="liquid-card"
                 style={{
-                  position: 'relative',
-                  width: '100%',
-                  aspectRatio: '1',
-                  borderRadius: '14px',
-                  overflow: 'hidden',
-                  background: '#f1f5f9'
+                  padding: '6px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderRadius: '16px',
+                  overflow: 'hidden'
                 }}
               >
-                <img
-                  src={item.url}
-                  alt={item.prompt}
-                  loading="lazy"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-
-                {/* 300 DPI chip */}
-                <div style={{ position: 'absolute', top: '6px', left: '6px' }}>
-                  <span
-                    style={{
-                      background: 'rgba(15, 23, 42, 0.7)',
-                      backdropFilter: 'blur(8px)',
-                      color: '#ffffff',
-                      fontSize: '0.55rem',
-                      fontWeight: 700,
-                      padding: '2px 6px',
-                      borderRadius: '9999px'
+                {/* Thumbnail Image Container */}
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    aspectRatio: '1',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    background: '#f1f5f9',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => onOpenInStudio(fullUrl, item.prompt)}
+                  title="Nhấn để mở ấn phẩm trong Studio"
+                >
+                  <img
+                    src={thumbUrl}
+                    alt=""
+                    loading="lazy"
+                    onError={(e) => {
+                      if (e.target.src !== fullUrl) {
+                        e.target.src = fullUrl;
+                      }
                     }}
-                  >
-                    300 DPI
-                  </span>
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+
+                  {/* 300 DPI chip */}
+                  <div style={{ position: 'absolute', top: '6px', left: '6px' }}>
+                    <span
+                      style={{
+                        background: 'rgba(15, 23, 42, 0.7)',
+                        backdropFilter: 'blur(8px)',
+                        color: '#ffffff',
+                        fontSize: '0.55rem',
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        borderRadius: '9999px'
+                      }}
+                    >
+                      300 DPI
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Title / Prompt */}
-              <div
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 600,
-                  color: '#0f172a',
-                  marginTop: '6px',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  lineHeight: '1.3'
-                }}
-              >
-                {item.prompt || 'Ấn phẩm in'}
-              </div>
-
-              {/* Quick Actions Bar */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', paddingTop: '6px', borderTop: '1px solid rgba(226, 232, 240, 0.6)' }}>
-                <Tooltip text="Nạp ảnh này vào Studio">
+                {/* Quick Actions Bar - Only buttons, no prompt text */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: '6px',
+                    padding: '0 2px'
+                  }}
+                >
                   <button
                     type="button"
                     className="liquid-pill-btn active"
-                    style={{ fontSize: '0.62rem', padding: '2px 8px' }}
-                    onClick={() => onOpenInStudio(item.url, item.prompt)}
+                    style={{ fontSize: '0.65rem', padding: '2px 8px', height: '22px' }}
+                    onClick={() => onOpenInStudio(fullUrl, item.prompt)}
                   >
                     Studio
                   </button>
-                </Tooltip>
 
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  <Tooltip text="Sao chép link CDN">
+                  <div style={{ display: 'flex', gap: '4px' }}>
                     <button
                       type="button"
-                      onClick={() => handleCopyLink(item.url)}
-                      style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem' }}
+                      onClick={() => handleCopyLink(fullUrl)}
+                      title="Sao chép link CDN"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#64748b',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        padding: '2px'
+                      }}
                     >
                       <i className="bi bi-link-45deg"></i>
                     </button>
-                  </Tooltip>
 
-                  <Tooltip text="Tải ảnh về máy">
                     <button
                       type="button"
-                      onClick={() => handleDownload(item.url)}
-                      style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.8rem' }}
+                      onClick={() => handleDownload(fullUrl)}
+                      title="Tải ảnh về máy"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#64748b',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        padding: '2px'
+                      }}
                     >
                       <i className="bi bi-download"></i>
                     </button>
-                  </Tooltip>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

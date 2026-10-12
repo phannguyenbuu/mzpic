@@ -22,10 +22,10 @@ export default function EditImageModal({ isOpen, onClose, originalImage, onConfi
             </div>
             <div>
               <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
-                Sửa Ấn Phẩm Với AI
+                Sửa Ấn Phẩm
               </div>
               <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                Image-to-Image / Inpainting
+                Chỉnh sửa chi tiết &amp; phối cảnh
               </div>
             </div>
           </div>

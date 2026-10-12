@@ -4,7 +4,7 @@ import { DESIGN_PRESETS, DESIGN_STYLES } from '../data/presets';
 
 export default function BatchSection({ onOpenInStudio, showToast }) {
   const [promptsText, setPromptsText] = useState(
-    'Tờ rơi khai trương tiệm trà bánh organic\nVoucher giảm giá 100k viền dập vàng\nStandee đứng khóa học lập trình AI 2026'
+    'Tờ rơi khai trương tiệm trà bánh organic\nVoucher giảm giá 100k viền dập vàng\nStandee đứng sự kiện công nghệ 2026'
   );
   const [selectedPresetId, setSelectedPresetId] = useState('flyer_a4');
   const [selectedStyleId, setSelectedStyleId] = useState('style_foil_luxury');
@@ -27,7 +27,7 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
         name: file.name,
         sizeMb: (file.size / (1024 * 1024)).toFixed(2)
       });
-      if (showToast) showToast(`Đã tải ảnh cũ lên: ${file.name}`, 'success');
+      if (showToast) showToast(`Đã tải ảnh mẫu: ${file.name}`, 'success');
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -35,7 +35,7 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
 
   const handleRemoveImage = () => {
     setReferenceImage(null);
-    if (showToast) showToast('Đã gỡ ảnh cũ tham chiếu', 'info');
+    if (showToast) showToast('Đã gỡ ảnh mẫu', 'info');
   };
 
   const startBatch = async () => {
@@ -60,71 +60,66 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
 
     for (let i = 0; i < items.length; i++) {
       setBatchItems((prev) =>
-        prev.map((item, idx) => (idx === i ? { ...item, status: 'processing', progress: 30 } : item))
+        prev.map((item, idx) => (idx === i ? { ...item, status: 'processing', progress: 25 } : item))
       );
 
       try {
-        let promptPayload = items[i].prompt;
-        if (referenceImage) {
-          promptPayload += ', reference base image provided, refine and restyle based on this source image';
-        }
-
-        const resp = await fetch('/render-job', {
+        const resp = await fetch('/api/jobs/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            prompt: promptPayload,
+            prompt: items[i].prompt,
             aspect_ratio: '1:1',
-            resolution: '1080p',
-            engine: 'gpt',
-            use_ai_enhancer: true,
-            presets: { style: selectedStyleId },
-            init_image: referenceImage ? referenceImage.url : undefined
+            reference_images: referenceImage
+              ? [
+                  {
+                    data: referenceImage.url,
+                    name: referenceImage.name || 'reference_image.png'
+                  }
+                ]
+              : [],
+            style: selectedStyleId !== 'none' ? selectedStyleId : 'None',
+            new_chat: false
           })
         });
 
         if (resp.ok) {
           const resData = await resp.json();
-          const jobId = resData.job_id;
+          const jobId = resData.id || resData.job_id;
 
           let completed = false;
           let attempts = 0;
-          while (!completed && attempts < 25) {
+          while (!completed && attempts < 45) {
             attempts++;
-            await new Promise((r) => setTimeout(r, 2500));
-            const pollRes = await fetch(`/render-job/${jobId}`);
+            await new Promise((r) => setTimeout(r, 2000));
+            const pollRes = await fetch(`/api/jobs/${jobId}`);
             if (pollRes.ok) {
               const pollData = await pollRes.json();
-              if (pollData.job && pollData.job.status === 'completed') {
+              if (pollData.status === 'completed') {
                 completed = true;
-                const fileUrl = `/render-files/${pollData.job.filename}`;
+                const fileUrl = pollData.result_image_url || (pollData.filename ? `/images/${pollData.filename}` : '');
                 setBatchItems((prev) =>
                   prev.map((item, idx) =>
                     idx === i ? { ...item, status: 'completed', progress: 100, resultUrl: fileUrl } : item
                   )
                 );
-              } else if (pollData.job && pollData.job.status === 'failed') {
-                throw new Error(pollData.job.error || 'Thất bại');
+              } else if (pollData.status === 'failed') {
+                throw new Error(pollData.error || 'Thất bại');
+              } else if (pollData.progress) {
+                setBatchItems((prev) =>
+                  prev.map((item, idx) =>
+                    idx === i ? { ...item, progress: pollData.progress } : item
+                  )
+                );
               }
             }
           }
 
           if (!completed) {
-            setBatchItems((prev) =>
-              prev.map((item, idx) =>
-                idx === i
-                  ? {
-                      ...item,
-                      status: 'completed',
-                      progress: 100,
-                      resultUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80'
-                    }
-                  : item
-              )
-            );
+            throw new Error('Quá thời gian chờ phản hồi');
           }
         } else {
-          throw new Error('Lỗi server');
+          throw new Error('Lỗi kết nối máy chủ');
         }
       } catch (err) {
         setBatchItems((prev) =>
@@ -136,7 +131,7 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
     }
 
     setIsProcessing(false);
-    if (showToast) showToast('🎉 Hoàn tất tác vụ Batch!', 'success');
+    if (showToast) showToast('🎉 Hoàn tất tác vụ Tạo Hàng Loạt!', 'success');
   };
 
   return (
@@ -181,7 +176,7 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
             }}
           >
             <i className="bi bi-cloud-arrow-up" style={{ fontSize: '0.95rem' }}></i>
-            <span>Up ảnh cũ lên để GenAI sửa hàng loạt</span>
+            <span>Up Ảnh Cần Sửa</span>
           </button>
         ) : (
           <div
@@ -199,13 +194,13 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
               <img
                 src={referenceImage.url}
-                alt="Ảnh cũ tham chiếu"
+                alt="Ảnh mẫu cần sửa"
                 style={{ width: '38px', height: '38px', borderRadius: '10px', objectFit: 'cover', border: '1.5px solid #0284c7' }}
               />
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <i className="bi bi-image-fill"></i>
-                  <span>Ảnh cũ tham chiếu</span>
+                  <span>Ảnh mẫu cần sửa</span>
                 </div>
                 <div style={{ fontSize: '0.64rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {referenceImage.name} ({referenceImage.sizeMb} MB)
@@ -228,7 +223,7 @@ export default function BatchSection({ onOpenInStudio, showToast }) {
                 justifyContent: 'center',
                 fontSize: '0.78rem'
               }}
-              title="Gỡ ảnh cũ"
+              title="Gỡ ảnh mẫu"
             >
               <i className="bi bi-x-lg"></i>
             </button>

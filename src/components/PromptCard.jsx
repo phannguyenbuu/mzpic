@@ -285,7 +285,7 @@ export default function PromptCard({
               }}
             >
               <i className="bi bi-cloud-arrow-up" style={{ fontSize: '0.95rem' }}></i>
-              <span>Up ảnh cũ lên để GenAI sửa</span>
+              <span>Up Ảnh Cần Sửa</span>
             </button>
           ) : (
             <div
@@ -303,13 +303,13 @@ export default function PromptCard({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                 <img
                   src={referenceImage.url}
-                  alt="Ảnh cũ tham chiếu"
+                  alt="Ảnh mẫu cần sửa"
                   style={{ width: '38px', height: '38px', borderRadius: '10px', objectFit: 'cover', border: '1.5px solid #0284c7' }}
                 />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <i className="bi bi-image-fill"></i>
-                    <span>Ảnh cũ tham chiếu</span>
+                    <span>Ảnh mẫu cần sửa</span>
                   </div>
                   <div style={{ fontSize: '0.64rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {referenceImage.name} ({referenceImage.sizeMb} MB)
@@ -332,7 +332,7 @@ export default function PromptCard({
                   justifyContent: 'center',
                   fontSize: '0.78rem'
                 }}
-                title="Gỡ ảnh cũ"
+                title="Gỡ ảnh mẫu"
               >
                 <i className="bi bi-x-lg"></i>
               </button>
@@ -346,7 +346,7 @@ export default function PromptCard({
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Mô tả ấn phẩm in ấn bạn muốn AI tạo ra..."
+              placeholder="Mô tả ấn phẩm in ấn bạn muốn thiết kế..."
               className="liquid-pill-input"
               style={{
                 width: '100%',

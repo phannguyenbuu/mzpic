@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Tooltip from './Tooltip';
 import { DESIGN_PRESETS } from '../data/presets';
-import { resetPromptTemplates, DEFAULT_GENERAL_COMMENT, resetGeneralComment } from '../data/promptTemplates';
+import {
+  resetPromptTemplates,
+  DEFAULT_GENERAL_COMMENT,
+  resetGeneralComment,
+  savePromptTemplates,
+  saveGeneralComment
+} from '../data/promptTemplates';
 
 export default function AdminPromptModal({
   isOpen,
