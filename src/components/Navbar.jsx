@@ -9,7 +9,8 @@ export default function Navbar({
   onLogout,
   activeTab,
   setActiveTab,
-  onlineWorkersCount = 3
+  onlineWorkersCount = 3,
+  onOpenAdmin
 }) {
   const formatCurrency = (val) => {
     return (val || 0).toLocaleString('vi-VN') + 'đ';
@@ -29,7 +30,7 @@ export default function Navbar({
         </div>
       </Tooltip>
 
-      {/* Center Utility Capsules: Thư viện & Máy */}
+      {/* Center Utility Capsules: Thư viện & Máy & Admin */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         {/* Thư viện */}
         <Tooltip text="Thư viện ảnh VPS thời gian thực" position="bottom">
@@ -57,6 +58,20 @@ export default function Navbar({
             <span>{onlineWorkersCount}</span>
           </button>
         </Tooltip>
+
+        {/* Admin Prompt Gear */}
+        {onOpenAdmin && (
+          <Tooltip text="Trang Admin: Tùy chỉnh Dropdown & Prompt ẩn" position="bottom">
+            <button
+              type="button"
+              className="liquid-pill-btn"
+              onClick={onOpenAdmin}
+              style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+            >
+              <i className="bi bi-gear-fill text-slate-600"></i>
+            </button>
+          </Tooltip>
+        )}
       </div>
 
       {/* Right Controls: Wallet & Auth */}

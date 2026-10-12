@@ -8,6 +8,7 @@ import Mockup3DModal from './components/Mockup3DModal';
 import GoogleAuthModal from './components/GoogleAuthModal';
 import TopupModal from './components/TopupModal';
 import EditImageModal from './components/EditImageModal';
+import AdminPromptModal from './components/AdminPromptModal';
 import ToastStack from './components/ToastStack';
 import GallerySection from './components/GallerySection';
 import WorkersSection from './components/WorkersSection';
@@ -15,6 +16,7 @@ import BatchSection from './components/BatchSection';
 import UpscaleSection from './components/UpscaleSection';
 import ApiDocsSection from './components/ApiDocsSection';
 import { DESIGN_PRESETS, convertDimension, calculatePixels } from './data/presets';
+import { getPromptTemplates, savePromptTemplates } from './data/promptTemplates';
 
 export default function App() {
   // App States
@@ -26,6 +28,14 @@ export default function App() {
   const [transparentBg, setTransparentBg] = useState(false);
   const [selectedPresetId, setSelectedPresetId] = useState('flyer_a4');
   const [selectedStyleId, setSelectedStyleId] = useState('none');
+
+  // Custom Prompt Templates & Admin
+  const [promptTemplates, setPromptTemplates] = useState(getPromptTemplates);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(() => {
+    const list = getPromptTemplates();
+    return list[0]?.id || 'tpl_voucher_gold';
+  });
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
   
   // Ví & Tài khoản
   const [walletBalance, setWalletBalance] = useState(50000);
@@ -158,23 +168,32 @@ export default function App() {
     }
   };
 
-  // Handle Sample Template 1-click
-  const handleSelectTemplate = (tpl) => {
-    setPrompt(tpl.prompt);
-    setSelectedPresetId(tpl.presetId);
-    setSelectedStyleId(tpl.styleId);
-    setTransparentBg(tpl.transparentBg);
-
-    const preset = DESIGN_PRESETS.flatMap((c) => c.items).find((i) => i.id === tpl.presetId);
-    if (preset) {
-      setWidth(preset.width);
-      setHeight(preset.height);
-      setUnit(preset.unit);
-      if (preset.width === preset.height) setAspectRatio('square');
-      else if (preset.width > preset.height) setAspectRatio('landscape');
-      else setAspectRatio('portrait');
+  // Handle dropdown selection (chọn mẫu prompt ẩn)
+  const handleSelectTemplateId = (tplId) => {
+    setSelectedTemplateId(tplId);
+    const found = promptTemplates.find((t) => t.id === tplId);
+    if (found && found.presetId) {
+      const preset = DESIGN_PRESETS.flatMap((c) => c.items).find((i) => i.id === found.presetId);
+      if (preset) {
+        setSelectedPresetId(preset.id);
+        setWidth(preset.width);
+        setHeight(preset.height);
+        setUnit(preset.unit);
+        if (preset.width === preset.height) setAspectRatio('square');
+        else if (preset.width > preset.height) setAspectRatio('landscape');
+        else setAspectRatio('portrait');
+      }
     }
-    showToast(`Đã áp dụng mẫu: ${tpl.name}`, 'success');
+    showToast(`Đã chọn mẫu: ${found ? found.name : tplId}`, 'info');
+  };
+
+  // Handle saving customized templates from Admin Modal
+  const handleSaveTemplates = (newTemplates) => {
+    setPromptTemplates(newTemplates);
+    savePromptTemplates(newTemplates);
+    if (!newTemplates.some((t) => t.id === selectedTemplateId)) {
+      setSelectedTemplateId(newTemplates[0]?.id || '');
+    }
   };
 
   // Reset Session
@@ -225,6 +244,13 @@ export default function App() {
 
     const mappedRatio = getVPSAspectRatio();
     let finalPrompt = trimmed;
+
+    // Ghép ngầm nội dung prompt mẫu ẩn từ dropdown (giấu đi nội dung này chỉ gửi đi thôi)
+    const activeTpl = promptTemplates.find((t) => t.id === selectedTemplateId);
+    if (activeTpl && activeTpl.hiddenPrompt && activeTpl.hiddenPrompt.trim()) {
+      finalPrompt += `, ${activeTpl.hiddenPrompt.trim()}`;
+    }
+
     if (transparentBg) {
       finalPrompt += ', isolated on pure white background, clean silhouette for transparent cutout';
     }
@@ -440,6 +466,7 @@ export default function App() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           onlineWorkersCount={onlineWorkersCount}
+          onOpenAdmin={() => setAdminModalOpen(true)}
         />
 
         {/* Content based on Active Tab */}
@@ -462,7 +489,7 @@ export default function App() {
                 onRemoveBg={handleRemoveBg}
               />
 
-              {/* Prompt & Inspiration Cards */}
+              {/* Prompt & Action Controls */}
               <PromptCard
                 prompt={prompt}
                 setPrompt={setPrompt}
@@ -471,7 +498,10 @@ export default function App() {
                 isGenerating={isGenerating}
                 progress={progress}
                 progressText={progressText}
-                onSelectTemplate={handleSelectTemplate}
+                templates={promptTemplates}
+                selectedTemplateId={selectedTemplateId}
+                onSelectTemplateId={handleSelectTemplateId}
+                onOpenAdmin={() => setAdminModalOpen(true)}
               />
 
               {/* Print Specifications & Liquid Squircle Presets */}
@@ -568,6 +598,15 @@ export default function App() {
         originalImage={resultImage}
         onConfirmEdit={handleConfirmEdit}
         isEditing={isEditing}
+      />
+
+      {/* Admin Custom Prompts Modal */}
+      <AdminPromptModal
+        isOpen={adminModalOpen}
+        onClose={() => setAdminModalOpen(false)}
+        templates={promptTemplates}
+        onSaveTemplates={handleSaveTemplates}
+        showToast={showToast}
       />
 
       {/* Toast Notifications */}
