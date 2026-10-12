@@ -50,12 +50,11 @@ export default function PromptCard({
       width: 210,
       height: 297,
       unit: 'mm',
-      ringColor: '#0284c7', // Olympic Blue
-      activeGlow: '0 0 16px rgba(2, 132, 199, 0.55)',
-      activeBg: 'linear-gradient(135deg, rgba(2, 132, 199, 0.18) 0%, rgba(56, 189, 248, 0.28) 100%)',
+      gradientClass: 'gradient-peach-rose',
+      bubbleGlow: 'rgba(244, 63, 94, 0.65)',
+      animationBob: 'playfulBubbleBob1 4.2s ease-in-out infinite',
       icon: 'bi-file-earmark-text',
       ratio: 'portrait',
-      offsetY: '-5px',
       hint: 'Khổ A4 tiêu chuẩn 210×297 mm cho tờ rơi, kẹp file'
     },
     {
@@ -66,12 +65,11 @@ export default function PromptCard({
       width: 148,
       height: 210,
       unit: 'mm',
-      ringColor: '#eab308', // Olympic Yellow
-      activeGlow: '0 0 16px rgba(234, 179, 8, 0.55)',
-      activeBg: 'linear-gradient(135deg, rgba(234, 179, 8, 0.18) 0%, rgba(250, 204, 21, 0.28) 100%)',
+      gradientClass: 'gradient-deep-cyan',
+      bubbleGlow: 'rgba(2, 132, 199, 0.65)',
+      animationBob: 'playfulBubbleBob2 3.8s ease-in-out infinite',
       icon: 'bi-file-text',
       ratio: 'portrait',
-      offsetY: '5px',
       hint: 'Khổ A5 nhỏ gọn 148×210 mm, tiết kiệm chi phí in'
     },
     {
@@ -82,12 +80,11 @@ export default function PromptCard({
       width: 18,
       height: 8,
       unit: 'cm',
-      ringColor: '#1e293b', // Olympic Black
-      activeGlow: '0 0 16px rgba(30, 41, 59, 0.55)',
-      activeBg: 'linear-gradient(135deg, rgba(30, 41, 59, 0.18) 0%, rgba(71, 85, 105, 0.28) 100%)',
+      gradientClass: 'gradient-solar-gold',
+      bubbleGlow: 'rgba(245, 158, 11, 0.65)',
+      animationBob: 'playfulBubbleBob3 4.5s ease-in-out infinite',
       icon: 'bi-ticket-perforated',
       ratio: 'landscape',
-      offsetY: '-5px',
       hint: 'Phiếu quà tặng 18×8 cm chuẩn in offset'
     },
     {
@@ -98,12 +95,11 @@ export default function PromptCard({
       width: 0.6,
       height: 1.6,
       unit: 'm',
-      ringColor: '#16a34a', // Olympic Green
-      activeGlow: '0 0 16px rgba(22, 163, 74, 0.55)',
-      activeBg: 'linear-gradient(135deg, rgba(22, 163, 74, 0.18) 0%, rgba(52, 211, 153, 0.28) 100%)',
+      gradientClass: 'gradient-cyber-emerald',
+      bubbleGlow: 'rgba(16, 185, 129, 0.65)',
+      animationBob: 'playfulBubbleBob4 3.9s ease-in-out infinite',
       icon: 'bi-badge-ad',
       ratio: 'portrait',
-      offsetY: '5px',
       hint: 'Standee đứng chữ X / cuốn nhôm sự kiện'
     },
     {
@@ -114,12 +110,11 @@ export default function PromptCard({
       width: 90,
       height: 54,
       unit: 'mm',
-      ringColor: '#dc2626', // Olympic Red
-      activeGlow: '0 0 16px rgba(220, 38, 38, 0.55)',
-      activeBg: 'linear-gradient(135deg, rgba(220, 38, 38, 0.18) 0%, rgba(248, 113, 113, 0.28) 100%)',
+      gradientClass: 'gradient-sunset-amber',
+      bubbleGlow: 'rgba(236, 72, 153, 0.65)',
+      animationBob: 'playfulBubbleBob5 4.1s ease-in-out infinite',
       icon: 'bi-person-badge',
       ratio: 'landscape',
-      offsetY: '-5px',
       hint: 'Danh thiếp tiêu chuẩn Việt Nam 90×54 mm'
     }
   ];
@@ -308,15 +303,15 @@ export default function PromptCard({
       {/* Tab Content: KHỔ IN */}
       {subTab === 'specs' && (
         <div>
-          {/* 5 Olympic Rings Presets (Spanning 100% full width) */}
+          {/* 5 Playful Liquid Olympic Bubbles (Spanning 100% full width) */}
           <div
             style={{
               width: '100%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '8px 2px 14px',
-              marginBottom: '4px'
+              padding: '6px 2px 14px',
+              marginBottom: '2px'
             }}
           >
             {primaryPresets.map((preset) => {
@@ -325,72 +320,62 @@ export default function PromptCard({
                 <Tooltip key={preset.id} text={`${preset.fullName} (${preset.desc}) - ${preset.hint}`} position="top">
                   <button
                     type="button"
+                    className={`liquid-olympic-bubble ${preset.gradientClass} ${isSelected ? 'active' : ''}`}
                     onClick={() => {
                       if (onSelectPreset) onSelectPreset(preset);
                       if (onAspectRatioChange) onAspectRatioChange(preset.ratio);
                     }}
                     style={{
-                      width: '56px',
-                      height: '56px',
-                      borderRadius: '50%',
-                      border: isSelected ? `3.5px solid ${preset.ringColor}` : `2.5px solid ${preset.ringColor}`,
-                      background: isSelected
-                        ? preset.activeBg
-                        : 'rgba(255, 255, 255, 0.88)',
-                      boxShadow: isSelected
-                        ? `${preset.activeGlow}, inset 0 2px 6px rgba(255,255,255,0.9)`
-                        : '0 3px 10px rgba(0, 0, 0, 0.05), inset 0 1px 2px rgba(255,255,255,0.85)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      padding: 0,
-                      transform: isSelected
-                        ? `scale(1.08) translateY(${preset.offsetY})`
-                        : `translateY(${preset.offsetY})`,
-                      transition: 'all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                      position: 'relative',
-                      flexShrink: 0
+                      '--bubble-glow': preset.bubbleGlow,
+                      animation: isSelected ? undefined : preset.animationBob
                     }}
                   >
+                    {/* Glass Bubble Specular Reflection */}
+                    <div className="bubble-specular-shine"></div>
+
+                    {/* Icon */}
                     <i
                       className={`bi ${preset.icon}`}
                       style={{
-                        fontSize: '0.95rem',
-                        color: preset.ringColor,
+                        fontSize: '1.05rem',
+                        filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4))',
                         marginBottom: '1px'
                       }}
                     ></i>
+
+                    {/* Title */}
                     <span
                       style={{
                         fontSize: '0.62rem',
                         fontWeight: 800,
-                        color: isSelected ? preset.ringColor : '#334155',
-                        lineHeight: 1
+                        lineHeight: 1,
+                        textShadow: '0 1px 3px rgba(0, 0, 0, 0.55)'
                       }}
                     >
                       {preset.name}
                     </span>
+
+                    {/* Active Bouncy Checkmark Badge */}
                     {isSelected && (
                       <div
                         style={{
                           position: 'absolute',
-                          top: '-2px',
-                          right: '-2px',
-                          width: '15px',
-                          height: '15px',
+                          top: '-3px',
+                          right: '-3px',
+                          width: '16px',
+                          height: '16px',
                           borderRadius: '50%',
-                          background: preset.ringColor,
-                          color: '#ffffff',
-                          fontSize: '0.6rem',
+                          background: '#ffffff',
+                          color: '#0284c7',
+                          fontSize: '0.68rem',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          boxShadow: '0 1px 4px rgba(0,0,0,0.3)'
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                          fontWeight: 900
                         }}
                       >
-                        <i className="bi bi-check"></i>
+                        <i className="bi bi-check-lg"></i>
                       </div>
                     )}
                   </button>

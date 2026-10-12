@@ -238,11 +238,11 @@ body {
 }
 
 .gradient-solar-gold {
-  background: radial-gradient(circle at center, #fbbf24 15%, #d97706 65%, #78350f 100%);
+  background: radial-gradient(circle at 35% 35%, #fde047 15%, #f59e0b 55%, #92400e 100%);
 }
 
 .gradient-cyber-emerald {
-  background: linear-gradient(135deg, #10b981 0%, #059669 45%, #064e3b 100%);
+  background: linear-gradient(135deg, #34d399 0%, #059669 45%, #064e3b 100%);
 }
 
 .gradient-neon-violet {
@@ -250,7 +250,112 @@ body {
 }
 
 .gradient-sunset-amber {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #7c2d12 100%);
+  background: linear-gradient(135deg, #f97316 0%, #ec4899 50%, #8b5cf6 100%);
+}
+
+/* ===================================================================
+   PLAYFUL LIQUID OLYMPIC BUBBLES (Tinh nghịch & Sống động)
+   =================================================================== */
+@keyframes playfulBubbleBob1 {
+  0%, 100% {
+    transform: translateY(-5px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(3px) rotate(-3deg) scale(1.02);
+  }
+}
+
+@keyframes playfulBubbleBob2 {
+  0%, 100% {
+    transform: translateY(5px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) rotate(3deg) scale(0.98);
+  }
+}
+
+@keyframes playfulBubbleBob3 {
+  0%, 100% {
+    transform: translateY(-6px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(2px) rotate(2deg) scale(1.03);
+  }
+}
+
+@keyframes playfulBubbleBob4 {
+  0%, 100% {
+    transform: translateY(4px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) rotate(-3deg) scale(0.98);
+  }
+}
+
+@keyframes playfulBubbleBob5 {
+  0%, 100% {
+    transform: translateY(-5px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(3px) rotate(4deg) scale(1.02);
+  }
+}
+
+@keyframes liquidAuraPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7), 0 10px 24px -4px var(--bubble-glow, rgba(0, 0, 0, 0.35));
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.35), 0 16px 32px -2px var(--bubble-glow, rgba(0, 0, 0, 0.5));
+  }
+}
+
+.liquid-olympic-bubble {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ffffff;
+  user-select: none;
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 8px 18px -4px rgba(0, 0, 0, 0.22), inset 0 2px 4px rgba(255, 255, 255, 0.65);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  flex-shrink: 0;
+}
+
+.liquid-olympic-bubble:hover {
+  transform: scale(1.15) translateY(-6px) !important;
+  box-shadow: 0 16px 30px -4px rgba(0, 0, 0, 0.35), inset 0 2px 6px rgba(255, 255, 255, 0.9);
+  animation-play-state: paused;
+}
+
+.liquid-olympic-bubble:active {
+  transform: scale(0.9) !important;
+  transition-duration: 0.1s;
+}
+
+.liquid-olympic-bubble.active {
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.65), 0 16px 32px -4px var(--bubble-glow, rgba(0, 0, 0, 0.45));
+  transform: scale(1.15) !important;
+  animation: liquidAuraPulse 2s ease-in-out infinite;
+  z-index: 10;
+}
+
+.bubble-specular-shine {
+  position: absolute;
+  top: 2px;
+  left: 12%;
+  right: 12%;
+  height: 42%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0) 100%);
+  border-radius: 50% 50% 40% 40%;
+  pointer-events: none;
 }
 
 /* ===================================================================
