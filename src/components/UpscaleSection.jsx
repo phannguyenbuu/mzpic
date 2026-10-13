@@ -1,25 +1,70 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Tooltip from './Tooltip';
+import { extractImageFromPasteEvent, readImageFromClipboard } from '../utils/clipboard';
 
-export default function UpscaleSection({ currentStudioImage, showToast }) {
+export default function UpscaleSection({ currentStudioImage, showToast, onOpenLightbox }) {
   const [imageSrc, setImageSrc] = useState(
     currentStudioImage || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80'
   );
-  const [scale, setScale] = useState(4);
-  const [targetDpi, setTargetDpi] = useState(300);
+  const [scale, setScale] = useState(() => {
+    const saved = localStorage.getItem('mzpic_upscale_scale');
+    return saved ? parseInt(saved, 10) : 4;
+  });
+  const [targetDpi, setTargetDpi] = useState(() => {
+    const saved = localStorage.getItem('mzpic_upscale_target_dpi');
+    return saved ? parseInt(saved, 10) : 300;
+  });
   const [isUpscaling, setIsUpscaling] = useState(false);
   const [upscaledUrl, setUpscaledUrl] = useState(null);
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
+  const processImageFile = (file) => {
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      if (showToast) showToast('Vui lòng chọn file hình ảnh (PNG, JPG, WEBP)!', 'error');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => {
       setImageSrc(ev.target.result);
       setUpscaledUrl(null);
+      if (showToast) showToast(`Đã nhận ảnh: ${file.name || 'Pasted-Image.png'}`, 'success');
     };
     reader.readAsDataURL(file);
   };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processImageFile(file);
+    e.target.value = '';
+  };
+
+  const handlePasteClick = async () => {
+    try {
+      const file = await readImageFromClipboard();
+      if (file) {
+        processImageFile(file);
+      } else {
+        if (showToast) showToast('Không tìm thấy hình ảnh trong Clipboard! Hãy copy ảnh rồi bấm Paste.', 'error');
+        else alert('Không tìm thấy hình ảnh trong bộ nhớ tạm! Hãy chụp màn hình hoặc copy ảnh rồi bấm Paste.');
+      }
+    } catch (err) {
+      if (showToast) showToast(err.message || 'Không thể dán ảnh từ Clipboard. Hãy bấm phím Ctrl + V!', 'error');
+      else alert(err.message || 'Không thể dán ảnh từ Clipboard. Hãy bấm phím Ctrl + V!');
+    }
+  };
+
+  useEffect(() => {
+    const handleGlobalPaste = (e) => {
+      const file = extractImageFromPasteEvent(e);
+      if (file) {
+        e.preventDefault();
+        processImageFile(file);
+      }
+    };
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => window.removeEventListener('paste', handleGlobalPaste);
+  }, []);
 
   const handleStartUpscale = () => {
     setIsUpscaling(true);
@@ -34,12 +79,17 @@ export default function UpscaleSection({ currentStudioImage, showToast }) {
 
   const handleDownload = () => {
     if (!upscaledUrl) return;
-    const a = document.createElement('a');
-    a.href = upscaledUrl;
-    a.download = `Upscale_${scale}X_${targetDpi}DPI_${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    window.open(upscaledUrl, '_blank', 'noopener,noreferrer');
+    try {
+      const a = document.createElement('a');
+      a.href = upscaledUrl;
+      a.download = `Upscale_${scale}X_${targetDpi}DPI_${Date.now()}.png`;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {}
   };
 
   return (
@@ -70,8 +120,11 @@ export default function UpscaleSection({ currentStudioImage, showToast }) {
               maxHeight: '340px',
               objectFit: 'contain',
               borderRadius: '16px',
-              filter: upscaledUrl ? 'contrast(1.05) sharpness(1.2)' : 'none'
+              filter: upscaledUrl ? 'contrast(1.05) sharpness(1.2)' : 'none',
+              cursor: 'zoom-in'
             }}
+            onClick={() => onOpenLightbox && onOpenLightbox(upscaledUrl || imageSrc, upscaledUrl ? `Ảnh Kích Nét Siêu Phân Giải (${scale}X - ${targetDpi} DPI)` : 'Ảnh Gốc Cần Kích Nét')}
+            title="Bấm để xem ảnh gốc & phóng to (Zoom / Pan / Tải về)"
           />
 
           {/* Floating Badges */}
@@ -135,37 +188,73 @@ export default function UpscaleSection({ currentStudioImage, showToast }) {
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Kích Nét Chuẩn In (2X, 4X, 8X)</span>
-            <Tooltip text="Khử vỡ hạt, phục hồi chi tiết và nâng độ phân giải lên 300-600 DPI cho Standee & Biển bạt">
-              <span className="tooltip-trigger-icon">?</span>
-            </Tooltip>
-          </div>
-
-          {/* Source toggles */}
-          <div style={{ display: 'flex', gap: '6px' }}>
-            {currentStudioImage && (
-              <Tooltip text="Lấy ảnh hiện tại đang làm trong Studio">
-                <button
-                  type="button"
-                  className="liquid-pill-btn active"
-                  style={{ fontSize: '0.68rem', padding: '3px 8px' }}
-                  onClick={() => { setImageSrc(currentStudioImage); setUpscaledUrl(null); }}
-                >
-                  Ảnh Studio
-                </button>
-              </Tooltip>
-            )}
-            <Tooltip text="Chọn ảnh từ thiết bị để kích nét">
-              <label
-                className="liquid-pill-btn"
-                style={{ fontSize: '0.68rem', padding: '3px 8px', cursor: 'pointer' }}
+          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Kích Nét Chuẩn In (2X, 4X, 8X)</span>
+          {currentStudioImage && (
+            <Tooltip text="Lấy ảnh hiện tại đang làm trong Studio">
+              <button
+                type="button"
+                className="liquid-pill-btn active"
+                style={{ fontSize: '0.68rem', padding: '3px 8px' }}
+                onClick={() => { setImageSrc(currentStudioImage); setUpscaledUrl(null); }}
               >
-                <i className="bi bi-upload"></i> Tải lên
-                <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
-              </label>
+                <i className="bi bi-magic"></i> Lấy từ Studio
+              </button>
             </Tooltip>
-          </div>
+          )}
+        </div>
+
+        {/* 2 Buttons nằm ngang, song song, liquid style */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          <Tooltip text="Chọn ảnh từ thiết bị để kích nét">
+            <label
+              className="liquid-pill-btn"
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                justifyContent: 'center',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                border: '1.5px dashed rgba(59, 130, 246, 0.45)',
+                background: 'rgba(239, 246, 255, 0.7)',
+                color: '#1d4ed8',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <i className="bi bi-cloud-arrow-up" style={{ fontSize: '0.95rem' }}></i>
+              <span>Up Ảnh Cần Sửa</span>
+              <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+            </label>
+          </Tooltip>
+
+          <Tooltip text="Dán ảnh từ bộ nhớ tạm (Ctrl + V)">
+            <button
+              type="button"
+              className="liquid-pill-btn"
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                justifyContent: 'center',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                border: '1.5px solid rgba(59, 130, 246, 0.35)',
+                background: 'rgba(255, 255, 255, 0.9)',
+                color: '#2563eb',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap'
+              }}
+              onClick={handlePasteClick}
+            >
+              <i className="bi bi-clipboard-plus" style={{ fontSize: '0.95rem' }}></i>
+              <span>Paste (Ctrl+V)</span>
+            </button>
+          </Tooltip>
         </div>
 
         {/* Scale Multiplier */}
@@ -190,7 +279,10 @@ export default function UpscaleSection({ currentStudioImage, showToast }) {
                   fontWeight: 800,
                   borderRadius: '14px'
                 }}
-                onClick={() => setScale(s)}
+                onClick={() => {
+                  setScale(s);
+                  localStorage.setItem('mzpic_upscale_scale', s);
+                }}
               >
                 {s}X
               </button>
@@ -213,7 +305,10 @@ export default function UpscaleSection({ currentStudioImage, showToast }) {
                 type="button"
                 className={`liquid-pill-btn ${targetDpi === dpi ? 'active' : ''}`}
                 style={{ justifyContent: 'center', padding: '6px 0', fontSize: '0.75rem', fontWeight: 700 }}
-                onClick={() => setTargetDpi(dpi)}
+                onClick={() => {
+                  setTargetDpi(dpi);
+                  localStorage.setItem('mzpic_upscale_target_dpi', dpi);
+                }}
               >
                 {dpi} DPI
               </button>

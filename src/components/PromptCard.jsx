@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Tooltip from './Tooltip';
 import { calculatePixels } from '../data/presets';
+import { extractImageFromPasteEvent, readImageFromClipboard } from '../utils/clipboard';
 
 export default function PromptCard({
   prompt,
@@ -29,7 +30,8 @@ export default function PromptCard({
   aspectRatio = 'portrait',
   onAspectRatioChange,
   transparentBg = false,
-  setTransparentBg
+  setTransparentBg,
+  onOpenLightbox
 }) {
   const [subTab, setSubTab] = useState('prompt'); // 'prompt' | 'specs'
   const fileInputRef = useRef(null);
@@ -40,6 +42,33 @@ export default function PromptCard({
     if (onUploadReferenceImage) onUploadReferenceImage(file);
     e.target.value = '';
   };
+
+  const handlePasteClick = async () => {
+    try {
+      const file = await readImageFromClipboard();
+      if (file) {
+        if (onUploadReferenceImage) onUploadReferenceImage(file);
+      } else {
+        alert('Không tìm thấy hình ảnh trong bộ nhớ tạm! Hãy chụp màn hình hoặc copy ảnh rồi bấm Paste.');
+      }
+    } catch (err) {
+      alert(err.message || 'Không thể dán ảnh từ Clipboard. Hãy bấm phím Ctrl + V!');
+    }
+  };
+
+  useEffect(() => {
+    const handleGlobalPaste = (e) => {
+      const file = extractImageFromPasteEvent(e);
+      if (file) {
+        e.preventDefault();
+        if (onUploadReferenceImage) {
+          onUploadReferenceImage(file);
+        }
+      }
+    };
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => window.removeEventListener('paste', handleGlobalPaste);
+  }, [onUploadReferenceImage]);
 
   const handleKeyDown = (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -265,28 +294,54 @@ export default function PromptCard({
           />
 
           {!referenceImage ? (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="liquid-pill-btn"
-              style={{
-                width: '100%',
-                padding: '7px 12px',
-                justifyContent: 'center',
-                fontSize: '0.76rem',
-                fontWeight: 700,
-                border: '1.5px dashed rgba(59, 130, 246, 0.45)',
-                background: 'rgba(239, 246, 255, 0.65)',
-                color: '#1d4ed8',
-                marginBottom: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <i className="bi bi-cloud-arrow-up" style={{ fontSize: '0.95rem' }}></i>
-              <span>Up Ảnh Cần Sửa</span>
-            </button>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="liquid-pill-btn"
+                style={{
+                  flex: 1,
+                  padding: '7px 12px',
+                  justifyContent: 'center',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  border: '1.5px dashed rgba(59, 130, 246, 0.45)',
+                  background: 'rgba(239, 246, 255, 0.65)',
+                  color: '#1d4ed8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <i className="bi bi-cloud-arrow-up" style={{ fontSize: '0.95rem' }}></i>
+                <span>Up Ảnh Cần Sửa</span>
+              </button>
+
+              <Tooltip text="Dán ảnh từ bộ nhớ tạm (Ctrl + V)">
+                <button
+                  type="button"
+                  onClick={handlePasteClick}
+                  className="liquid-pill-btn"
+                  style={{
+                    width: 'auto',
+                    padding: '7px 12px',
+                    justifyContent: 'center',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    border: '1.5px solid rgba(59, 130, 246, 0.35)',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    color: '#2563eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <i className="bi bi-clipboard-plus" style={{ fontSize: '0.95rem' }}></i>
+                  <span>Paste (Ctrl+V)</span>
+                </button>
+              </Tooltip>
+            </div>
           ) : (
             <div
               style={{
@@ -304,12 +359,15 @@ export default function PromptCard({
                 <img
                   src={referenceImage.url}
                   alt="Ảnh mẫu cần sửa"
-                  style={{ width: '38px', height: '38px', borderRadius: '10px', objectFit: 'cover', border: '1.5px solid #0284c7' }}
+                  style={{ width: '38px', height: '38px', borderRadius: '10px', objectFit: 'cover', border: '1.5px solid #0284c7', cursor: 'zoom-in' }}
+                  onClick={() => onOpenLightbox && onOpenLightbox(referenceImage.url, 'Ảnh Mẫu Cần Sửa (Ảnh cũ)')}
+                  title="Bấm để xem ảnh gốc & phóng to (Zoom / Pan / Tải về)"
                 />
-                <div style={{ minWidth: 0 }}>
+                <div style={{ minWidth: 0, cursor: 'pointer' }} onClick={() => onOpenLightbox && onOpenLightbox(referenceImage.url, 'Ảnh Mẫu Cần Sửa (Ảnh cũ)')}>
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <i className="bi bi-image-fill"></i>
                     <span>Ảnh mẫu cần sửa</span>
+                    <i className="bi bi-arrows-fullscreen" style={{ fontSize: '0.65rem', marginLeft: '2px', opacity: 0.8 }}></i>
                   </div>
                   <div style={{ fontSize: '0.64rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {referenceImage.name} ({referenceImage.sizeMb} MB)
@@ -776,11 +834,11 @@ export default function PromptCard({
         </div>
 
         {/* Nút Tạo (phía sau) */}
-        <Tooltip text="Bấm để gửi lệnh tạo ảnh đến VPS ToolXPrint (hoặc Ctrl + Enter)">
+        <Tooltip text="Bấm để tạo ảnh (hoặc Ctrl + Enter)">
           <button
             type="button"
             className="btn-liquid-primary"
-            onClick={onGenerate}
+            onClick={() => onGenerate && onGenerate()}
             disabled={isGenerating}
             style={{
               width: 'auto',

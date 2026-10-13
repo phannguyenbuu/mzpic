@@ -5,13 +5,19 @@ export default function Mockup3DModal({ isOpen, onClose, mockupUrl, originalImag
   if (!isOpen) return null;
 
   const handleDownload = () => {
-    if (!mockupUrl && !originalImage) return;
-    const a = document.createElement('a');
-    a.href = mockupUrl || originalImage;
-    a.download = `Mockup_3D_MzPic_${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const targetUrl = mockupUrl || originalImage;
+    if (!targetUrl) return;
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    try {
+      const a = document.createElement('a');
+      a.href = targetUrl;
+      a.download = `Mockup_3D_MzPic_${Date.now()}.png`;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {}
   };
 
   return (

@@ -30,30 +30,6 @@ export default function Navbar({
         </div>
       </Tooltip>
 
-      {/* Center Utility Capsules: Thư viện */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        {/* Thư viện - Tăng bề rộng gấp đôi */}
-        <Tooltip text="Thư viện ảnh VPS thời gian thực" position="bottom">
-          <button
-            type="button"
-            className={`liquid-pill-btn ${activeTab === 'library' ? 'active' : ''}`}
-            onClick={() => setActiveTab(activeTab === 'library' ? 'single' : 'library')}
-            style={{
-              minWidth: '108px',
-              padding: '5px 18px',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px'
-            }}
-          >
-            <i className="bi bi-images" style={{ fontSize: '0.85rem' }}></i>
-            <span>Kho</span>
-          </button>
-        </Tooltip>
-      </div>
 
       {/* Right Controls: Wallet & Auth */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -90,17 +66,17 @@ export default function Navbar({
             </button>
           </Tooltip>
         ) : (
-          <Tooltip text={`Tài khoản: ${user.name} (Bấm đăng xuất)`} position="bottom">
+          <Tooltip text={`Tài khoản: ${user.name} • Quản lý & Đăng xuất`} position="bottom">
             <img
               src={user.avatar}
               alt="Avatar"
-              onClick={onLogout}
+              onClick={() => setActiveTab('admin')}
               style={{
                 width: '30px',
                 height: '30px',
                 borderRadius: '50%',
                 objectFit: 'cover',
-                border: '2px solid #ffffff',
+                border: '2px solid #3b82f6',
                 cursor: 'pointer',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
               }}

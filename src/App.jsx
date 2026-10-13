@@ -7,6 +7,7 @@ import Mockup3DModal from './components/Mockup3DModal';
 import GoogleAuthModal from './components/GoogleAuthModal';
 import TopupModal from './components/TopupModal';
 import EditImageModal from './components/EditImageModal';
+import ImageLightboxModal from './components/ImageLightboxModal';
 import AdminPromptModal from './components/AdminPromptModal';
 import ToastStack from './components/ToastStack';
 import GallerySection from './components/GallerySection';
@@ -14,8 +15,11 @@ import WorkersSection from './components/WorkersSection';
 import BatchSection from './components/BatchSection';
 import UpscaleSection from './components/UpscaleSection';
 import ApiDocsSection from './components/ApiDocsSection';
+import AdminSection from './components/AdminSection';
 import { DESIGN_PRESETS, convertDimension, calculatePixels } from './data/presets';
 import { getPromptTemplates, savePromptTemplates, getGeneralComment, saveGeneralComment } from './data/promptTemplates';
+import { createRenderJob, formatReferenceImageUrl } from './utils/api';
+import { getStoredUser, logoutUser, fetchMzPicSettings, fetchMzPicPrompts } from './utils/agentApi';
 
 // Route synchronizer: mỗi tab là 1 route
 const ROUTE_MAP = {
@@ -23,6 +27,8 @@ const ROUTE_MAP = {
   '/single': 'single',
   '/batch': 'batch',
   '/upscale': 'upscale',
+  '/admin': 'admin',
+  '/mzpic-admin': 'admin',
   '/library': 'library',
   '/devices': 'devices',
   '/workers': 'devices',
@@ -33,13 +39,21 @@ const TAB_TO_ROUTE = {
   single: '/single',
   batch: '/batch',
   upscale: '/upscale',
+  admin: '/admin',
   library: '/library',
   devices: '/devices',
   docs: '/docs'
 };
 
 const getInitialTab = () => {
-  const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
+  const host = typeof window !== 'undefined' ? window.location.host.toLowerCase() : '';
+  const path = typeof window !== 'undefined' ? (window.location.pathname.toLowerCase().replace(/\/$/, '') || '/') : '/';
+  
+  // Nếu mở trên agentapi.quanlymay.com hoặc path là /mzpic -> Vào thẳng tab Quản Trị
+  if (host.includes('agentapi') || path.includes('mzpic') || path.includes('admin')) {
+    return 'admin';
+  }
+
   if (ROUTE_MAP[path]) return ROUTE_MAP[path];
   const hash = window.location.hash.toLowerCase().replace(/^#\/?/, '/');
   if (ROUTE_MAP[hash]) return ROUTE_MAP[hash];
@@ -49,19 +63,38 @@ const getInitialTab = () => {
 export default function App() {
   // App States
   const [prompt, setPrompt] = useState('');
-  const [width, setWidth] = useState(210);
-  const [height, setHeight] = useState(297);
-  const [unit, setUnit] = useState('mm');
-  const [aspectRatio, setAspectRatio] = useState('portrait');
+  const [selectedPresetId, setSelectedPresetId] = useState(() => {
+    return localStorage.getItem('mzpic_default_preset_id') || 'flyer_a4';
+  });
+
+  const [unit, setUnit] = useState(() => {
+    return localStorage.getItem('mzpic_default_unit') || 'mm';
+  });
+  const [width, setWidth] = useState(() => {
+    const savedPresetId = localStorage.getItem('mzpic_default_preset_id') || 'flyer_a4';
+    const p = DESIGN_PRESETS.flatMap((c) => c.items).find((i) => i.id === savedPresetId);
+    return p ? p.width : 210;
+  });
+  const [height, setHeight] = useState(() => {
+    const savedPresetId = localStorage.getItem('mzpic_default_preset_id') || 'flyer_a4';
+    const p = DESIGN_PRESETS.flatMap((c) => c.items).find((i) => i.id === savedPresetId);
+    return p ? p.height : 297;
+  });
+  const [aspectRatio, setAspectRatio] = useState(() => {
+    return localStorage.getItem('mzpic_default_aspect_ratio') || 'portrait';
+  });
   const [transparentBg, setTransparentBg] = useState(false);
-  const [selectedPresetId, setSelectedPresetId] = useState('flyer_a4');
-  const [selectedStyleId, setSelectedStyleId] = useState('none');
+  const [selectedStyleId, setSelectedStyleId] = useState(() => {
+    return localStorage.getItem('mzpic_default_style_id') || 'none';
+  });
   const [referenceImage, setReferenceImage] = useState(null);
 
   // Custom Prompt Templates & Admin
   const [promptTemplates, setPromptTemplates] = useState(getPromptTemplates);
   const [selectedTemplateId, setSelectedTemplateId] = useState(() => {
+    const saved = localStorage.getItem('mzpic_default_template_id');
     const list = getPromptTemplates();
+    if (saved && list.some(t => t.id === saved)) return saved;
     return list[0]?.id || 'tpl_voucher_gold';
   });
   const [generalComment, setGeneralComment] = useState(getGeneralComment);
@@ -70,11 +103,34 @@ export default function App() {
   // Ví & Tài khoản
   const [walletBalance, setWalletBalance] = useState(50000);
   const costPerImage = 2000;
-  const [user, setUser] = useState({
-    name: 'Tony Nguyen',
-    email: 'tony.nguyen@mzpic.design',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80'
+  const [user, setUser] = useState(() => {
+    return getStoredUser() || {
+      name: 'GoPrinx Admin',
+      email: 'gox@quanlymay.com',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80',
+      role: 'admin'
+    };
   });
+
+  // Đồng bộ cài đặt & Mẫu Prompt từ agentapi.quanlymay.com khi mở ứng dụng
+  useEffect(() => {
+    fetchMzPicSettings().then((s) => {
+      if (s) {
+        if (s.defaultPresetId) setSelectedPresetId(s.defaultPresetId);
+        if (s.defaultUnit) setUnit(s.defaultUnit);
+        if (s.defaultStyleId) setSelectedStyleId(s.defaultStyleId);
+      }
+    }).catch((err) => console.warn('Sync settings notice:', err));
+
+    fetchMzPicPrompts().then((p) => {
+      if (p && p.templates && p.templates.length > 0) {
+        setPromptTemplates(p.templates);
+      }
+      if (p && p.generalComment) {
+        setGeneralComment(p.generalComment);
+      }
+    }).catch((err) => console.warn('Sync prompts notice:', err));
+  }, []);
 
   // Result & Processing
   const [isGenerating, setIsGenerating] = useState(false);
@@ -117,6 +173,24 @@ export default function App() {
   const [googleAuthOpen, setGoogleAuthOpen] = useState(false);
   const [mockup3DOpen, setMockup3DOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [lightboxState, setLightboxState] = useState({
+    isOpen: false,
+    imageUrl: null,
+    title: ''
+  });
+
+  const handleOpenLightbox = (imageUrl, title = 'Ảnh Gốc') => {
+    if (!imageUrl) return;
+    setLightboxState({
+      isOpen: true,
+      imageUrl,
+      title
+    });
+  };
+
+  const handleCloseLightbox = () => {
+    setLightboxState((prev) => ({ ...prev, isOpen: false }));
+  };
   
   // 3D Mockup
   const [mockupUrl, setMockupUrl] = useState(null);
@@ -170,17 +244,22 @@ export default function App() {
   // Handle Preset Selection
   const handleSelectPreset = (preset) => {
     setSelectedPresetId(preset.id);
+    localStorage.setItem('mzpic_default_preset_id', preset.id);
     setWidth(preset.width);
     setHeight(preset.height);
     setUnit(preset.unit);
+    localStorage.setItem('mzpic_default_unit', preset.unit);
 
+    let newRatio = 'portrait';
     if (preset.width === preset.height) {
-      setAspectRatio('square');
+      newRatio = 'square';
     } else if (preset.width > preset.height) {
-      setAspectRatio('landscape');
+      newRatio = 'landscape';
     } else {
-      setAspectRatio('portrait');
+      newRatio = 'portrait';
     }
+    setAspectRatio(newRatio);
+    localStorage.setItem('mzpic_default_aspect_ratio', newRatio);
 
     if (preset.promptHint && !prompt) {
       setPrompt(preset.promptHint);
@@ -197,12 +276,14 @@ export default function App() {
     setWidth(newW);
     setHeight(newH);
     setUnit(newUnit);
+    localStorage.setItem('mzpic_default_unit', newUnit);
     showToast(`Đổi đơn vị đo: [${newUnit.toUpperCase()}]`, 'info');
   };
 
   // Handle Aspect Ratio Change
   const handleAspectRatioChange = (mode) => {
     setAspectRatio(mode);
+    localStorage.setItem('mzpic_default_aspect_ratio', mode);
     if (mode === 'square') {
       const size = Math.min(width, height);
       setWidth(size);
@@ -225,17 +306,22 @@ export default function App() {
   // Handle dropdown selection (chọn mẫu prompt ẩn)
   const handleSelectTemplateId = (tplId) => {
     setSelectedTemplateId(tplId);
+    localStorage.setItem('mzpic_default_template_id', tplId);
     const found = promptTemplates.find((t) => t.id === tplId);
     if (found && found.presetId) {
       const preset = DESIGN_PRESETS.flatMap((c) => c.items).find((i) => i.id === found.presetId);
       if (preset) {
         setSelectedPresetId(preset.id);
+        localStorage.setItem('mzpic_default_preset_id', preset.id);
         setWidth(preset.width);
         setHeight(preset.height);
         setUnit(preset.unit);
-        if (preset.width === preset.height) setAspectRatio('square');
-        else if (preset.width > preset.height) setAspectRatio('landscape');
-        else setAspectRatio('portrait');
+        localStorage.setItem('mzpic_default_unit', preset.unit);
+        let r = 'portrait';
+        if (preset.width === preset.height) r = 'square';
+        else if (preset.width > preset.height) r = 'landscape';
+        setAspectRatio(r);
+        localStorage.setItem('mzpic_default_aspect_ratio', r);
       }
     }
     showToast(`Đã chọn mẫu: ${found ? found.name : tplId}`, 'info');
@@ -246,7 +332,9 @@ export default function App() {
     setPromptTemplates(newTemplates);
     savePromptTemplates(newTemplates);
     if (!newTemplates.some((t) => t.id === selectedTemplateId)) {
-      setSelectedTemplateId(newTemplates[0]?.id || '');
+      const fallbackId = newTemplates[0]?.id || '';
+      setSelectedTemplateId(fallbackId);
+      localStorage.setItem('mzpic_default_template_id', fallbackId);
     }
   };
 
@@ -305,10 +393,15 @@ export default function App() {
     return '9:16';
   };
 
-  // Generate Image directly with ToolXPrint ChatGPT Workers (/api/jobs/create)
   const handleGenerate = async (overrideRefImage = null, overridePrompt = null) => {
-    const activeRef = overrideRefImage !== null ? overrideRefImage : referenceImage;
-    const rawPrompt = overridePrompt !== null ? overridePrompt : prompt;
+    // Chống nhận nhầm React Event object khi trigger từ onClick
+    const isImageRef = overrideRefImage && (
+      typeof overrideRefImage === 'string' ||
+      Boolean(overrideRefImage.url) ||
+      Boolean(overrideRefImage.data)
+    );
+    const activeRef = isImageRef ? overrideRefImage : referenceImage;
+    const rawPrompt = typeof overridePrompt === 'string' ? overridePrompt : prompt;
     const trimmed = (rawPrompt || '').trim();
 
     if (!trimmed && !activeRef) {
@@ -347,34 +440,16 @@ export default function App() {
       finalPrompt += ', isolated on pure white background, clean silhouette for transparent cutout';
     }
 
-    const payload = {
-      prompt: finalPrompt,
-      aspect_ratio: mappedRatio,
-      reference_images: activeRef
-        ? [
-            {
-              data: activeRef.url,
-              name: activeRef.name || 'reference_image.png'
-            }
-          ]
-        : [],
-      style: selectedStyleId !== 'none' ? selectedStyleId : 'None',
-      new_chat: false
-    };
-
     try {
-      // Gửi request tạo render job tới Worker Hub (/api/jobs/create)
-      const resp = await fetch('/api/jobs/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      // Gửi request tạo render job tới Worker Hub theo chuẩn API genai.toolxprint.com
+      const createRes = await createRenderJob({
+        prompt: finalPrompt,
+        aspectRatio: mappedRatio,
+        style: selectedStyleId,
+        referenceImage: activeRef,
+        preserveSurroundings: true
       });
 
-      if (!resp.ok) {
-        throw new Error(`Lỗi khởi tạo lệnh VPS (HTTP ${resp.status})`);
-      }
-
-      const createRes = await resp.json();
       const jobId = createRes.id || createRes.job_id;
 
       setProgress(25);
@@ -447,28 +522,47 @@ export default function App() {
     }
   };
 
-  // Handle 3D Mockup
+  // Handle 3D Mockup: đưa ảnh mới thành reference images, ghép prompt 3D mockup, gửi về render sửa tiếp và nhận ảnh mới tiếp
   const handleOpenMockup3D = () => {
     if (!resultImage) {
       showToast('Chưa có ấn phẩm nào để tạo phối cảnh 3D!', 'info');
       return;
     }
 
-    setMockup3DOpen(true);
-    setIsRenderingMockup(true);
+    const newRefImage = {
+      url: resultImage,
+      name: resultFilename || 'previous_design.png'
+    };
+    setReferenceImage(newRefImage);
 
-    setTimeout(() => {
-      setMockupUrl(resultImage);
-      setIsRenderingMockup(false);
-      showToast('Đã tạo ảnh phối cảnh 3D ấn phẩm thực tế!', 'success');
-    }, 600);
+    const baseDesc = prompt ? prompt.trim() : 'Ấn phẩm thiết kế';
+    const mockupPrompt = `${baseDesc}. Tạo phối cảnh 3D thực tế (realistic 3D mockup display presentation): đặt ấn phẩm này trong không gian thực tế hoặc trên bàn làm việc sang trọng, góc nghiêng 3D chuyên nghiệp, đổ bóng tự nhiên, ánh sáng studio sắc nét, giữ nguyên vẹn nội dung thiết kế gốc của ấn phẩm`;
+    setPrompt(mockupPrompt);
+
+    showToast('🚀 Đang gửi ấn phẩm sang render Phối Cảnh 3D thực tế...', 'info');
+    handleGenerate(newRefImage, mockupPrompt);
   };
 
-  // Handle Remove Background
+  // Handle Remove Background: đưa ảnh mới thành reference images, ghép prompt tách nền, gửi về render sửa tiếp
   const handleRemoveBg = async () => {
-    if (!resultImage) return;
+    if (!resultImage) {
+      showToast('Chưa có ấn phẩm nào để tách nền!', 'info');
+      return;
+    }
+
+    const newRefImage = {
+      url: resultImage,
+      name: resultFilename || 'previous_design.png'
+    };
+    setReferenceImage(newRefImage);
     setTransparentBg(true);
-    showToast('✅ Đã kích hoạt chế độ tách nền trong suốt cho ấn phẩm!', 'success');
+
+    const baseDesc = prompt ? prompt.trim() : 'Ấn phẩm thiết kế';
+    const transparentPrompt = `${baseDesc}. Tách nền ấn phẩm trong suốt hoàn toàn (isolated transparent cutout on pure background), giữ nguyên vẹn đường nét thiết kế`;
+    setPrompt(transparentPrompt);
+
+    showToast('✂ Đang gửi yêu cầu tách nền ấn phẩm...', 'info');
+    handleGenerate(newRefImage, transparentPrompt);
   };
 
   // Handle Edit Image
@@ -504,23 +598,37 @@ export default function App() {
     const pxH = calculatePixels(height, unit, 300);
     const fileName = `Design_ToolXPrint_${selectedPresetId}_${pxW}x${pxH}_300DPI.${format}`;
 
-    showToast(`Đang tải ảnh được xử lý (${fileName})...`, 'info');
+    showToast(`Đang mở tải ảnh chuẩn in (${fileName})...`, 'info');
 
-    const a = document.createElement('a');
-    a.href = resultImage;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast('✅ Đã tải ảnh chuẩn in 300 DPI từ VPS thành công!', 'success');
+    // Mở ảnh sang tab mới (không mở đè tab hiện tại)
+    window.open(resultImage, '_blank', 'noopener,noreferrer');
+
+    try {
+      const a = document.createElement('a');
+      a.href = resultImage;
+      a.download = fileName;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {}
+
+    showToast('✅ Đã mở tải ảnh chuẩn in 300 DPI trên tab mới!', 'success');
   };
 
   // Handle Open Image from Gallery or Batch into Studio
   const handleOpenInStudio = (imageUrl, promptText) => {
     setResultImage(imageUrl);
+    const filename = imageUrl ? imageUrl.split('/').pop() : 'gallery_image.png';
+    setReferenceImage({
+      url: imageUrl,
+      name: filename,
+      sizeMb: '1.5'
+    });
     if (promptText) setPrompt(promptText);
     setActiveTab('single');
-    showToast('Đã nạp ấn phẩm vào Studio!', 'success');
+    showToast('Đã nạp ấn phẩm vào Studio để tạo hoặc sửa!', 'success');
   };
 
   // Topup Wallet
@@ -536,7 +644,8 @@ export default function App() {
     showToast(`Xin chào ${account.name}! Đã kết nối với ToolXPrint Studio.`, 'success');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logoutUser();
     setUser(null);
     showToast('Đã đăng xuất tài khoản.', 'info');
   };
@@ -585,6 +694,7 @@ export default function App() {
                 onOpenMockup3D={handleOpenMockup3D}
                 onDownload={handleDownload}
                 onRemoveBg={handleRemoveBg}
+                onOpenLightbox={handleOpenLightbox}
               />
 
               {/* Prompt & Khổ In Unified 2-Tab Liquid Card */}
@@ -592,7 +702,7 @@ export default function App() {
                 prompt={prompt}
                 setPrompt={setPrompt}
                 onResetSession={handleResetSession}
-                onGenerate={handleGenerate}
+                onGenerate={() => handleGenerate()}
                 isGenerating={isGenerating}
                 progress={progress}
                 progressText={progressText}
@@ -615,6 +725,7 @@ export default function App() {
                 onAspectRatioChange={handleAspectRatioChange}
                 transparentBg={transparentBg}
                 setTransparentBg={setTransparentBg}
+                onOpenLightbox={handleOpenLightbox}
               />
             </>
           )}
@@ -624,6 +735,7 @@ export default function App() {
             <BatchSection
               onOpenInStudio={handleOpenInStudio}
               showToast={showToast}
+              onOpenLightbox={handleOpenLightbox}
             />
           )}
 
@@ -632,6 +744,7 @@ export default function App() {
             <UpscaleSection
               currentStudioImage={resultImage}
               showToast={showToast}
+              onOpenLightbox={handleOpenLightbox}
             />
           )}
 
@@ -640,6 +753,21 @@ export default function App() {
             <GallerySection
               onOpenInStudio={handleOpenInStudio}
               showToast={showToast}
+              onOpenLightbox={handleOpenLightbox}
+            />
+          )}
+
+          {/* Tab: QUẢN TRỊ MZPIC (User, Prompt & Settings) */}
+          {activeTab === 'admin' && (
+            <AdminSection
+              user={user}
+              onLogout={handleLogout}
+              onOpenGoogleAuth={() => setGoogleAuthOpen(true)}
+              showToast={showToast}
+              promptTemplates={promptTemplates}
+              setPromptTemplates={setPromptTemplates}
+              generalComment={generalComment}
+              setGeneralComment={setGeneralComment}
             />
           )}
 
@@ -660,10 +788,12 @@ export default function App() {
       </div>
 
       {/* Floating Bottom Liquid Glass Pill Dock (Fixed to viewport bottom) */}
-      <BottomDock
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
+      {activeTab !== 'admin' && (
+        <BottomDock
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
+      )}
 
       {/* Modals */}
       <Mockup3DModal
@@ -678,6 +808,7 @@ export default function App() {
         isOpen={googleAuthOpen}
         onClose={() => setGoogleAuthOpen(false)}
         onLogin={handleGoogleLogin}
+        showToast={showToast}
       />
 
       <TopupModal
@@ -704,6 +835,14 @@ export default function App() {
         generalComment={generalComment}
         onSaveGeneralComment={handleSaveGeneralComment}
         showToast={showToast}
+      />
+
+      {/* Lightbox Modal with Zoom / Pan / Download */}
+      <ImageLightboxModal
+        isOpen={lightboxState.isOpen}
+        imageUrl={lightboxState.imageUrl}
+        title={lightboxState.title}
+        onClose={handleCloseLightbox}
       />
 
       {/* Toast Notifications */}

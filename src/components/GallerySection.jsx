@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Tooltip from './Tooltip';
 
-export default function GallerySection({ onOpenInStudio, showToast }) {
+export default function GallerySection({ onOpenInStudio, showToast, onOpenLightbox }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,13 +56,17 @@ export default function GallerySection({ onOpenInStudio, showToast }) {
 
   const handleDownload = (url) => {
     if (!url) return;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ToolXPrint_${Date.now()}.png`;
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ToolXPrint_${Date.now()}.png`;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {}
   };
 
   return (
@@ -215,6 +219,22 @@ export default function GallerySection({ onOpenInStudio, showToast }) {
                   </button>
 
                   <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenLightbox && onOpenLightbox(fullUrl, item.prompt || 'Ảnh Thư Viện VPS')}
+                      title="Xem ảnh gốc (Phóng to / Zoom / Pan)"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#64748b',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        padding: '2px'
+                      }}
+                    >
+                      <i className="bi bi-arrows-fullscreen"></i>
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => handleCopyLink(fullUrl)}

@@ -26,6 +26,10 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html, body {
+  touch-action: manipulation;
+}
+
 body {
   font-family: var(--font-sans);
   background: #0f1422;
@@ -391,7 +395,10 @@ body {
 }
 
 .dock-item {
-  height: 100%;
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  margin: 3px 2px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -401,67 +408,21 @@ body {
   cursor: pointer;
   position: relative;
   transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  padding: 0;
+  padding: 0 4px;
   user-select: none;
+  border-radius: 9999px;
 }
 
 .dock-item:hover {
   color: #ffffff;
 }
 
-/* Left item: fit đầu bên trái */
-.dock-item-left {
-  flex: 1;
-}
-
-.dock-item-left.active {
+.dock-item.active {
   background: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 45%, #2563eb 100%);
   color: #ffffff;
-  border-top-left-radius: 9999px;
-  border-bottom-left-radius: 9999px;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  box-shadow: 0 10px 25px -4px rgba(6, 182, 212, 0.65), 0 0 16px rgba(14, 165, 233, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.85), inset 0 -1.5px 2px rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(255, 255, 255, 0.7);
-  border-left: 1px solid rgba(255, 255, 255, 0.7);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
-}
-
-/* Center item: Mở rộng fill active của nút Batch ở giữa ra rộng gấp đôi (120px = 60px * 2) */
-.dock-item-center {
-  width: 120px;
-  height: 58px;
-  flex-shrink: 0;
-  border-radius: 0;
-  margin: 0 auto;
-}
-
-.dock-item-center.active {
-  width: 120px;
-  background: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 45%, #2563eb 100%);
-  color: #ffffff;
-  border-radius: 0;
-  box-shadow: 0 10px 25px -4px rgba(6, 182, 212, 0.65), 0 0 16px rgba(14, 165, 233, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.85), inset 0 -1.5px 2px rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(255, 255, 255, 0.7);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
-}
-
-/* Right item: fit đầu bên phải */
-.dock-item-right {
-  flex: 1;
-}
-
-.dock-item-right.active {
-  background: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 45%, #2563eb 100%);
-  color: #ffffff;
-  border-top-right-radius: 9999px;
-  border-bottom-right-radius: 9999px;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  box-shadow: 0 10px 25px -4px rgba(6, 182, 212, 0.65), 0 0 16px rgba(14, 165, 233, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.85), inset 0 -1.5px 2px rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(255, 255, 255, 0.7);
-  border-right: 1px solid rgba(255, 255, 255, 0.7);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 9999px;
+  box-shadow: 0 8px 20px -4px rgba(6, 182, 212, 0.65), 0 0 14px rgba(14, 165, 233, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .dock-item-content {
@@ -868,4 +829,13 @@ body {
 
 @keyframes spinAnim {
   100% { transform: rotate(360deg); }
+}
+
+/* Chống tự động zoom khi chạm vào ô nhập liệu trên iPhone / iOS Mobile */
+@media screen and (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }

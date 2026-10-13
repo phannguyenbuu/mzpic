@@ -15,7 +15,8 @@ export default function ResultCard({
   onOpenEdit,
   onOpenMockup3D,
   onDownload,
-  onRemoveBg
+  onRemoveBg,
+  onOpenLightbox
 }) {
   const pxW = calculatePixels(width, unit, 300);
   const pxH = calculatePixels(height, unit, 300);
@@ -67,17 +68,31 @@ export default function ResultCard({
           </div>
         )}
 
-        {/* Reference Image Pre-Generation Preview */}
+        {/* Reference Image Pre-Generation Preview (Ảnh cũ) */}
         {!resultImage && !isGenerating && referenceImage && (
-          <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+              cursor: 'zoom-in'
+            }}
+            onClick={() => onOpenLightbox && onOpenLightbox(referenceImage.url, 'Ảnh Mẫu Cần Sửa (Ảnh cũ)')}
+            title="Bấm để xem ảnh gốc & phóng to (Zoom / Pan / Tải về)"
+          >
             <img
               src={referenceImage.url}
               alt="Ảnh mẫu cần sửa"
               style={{ maxWidth: '85%', maxHeight: '200px', objectFit: 'contain', borderRadius: '16px', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
             />
             <div style={{ marginTop: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(240, 249, 255, 0.95)', border: '1px solid #bae6fd', padding: '4px 12px', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: 700, color: '#0369a1' }}>
-              <i className="bi bi-cloud-check-fill text-blue-600"></i>
-              <span>Đã tải ảnh mẫu cần sửa</span>
+              <i className="bi bi-arrows-fullscreen text-blue-600"></i>
+              <span>Ảnh mẫu cần sửa • Bấm để phóng to / Zoom / Pan</span>
             </div>
           </div>
         )}
@@ -99,15 +114,24 @@ export default function ResultCard({
             >
               <i className="bi bi-arrow-repeat spin" style={{ fontSize: '1.8rem' }}></i>
             </div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
-              Đang render VPS ToolXPrint...
-            </div>
           </div>
         )}
 
-        {/* Generated Image */}
+        {/* Generated Image (Ảnh mới) */}
         {resultImage && !isGenerating && (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'zoom-in',
+              position: 'relative'
+            }}
+            onClick={() => onOpenLightbox && onOpenLightbox(resultImage, 'Ảnh Thiết Kế Hoàn Thiện (Ảnh mới)')}
+            title="Bấm để xem ảnh gốc & phóng to (Zoom / Pan / Tải về)"
+          >
             <img
               src={resultImage}
               alt="Kết quả"
@@ -209,7 +233,7 @@ export default function ResultCard({
             </button>
           </Tooltip>
 
-          <Tooltip text="Xem phối cảnh 3D trên bàn làm việc / sự kiện thực tế">
+          <Tooltip text="Tạo phối cảnh 3D ấn phẩm thực tế (Render 3D Mockup)">
             <button
               type="button"
               className="liquid-icon-btn"
