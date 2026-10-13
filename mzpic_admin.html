@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel" style="margin-bottom: 20px;">
+  <div class="panel-header-row" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #d8e0ea; padding-bottom: 12px; margin-bottom: 16px;">
+    <div>
+      <h3 style="margin: 0; font-size: 20px; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+        <span>🎨</span>
+        <span>MzPic Management</span>
+      </h3>
+      <div style="font-size: 12px; color: #64748b; margin-top: 3px;">
+        Quản trị hệ sinh thái MzPic: Cài đặt hệ thống, Kho prompt mẫu & Phân quyền người dùng
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <a href="https://mzpic.com" target="_blank" rel="noopener noreferrer" class="filter-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; border-color: #1d4ed8;">
+        <span>🚀 Mở Studio MzPic</span>
+      </a>
+      <button id="mzpic-refresh-all-btn" class="filter-btn ghost" type="button">Làm Mới</button>
+    </div>
+  </div>
+
+  <!-- Subtabs Switcher -->
+  <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+    <button type="button" class="filter-btn mzpic-subtab-btn" data-target="tab-settings" style="font-weight: 700;">⚙️ Cài Đặt Hệ Thống</button>
+    <button type="button" class="filter-btn ghost mzpic-subtab-btn" data-target="tab-prompts" style="font-weight: 700;">📜 Kho Prompt Mẫu</button>
+    <button type="button" class="filter-btn ghost mzpic-subtab-btn" data-target="tab-users" style="font-weight: 700;">👥 Người Dùng & Phân Quyền</button>
+  </div>
+
+  <!-- TAB 1: CÀI ĐẶT HỆ THỐNG -->
+  <div id="tab-settings" class="mzpic-tab-pane">
+    <div style="max-width: 820px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+      <h4 style="margin: 0 0 16px; font-size: 15px; color: #0f172a;">Cấu Hình Kết Nối & Tham Số Studio</h4>
+      
+      <form id="settings-form">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Google Client ID</label>
+            <input type="text" id="setting-googleClientId" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-family: monospace;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Google Client Secret</label>
+            <input type="password" id="setting-googleClientSecret" placeholder="••••••••••••••••" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-family: monospace;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">GenAI Backend API Endpoint</label>
+            <input type="text" id="setting-apiEndpoint" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">AgentAPI Endpoint</label>
+            <input type="text" id="setting-agentApiEndpoint" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px;">
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Khổ in mặc định</label>
+            <select id="setting-defaultPresetId" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
+              <option value="flyer_a4">Tờ rơi A4 (210×297 mm)</option>
+              <option value="flyer_a5">Tờ rơi A5 (148×210 mm)</option>
+              <option value="voucher_std">Voucher VIP (18×8 cm)</option>
+              <option value="standee_std">Standee Chuẩn (60×160 cm)</option>
+              <option value="square_feed">Ảnh Vuông 1:1</option>
+            </select>
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Đơn vị đo mặc định</label>
+            <select id="setting-defaultUnit" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
+              <option value="mm">Milimet (mm)</option>
+              <option value="cm">Centimet (cm)</option>
+              <option value="px">Pixels (px)</option>
+              <option value="in">Inches (in)</option>
+            </select>
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Đơn giá render (VNĐ / ảnh)</label>
+            <input type="number" id="setting-costPerImage" min="0" step="500" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
+          </div>
+        </div>
+
+        <button type="submit" class="filter-btn" style="background: #10b981; color: #ffffff; border-color: #059669; padding: 9px 20px; font-size: 13px;">
+          💾 Lưu Cài Đặt Hệ Thống
+        </button>
+        <span id="settings-status" style="font-size: 12px; margin-left: 10px; font-weight: 600;"></span>
+      </form>
+    </div>
+  </div>
+
+  <!-- TAB 2: KHO PROMPT MẪU -->
+  <div id="tab-prompts" class="mzpic-tab-pane" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <div>
+        <h4 style="margin: 0; font-size: 15px; color: #0f172a;">Danh Sách Mẫu Prompt In Ấn & Poster</h4>
+        <div style="font-size: 12px; color: #64748b;">Các mẫu prompt được hiển thị nhanh cho người dùng trên thanh chọn mẫu MzPic</div>
+      </div>
+      <button id="add-prompt-btn" class="filter-btn" type="button">+ Thêm Mẫu Mới</button>
+    </div>
+
+    <!-- General Comment -->
+    <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+      <label style="display: block; font-size: 12px; font-weight: 700; color: #92400e; margin-bottom: 4px;">
+        📌 Ghi chú chung (Hệ thống tự động nối vào cuối mọi prompt khi người dùng render):
+      </label>
+      <textarea id="mzpic-general-comment" rows="2" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #fde68a; border-radius: 6px; font-size: 12px; resize: vertical;"></textarea>
+      <div style="margin-top: 6px; text-align: right;">
+        <button id="save-comment-btn" class="filter-btn" type="button" style="padding: 5px 12px; font-size: 11px;">Lưu Ghi Chú Chung</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="generic-table">
+        <thead>
+          <tr>
+            <th style="width: 50px;">STT</th>
+            <th style="width: 180px;">Tên Mẫu</th>
+            <th style="width: 100px;">Badge</th>
+            <th style="width: 120px;">Khổ In</th>
+            <th>Nội Dung Prompt Ẩn / Chi Tiết</th>
+            <th style="width: 90px; text-align: center;">Thao Tác</th>
+          </tr>
+        </thead>
+        <tbody id="prompts-tbody">
+          <tr><td colspan="6" class="loading">Đang tải danh sách prompt...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 3: NGƯỜI DÙNG & PHÂN QUYỀN -->
+  <div id="tab-users" class="mzpic-tab-pane" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <div>
+        <h4 style="margin: 0; font-size: 15px; color: #0f172a;">Quản Lý Tài Khoản MzPic</h4>
+        <div style="font-size: 12px; color: #64748b;">Danh sách thành viên đăng nhập bằng Google hoặc tài khoản nội bộ</div>
+      </div>
+      <button id="add-user-btn" class="filter-btn" type="button">+ Tạo Người Dùng Mới</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="generic-table">
+        <thead>
+          <tr>
+            <th style="width: 50px;">ID</th>
+            <th>Họ & Tên</th>
+            <th>Email</th>
+            <th>Tên Đăng Nhập</th>
+            <th style="width: 110px;">Vai Trò</th>
+            <th style="width: 100px;">Trạng Thái</th>
+            <th style="width: 140px;">Ngày Tạo</th>
+            <th style="width: 90px; text-align: center;">Thao Tác</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody">
+          <tr><td colspan="8" class="loading">Đang tải danh sách tài khoản...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Prompt Modal -->
+<div id="prompt-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 1000; align-items: center; justify-content: center;">
+  <div style="background: #ffffff; border-radius: 12px; width: 95%; max-width: 540px; padding: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
+    <h4 id="prompt-modal-title" style="margin: 0 0 14px; font-size: 16px; color: #0f172a;">Thêm Mẫu Prompt</h4>
+    <form id="prompt-form">
+      <input type="hidden" id="p-id">
+      <div style="margin-bottom: 12px;">
+        <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Tên Mẫu Prompt (*)</label>
+        <input type="text" id="p-name" required placeholder="VD: Poster Kem Ủ Trắng VIP" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px;">
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Huy Hiệu (Badge)</label>
+          <input type="text" id="p-badge" placeholder="Mỹ Phẩm / Hot" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
+        </div>
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Khổ In</label>
+          <select id="p-preset" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
+            <option value="flyer_a4">Tờ rơi A4</option>
+            <option value="flyer_a5">Tờ rơi A5</option>
+            <option value="voucher_std">Voucher VIP</option>
+            <option value="standee_std">Standee Chuẩn</option>
+            <option value="square_feed">Ảnh Vuông 1:1</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Nội Dung Prompt Chi Tiết (*)</label>
+        <textarea id="p-prompt" rows="5" required placeholder="Mô tả phong cách in ấn, ánh sáng, bố cục..." style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; resize: vertical;"></textarea>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" id="prompt-modal-cancel" class="filter-btn ghost">Hủy</button>
+        <button type="submit" class="filter-btn" style="background: #2563eb; color: #fff; border-color: #1d4ed8;">Lưu Mẫu</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- User Modal -->
+<div id="user-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 1000; align-items: center; justify-content: center;">
+  <div style="background: #ffffff; border-radius: 12px; width: 95%; max-width: 500px; padding: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
+    <h4 id="user-modal-title" style="margin: 0 0 14px; font-size: 16px; color: #0f172a;">Tạo Người Dùng MzPic</h4>
+    <form id="user-form">
+      <input type="hidden" id="u-id">
+      <div style="margin-bottom: 12px;">
+        <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Email (*)</label>
+        <input type="email" id="u-email" required placeholder="user@gmail.com" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px;">
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Họ và Tên</label>
+          <input type="text" id="u-fullname" placeholder="Nguyễn Văn A" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
+        </div>
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Tên Đăng Nhập</label>
+          <input type="text" id="u-username" placeholder="user_a" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Vai Trò</label>
+          <select id="u-role" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
+            <option value="admin">Quản Trị Viên (Admin)</option>
+            <option value="tech">Kỹ Thuật Viên (Tech)</option>
+            <option value="support">Nhân Viên Hỗ Trợ (Support)</option>
+            <option value="user">Khách Hàng (User)</option>
+          </select>
+        </div>
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 4px;">Mật Khẩu</label>
+          <input type="text" id="u-password" placeholder="Để trống nếu không đổi" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px;">
+        </div>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155; cursor: pointer;">
+          <input type="checkbox" id="u-active" checked style="width: 16px; height: 16px;">
+          <span>Kích hoạt tài khoản này</span>
+        </label>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" id="user-modal-cancel" class="filter-btn ghost">Hủy</button>
+        <button type="submit" class="filter-btn" style="background: #2563eb; color: #fff; border-color: #1d4ed8;">Lưu Tài Khoản</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let currentPromptsData = { templates: [], generalComment: '' };
+    let currentUsersData = [];
+
+    // Subtab switching
+    document.querySelectorAll('.mzpic-subtab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.mzpic-subtab-btn').forEach(b => {
+                b.classList.add('ghost');
+            });
+            btn.classList.remove('ghost');
+            document.querySelectorAll('.mzpic-tab-pane').forEach(p => p.style.display = 'none');
+            const target = document.getElementById(btn.dataset.target);
+            if (target) target.style.display = 'block';
+        });
+    });
+
+    // ── 1. Settings Logic ──
+    const loadSettings = () => {
+        fetch('/api/mzpic/settings')
+            .then(res => res.json())
+            .then(data => {
+                if (data.ok && data.settings) {
+                    const s = data.settings;
+                    document.getElementById('setting-googleClientId').value = s.googleClientId || '';
+                    document.getElementById('setting-googleClientSecret').value = s.googleClientSecret || '';
+                    document.getElementById('setting-apiEndpoint').value = s.apiEndpoint || 'https://genai.toolxprint.com';
+                    document.getElementById('setting-agentApiEndpoint').value = s.agentApiEndpoint || 'https://agentapi.quanlymay.com';
+                    document.getElementById('setting-defaultPresetId').value = s.defaultPresetId || 'flyer_a4';
+                    document.getElementById('setting-defaultUnit').value = s.defaultUnit || 'mm';
+                    document.getElementById('setting-costPerImage').value = s.costPerImage || 2000;
+                }
+            })
+            .catch(e => console.error('Error loading settings:', e));
+    };
+
+    document.getElementById('settings-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const payload = {
+            googleClientId: document.getElementById('setting-googleClientId').value.trim(),
+            googleClientSecret: document.getElementById('setting-googleClientSecret').value.trim(),
+            apiEndpoint: document.getElementById('setting-apiEndpoint').value.trim(),
+            agentApiEndpoint: document.getElementById('setting-agentApiEndpoint').value.trim(),
+            defaultPresetId: document.getElementById('setting-defaultPresetId').value,
+            defaultUnit: document.getElementById('setting-defaultUnit').value,
+            costPerImage: parseInt(document.getElementById('setting-costPerImage').value) || 2000
+        };
+
+        const statusEl = document.getElementById('settings-status');
+        statusEl.style.color = '#2563eb';
+        statusEl.textContent = 'Đang lưu...';
+
+        fetch('/api/mzpic/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                statusEl.style.color = '#10b981';
+                statusEl.textContent = '✓ Đã lưu cài đặt thành công!';
+                setTimeout(() => { statusEl.textContent = ''; }, 3500);
+            } else {
+                statusEl.style.color = '#ef4444';
+                statusEl.textContent = 'Lỗi: ' + (data.error || 'Không thể lưu');
+            }
+        })
+        .catch(err => {
+            statusEl.style.color = '#ef4444';
+            statusEl.textContent = 'Lỗi kết nối: ' + err.message;
+        });
+    });
+
+    // ── 2. Prompts Logic ──
+    const renderPromptsTable = (templates) => {
+        const tbody = document.getElementById('prompts-tbody');
+        if (!templates || templates.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b;">Chưa có mẫu prompt nào</td></tr>';
+            return;
+        }
+        tbody.innerHTML = templates.map((t, idx) => `
+            <tr>
+                <td>${idx + 1}</td>
+                <td><strong>${t.name || ''}</strong></td>
+                <td><span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; background: #e0f2fe; color: #0284c7; font-size: 11px; font-weight: 700;">${t.badge || 'Mẫu'}</span></td>
+                <td><code style="font-size: 11px;">${t.presetId || 'Mặc định'}</code></td>
+                <td style="font-size: 12px; color: #475569; max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.hiddenPrompt || ''}</td>
+                <td style="text-align: center;">
+                    <button class="filter-btn ghost edit-prompt-btn" data-id="${t.id}" style="padding: 3px 8px; font-size: 11px;">Sửa</button>
+                    <button class="filter-btn ghost delete-prompt-btn" data-id="${t.id}" style="padding: 3px 8px; font-size: 11px; color: #ef4444;">Xóa</button>
+                </td>
+            </tr>
+        `).join('');
+
+        tbody.querySelectorAll('.edit-prompt-btn').forEach(btn => {
+            btn.onclick = () => {
+                const item = currentPromptsData.templates.find(x => x.id === btn.dataset.id);
+                if (item) openPromptModal(item);
+            };
+        });
+
+        tbody.querySelectorAll('.delete-prompt-btn').forEach(btn => {
+            btn.onclick = () => {
+                if (confirm('Bạn chắc chắn muốn xóa mẫu prompt này?')) {
+                    currentPromptsData.templates = currentPromptsData.templates.filter(x => x.id !== btn.dataset.id);
+                    savePromptsToBackend();
+                }
+            };
+        });
+    };
+
+    const loadPrompts = () => {
+        fetch('/api/mzpic/prompts')
+            .then(res => res.json())
+            .then(data => {
+                if (data.ok && data.prompts) {
+                    currentPromptsData = data.prompts;
+                    document.getElementById('mzpic-general-comment').value = currentPromptsData.generalComment || '';
+                    renderPromptsTable(currentPromptsData.templates || []);
+                }
+            })
+            .catch(e => console.error('Error loading prompts:', e));
+    };
+
+    const savePromptsToBackend = () => {
+        fetch('/api/mzpic/prompts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(currentPromptsData)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                renderPromptsTable(currentPromptsData.templates);
+            }
+        });
+    };
+
+    document.getElementById('save-comment-btn').onclick = () => {
+        currentPromptsData.generalComment = document.getElementById('mzpic-general-comment').value.trim();
+        savePromptsToBackend();
+        alert('Đã lưu ghi chú chung!');
+    };
+
+    const openPromptModal = (item) => {
+        document.getElementById('prompt-modal-title').textContent = item ? 'Chỉnh Sửa Mẫu Prompt' : 'Thêm Mẫu Prompt Mới';
+        document.getElementById('p-id').value = item ? item.id : `tpl_${Date.now()}`;
+        document.getElementById('p-name').value = item ? item.name : '';
+        document.getElementById('p-badge').value = item ? item.badge : 'Mẫu Mới';
+        document.getElementById('p-preset').value = item ? item.presetId : 'flyer_a4';
+        document.getElementById('p-prompt').value = item ? item.hiddenPrompt : '';
+        document.getElementById('prompt-modal').style.display = 'flex';
+    };
+
+    document.getElementById('add-prompt-btn').onclick = () => openPromptModal(null);
+    document.getElementById('prompt-modal-cancel').onclick = () => {
+        document.getElementById('prompt-modal').style.display = 'none';
+    };
+
+    document.getElementById('prompt-form').onsubmit = (e) => {
+        e.preventDefault();
+        const id = document.getElementById('p-id').value;
+        const newItem = {
+            id,
+            name: document.getElementById('p-name').value.trim(),
+            badge: document.getElementById('p-badge').value.trim(),
+            presetId: document.getElementById('p-preset').value,
+            hiddenPrompt: document.getElementById('p-prompt').value.trim()
+        };
+
+        const existingIdx = currentPromptsData.templates.findIndex(x => x.id === id);
+        if (existingIdx >= 0) {
+            currentPromptsData.templates[existingIdx] = newItem;
+        } else {
+            currentPromptsData.templates.push(newItem);
+        }
+
+        savePromptsToBackend();
+        document.getElementById('prompt-modal').style.display = 'none';
+    };
+
+    // ── 3. Users Logic ──
+    const renderUsersTable = (users) => {
+        const tbody = document.getElementById('users-tbody');
+        if (!users || users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #64748b;">Chưa có tài khoản nào</td></tr>';
+            return;
+        }
+        tbody.innerHTML = users.map(u => `
+            <tr>
+                <td>${u.id}</td>
+                <td><strong>${u.full_name || u.name || ''}</strong></td>
+                <td>${u.email || ''}</td>
+                <td><code>${u.username || ''}</code></td>
+                <td><span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; background: #f1f5f9; color: #0f172a; font-size: 11px; font-weight: 700;">${(u.role || u.user_type || 'user').toUpperCase()}</span></td>
+                <td><span style="color: ${u.is_active !== false ? '#16a34a' : '#dc2626'}; font-weight: 700;">${u.is_active !== false ? '● Hoạt động' : '○ Bị khóa'}</span></td>
+                <td style="font-size: 11px; color: #64748b;">${u.created_at ? u.created_at.slice(0, 10) : ''}</td>
+                <td style="text-align: center;">
+                    <button class="filter-btn ghost edit-user-btn" data-id="${u.id}" style="padding: 3px 8px; font-size: 11px;">Sửa</button>
+                    <button class="filter-btn ghost delete-user-btn" data-id="${u.id}" style="padding: 3px 8px; font-size: 11px; color: #ef4444;">Xóa</button>
+                </td>
+            </tr>
+        `).join('');
+
+        tbody.querySelectorAll('.edit-user-btn').forEach(btn => {
+            btn.onclick = () => {
+                const item = currentUsersData.find(x => x.id === parseInt(btn.dataset.id));
+                if (item) openUserModal(item);
+            };
+        });
+
+        tbody.querySelectorAll('.delete-user-btn').forEach(btn => {
+            btn.onclick = () => {
+                if (confirm('Bạn chắc chắn muốn xóa tài khoản này?')) {
+                    fetch(`/api/mzpic/users/${btn.dataset.id}`, { method: 'DELETE' })
+                        .then(res => res.json())
+                        .then(d => {
+                            if (d.ok) loadUsers();
+                            else alert('Lỗi: ' + (d.error || 'Không thể xóa'));
+                        });
+                }
+            };
+        });
+    };
+
+    const loadUsers = () => {
+        fetch('/api/mzpic/users')
+            .then(res => res.json())
+            .then(data => {
+                if (data.ok && data.users) {
+                    currentUsersData = data.users;
+                    renderUsersTable(currentUsersData);
+                }
+            })
+            .catch(e => console.error('Error loading users:', e));
+    };
+
+    const openUserModal = (item) => {
+        document.getElementById('user-modal-title').textContent = item ? 'Chỉnh Sửa Người Dùng' : 'Tạo Người Dùng Mới';
+        document.getElementById('u-id').value = item ? item.id : '';
+        document.getElementById('u-email').value = item ? item.email : '';
+        document.getElementById('u-fullname').value = item ? (item.full_name || item.name || '') : '';
+        document.getElementById('u-username').value = item ? item.username : '';
+        document.getElementById('u-role').value = item ? (item.role || item.user_type || 'tech') : 'tech';
+        document.getElementById('u-password').value = '';
+        document.getElementById('u-active').checked = item ? (item.is_active !== false) : true;
+        document.getElementById('user-modal').style.display = 'flex';
+    };
+
+    document.getElementById('add-user-btn').onclick = () => openUserModal(null);
+    document.getElementById('user-modal-cancel').onclick = () => {
+        document.getElementById('user-modal').style.display = 'none';
+    };
+
+    document.getElementById('user-form').onsubmit = (e) => {
+        e.preventDefault();
+        const payload = {
+            id: document.getElementById('u-id').value ? parseInt(document.getElementById('u-id').value) : null,
+            email: document.getElementById('u-email').value.trim(),
+            full_name: document.getElementById('u-fullname').value.trim(),
+            username: document.getElementById('u-username').value.trim(),
+            role: document.getElementById('u-role').value,
+            password: document.getElementById('u-password').value.trim(),
+            is_active: document.getElementById('u-active').checked
+        };
+
+        fetch('/api/mzpic/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                document.getElementById('user-modal').style.display = 'none';
+                loadUsers();
+            } else {
+                alert('Lỗi: ' + (data.error || 'Không thể lưu người dùng'));
+            }
+        });
+    };
+
+    // Refresh all
+    document.getElementById('mzpic-refresh-all-btn').onclick = () => {
+        loadSettings();
+        loadPrompts();
+        loadUsers();
+    };
+
+    // Initial Load
+    loadSettings();
+    loadPrompts();
+    loadUsers();
+});
+</script>
+{% endblock %}

@@ -52,7 +52,7 @@
     },
     {
       "id": "tpl_free_style",
-      "name": "Tự Do (Không Ghép Mẫu Ẩn)",
+      "name": "Tự Do",
       "badge": "Tự do",
       "presetId": null,
       "hiddenPrompt": ""

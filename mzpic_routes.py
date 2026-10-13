@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from sqlalchemy import select
 
 from models import UserAccount, UserType
@@ -26,7 +26,7 @@ DEFAULT_SETTINGS = {
     "defaultUnit": "mm",
     "defaultAspectRatio": "portrait",
     "costPerImage": 2000,
-    "googleClientId": os.environ.get("GOOGLE_CLIENT_ID", "475773389104-4frju27uljiuj0mtihidgude16ghr39t.apps.googleusercontent.com"),
+    "googleClientId": os.environ.get("GOOGLE_CLIENT_ID", ""),
     "googleClientSecret": os.environ.get("GOOGLE_CLIENT_SECRET", ""),
     "apiEndpoint": "https://genai.toolxprint.com",
     "agentApiEndpoint": "https://agentapi.quanlymay.com"
@@ -51,6 +51,12 @@ def _save_json_file(file_path: Path, data: Any) -> bool:
         return False
 
 def register_mzpic_routes(app: Flask, session_factory: Any) -> None:
+
+    # ── MzPic Web UI (GoPrinx Navtab) ──
+    @app.get("/mzpic")
+    @app.get("/mzpic/")
+    def mzpic_admin_page() -> Any:
+        return render_template("mzpic_admin.html", active_tab="mzpic", page_title="MzPic")
 
     # ── MzPic Settings API ──
     @app.get("/api/mzpic/settings")

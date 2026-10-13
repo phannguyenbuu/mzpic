@@ -16,7 +16,9 @@ export default function PromptCard({
   onSelectTemplateId,
   onOpenAdmin,
   referenceImage,
+  referenceImages = [],
   onUploadReferenceImage,
+  onUploadReferenceImages,
   onRemoveReferenceImage,
   // Khổ in specs props
   selectedPresetId,
@@ -31,15 +33,21 @@ export default function PromptCard({
   onAspectRatioChange,
   transparentBg = false,
   setTransparentBg,
-  onOpenLightbox
+  onOpenLightbox,
+  onOpenCropRotate,
+  onOpenExactResize
 }) {
   const [subTab, setSubTab] = useState('prompt'); // 'prompt' | 'specs'
   const fileInputRef = useRef(null);
 
   const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (onUploadReferenceImage) onUploadReferenceImage(file);
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    if (onUploadReferenceImages) {
+      onUploadReferenceImages(files);
+    } else if (onUploadReferenceImage) {
+      Array.from(files).forEach((f) => onUploadReferenceImage(f));
+    }
     e.target.value = '';
   };
 
@@ -77,7 +85,14 @@ export default function PromptCard({
     }
   };
 
-  const currentTemplate = templates.find((t) => t.id === selectedTemplateId) || templates[0];
+  const formatTemplateDisplayName = (name, id) => {
+    if (id === 'tpl_free_style' || (name && name.startsWith('Tự Do'))) {
+      return 'Tự Do';
+    }
+    return name || 'Tự Do';
+  };
+  const currentTemplate = templates.find((t) => t.id === selectedTemplateId) || templates.find((t) => t.id === 'tpl_free_style' || (t.name && t.name.startsWith('Tự Do'))) || templates[0];
+  const currentTemplateDisplayName = formatTemplateDisplayName(currentTemplate?.name, currentTemplate?.id);
   const pxW = calculatePixels(width, unit, 300);
   const pxH = calculatePixels(height, unit, 300);
 
@@ -289,113 +304,237 @@ export default function PromptCard({
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            multiple
             onChange={handleImageUpload}
             style={{ display: 'none' }}
           />
 
-          {!referenceImage ? (
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="liquid-pill-btn"
-                style={{
-                  flex: 1,
-                  padding: '7px 12px',
-                  justifyContent: 'center',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  border: '1.5px dashed rgba(59, 130, 246, 0.45)',
-                  background: 'rgba(239, 246, 255, 0.65)',
-                  color: '#1d4ed8',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <i className="bi bi-cloud-arrow-up" style={{ fontSize: '0.95rem' }}></i>
-                <span>Up Ảnh Cần Sửa</span>
-              </button>
+          {(() => {
+            const imgList = (Array.isArray(referenceImages) && referenceImages.length > 0)
+              ? referenceImages
+              : (referenceImage ? [referenceImage] : []);
 
-              <Tooltip text="Dán ảnh từ bộ nhớ tạm (Ctrl + V)">
-                <button
-                  type="button"
-                  onClick={handlePasteClick}
-                  className="liquid-pill-btn"
-                  style={{
-                    width: 'auto',
-                    padding: '7px 12px',
-                    justifyContent: 'center',
-                    fontSize: '0.76rem',
-                    fontWeight: 700,
-                    border: '1.5px solid rgba(59, 130, 246, 0.35)',
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    color: '#2563eb',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  <i className="bi bi-clipboard-plus" style={{ fontSize: '0.95rem' }}></i>
-                  <span>Paste (Ctrl+V)</span>
-                </button>
-              </Tooltip>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '6px 10px',
-                background: 'rgba(240, 249, 255, 0.9)',
-                border: '1px solid rgba(186, 230, 253, 0.95)',
-                borderRadius: '16px',
-                marginBottom: '10px'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                <img
-                  src={referenceImage.url}
-                  alt="Ảnh mẫu cần sửa"
-                  style={{ width: '38px', height: '38px', borderRadius: '10px', objectFit: 'cover', border: '1.5px solid #0284c7', cursor: 'zoom-in' }}
-                  onClick={() => onOpenLightbox && onOpenLightbox(referenceImage.url, 'Ảnh Mẫu Cần Sửa (Ảnh cũ)')}
-                  title="Bấm để xem ảnh gốc & phóng to (Zoom / Pan / Tải về)"
-                />
-                <div style={{ minWidth: 0, cursor: 'pointer' }} onClick={() => onOpenLightbox && onOpenLightbox(referenceImage.url, 'Ảnh Mẫu Cần Sửa (Ảnh cũ)')}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <i className="bi bi-image-fill"></i>
-                    <span>Ảnh mẫu cần sửa</span>
-                    <i className="bi bi-arrows-fullscreen" style={{ fontSize: '0.65rem', marginLeft: '2px', opacity: 0.8 }}></i>
-                  </div>
-                  <div style={{ fontSize: '0.64rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {referenceImage.name} ({referenceImage.sizeMb} MB)
-                  </div>
+            if (imgList.length === 0) {
+              return (
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="liquid-pill-btn"
+                    style={{
+                      flex: 1,
+                      padding: '7px 12px',
+                      justifyContent: 'center',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      border: '1.5px dashed rgba(59, 130, 246, 0.45)',
+                      background: 'rgba(239, 246, 255, 0.65)',
+                      color: '#1d4ed8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <i className="bi bi-cloud-arrow-up" style={{ fontSize: '0.95rem' }}></i>
+                    <span>Up Ảnh</span>
+                  </button>
+
+                  <Tooltip text="Dán ảnh từ bộ nhớ tạm (Ctrl + V)">
+                    <button
+                      type="button"
+                      onClick={handlePasteClick}
+                      className="liquid-pill-btn"
+                      style={{
+                        width: 'auto',
+                        padding: '7px 12px',
+                        justifyContent: 'center',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        border: '1.5px solid rgba(59, 130, 246, 0.35)',
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        color: '#2563eb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <i className="bi bi-clipboard-plus" style={{ fontSize: '0.95rem' }}></i>
+                      <span>Paste (Ctrl+V)</span>
+                    </button>
+                  </Tooltip>
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={onRemoveReferenceImage}
+              );
+            }
+
+            return (
+              <div
                 style={{
-                  width: '26px',
-                  height: '26px',
-                  borderRadius: '50%',
-                  background: '#fee2e2',
-                  border: 'none',
-                  color: '#ef4444',
-                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.78rem'
+                  gap: '8px',
+                  padding: '8px 10px',
+                  background: 'rgba(240, 249, 255, 0.92)',
+                  border: '1.5px solid rgba(186, 230, 253, 0.95)',
+                  borderRadius: '16px',
+                  marginBottom: '10px',
+                  overflowX: 'auto',
+                  scrollbarWidth: 'thin'
                 }}
-                title="Gỡ ảnh mẫu"
               >
-                <i className="bi bi-x-lg"></i>
-              </button>
-            </div>
-          )}
+                {/* List of reference images with doubled height (76px x 76px) and NO TEXT */}
+                {imgList.map((img, idx) => {
+                  const url = img?.url || img;
+                  return (
+                    <div
+                      key={img?.id || url || idx}
+                      style={{
+                        position: 'relative',
+                        width: '76px',
+                        height: '76px',
+                        flexShrink: 0,
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        border: '1.5px solid #0284c7',
+                        background: '#f1f5f9',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
+                      }}
+                    >
+                      <img
+                        src={url}
+                        alt={`Ảnh ref #${idx + 1}`}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => onOpenCropRotate && onOpenCropRotate(img, idx)}
+                        title="Bấm để Cắt & Xoay / Chỉnh sửa ảnh này"
+                      />
+
+                      {/* Crop tool icon badge at bottom-left */}
+                      <div
+                        onClick={() => onOpenCropRotate && onOpenCropRotate(img, idx)}
+                        style={{
+                          position: 'absolute',
+                          bottom: '3px',
+                          left: '3px',
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '6px',
+                          background: 'rgba(15, 23, 42, 0.65)',
+                          backdropFilter: 'blur(3px)',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.7rem',
+                          cursor: 'pointer'
+                        }}
+                        title="Cắt & Xoay ảnh"
+                      >
+                        <i className="bi bi-crop"></i>
+                      </div>
+
+                      {/* Delete button at top-right */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onRemoveReferenceImage) {
+                            onRemoveReferenceImage(img?.id !== undefined ? img.id : idx);
+                          }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: '3px',
+                          right: '3px',
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          background: 'rgba(239, 68, 68, 0.9)',
+                          border: 'none',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.65rem',
+                          cursor: 'pointer',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.2)'
+                        }}
+                        title="Gỡ ảnh này"
+                      >
+                        <i className="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+                  );
+                })}
+
+                {/* Add more ref image button slot (76px x 76px) */}
+                <Tooltip text="Thêm ảnh mẫu tham chiếu (+)">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      width: '76px',
+                      height: '76px',
+                      flexShrink: 0,
+                      borderRadius: '12px',
+                      border: '1.5px dashed rgba(59, 130, 246, 0.45)',
+                      background: 'rgba(255, 255, 255, 0.85)',
+                      color: '#2563eb',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      gap: '2px',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#2563eb';
+                      e.currentTarget.style.background = '#eff6ff';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.45)';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.85)';
+                    }}
+                  >
+                    <i className="bi bi-plus-lg" style={{ fontSize: '1.25rem', lineHeight: 1 }}></i>
+                    <span style={{ fontSize: '0.62rem', fontWeight: 800 }}>Thêm ảnh</span>
+                  </button>
+                </Tooltip>
+
+                {/* Quick Paste Button slot */}
+                <Tooltip text="Dán thêm ảnh từ Clipboard (Ctrl + V)">
+                  <button
+                    type="button"
+                    onClick={handlePasteClick}
+                    style={{
+                      width: '42px',
+                      height: '76px',
+                      flexShrink: 0,
+                      borderRadius: '12px',
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      background: '#ffffff',
+                      color: '#2563eb',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      gap: '3px'
+                    }}
+                    title="Dán thêm ảnh (Ctrl+V)"
+                  >
+                    <i className="bi bi-clipboard-plus" style={{ fontSize: '0.95rem' }}></i>
+                    <span style={{ fontSize: '0.55rem', fontWeight: 700 }}>Paste</span>
+                  </button>
+                </Tooltip>
+              </div>
+            );
+          })()}
 
           {/* Textarea */}
           <div style={{ position: 'relative' }}>
@@ -533,6 +672,33 @@ export default function PromptCard({
               );
             })}
           </div>
+
+          {/* Quick Exact Dimensions Modal Opener */}
+          {onOpenExactResize && (
+            <div style={{ marginBottom: '8px' }}>
+              <button
+                type="button"
+                onClick={onOpenExactResize}
+                className="liquid-pill-btn"
+                style={{
+                  width: '100%',
+                  padding: '7px 12px',
+                  justifyContent: 'center',
+                  fontSize: '0.76rem',
+                  fontWeight: 800,
+                  background: 'rgba(239, 246, 255, 0.85)',
+                  border: '1px solid #bfdbfe',
+                  color: '#1d4ed8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <i className="bi bi-aspect-ratio"></i>
+                <span>Chọn Kích Thước Chính Xác & DPI (A4, A5, Voucher, Standee...)</span>
+              </button>
+            </div>
+          )}
 
           {/* Custom W / H input row (Spanning full 100% width) */}
           <div
@@ -787,10 +953,10 @@ export default function PromptCard({
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
         {/* Dropdown list (phía trước) */}
         <div style={{ flex: 1, position: 'relative' }}>
-          <Tooltip text={`Mẫu prompt ẩn đang chọn: ${currentTemplate?.name || 'Tự do'}`}>
+          <Tooltip text={`Mẫu prompt đang chọn: ${currentTemplateDisplayName}`}>
             <div style={{ position: 'relative', width: '100%' }}>
               <select
-                value={selectedTemplateId || (templates[0] && templates[0].id)}
+                value={selectedTemplateId || currentTemplate?.id || (templates[0] && templates[0].id)}
                 onChange={(e) => onSelectTemplateId && onSelectTemplateId(e.target.value)}
                 style={{
                   width: '100%',
@@ -813,7 +979,7 @@ export default function PromptCard({
               >
                 {templates.map((tpl) => (
                   <option key={tpl.id} value={tpl.id}>
-                    {tpl.name}
+                    {formatTemplateDisplayName(tpl.name, tpl.id)}
                   </option>
                 ))}
               </select>

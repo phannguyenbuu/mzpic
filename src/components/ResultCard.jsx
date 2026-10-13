@@ -16,7 +16,9 @@ export default function ResultCard({
   onOpenMockup3D,
   onDownload,
   onRemoveBg,
-  onOpenLightbox
+  onOpenLightbox,
+  onOpenResize,
+  onOpenColorGrading
 }) {
   const pxW = calculatePixels(width, unit, 300);
   const pxH = calculatePixels(height, unit, 300);
@@ -143,9 +145,13 @@ export default function ResultCard({
               }}
             />
 
-            {/* Floating Top Specs Pills */}
-            <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '6px' }}>
-              <Tooltip text="Kích thước pixel ở tiêu chuẩn in ấn 300 DPI">
+            {/* Floating Top Specs Pills (Click to resize) */}
+            <div
+              style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '6px', cursor: onOpenResize ? 'pointer' : 'default' }}
+              onClick={onOpenResize}
+              title="Bấm để chỉnh kích thước chính xác & DPI"
+            >
+              <Tooltip text="Bấm để chỉnh kích thước chính xác (mm, cm, in, px & DPI)">
                 <span
                   style={{
                     background: 'rgba(15, 23, 42, 0.72)',
@@ -233,13 +239,37 @@ export default function ResultCard({
             </button>
           </Tooltip>
 
-          <Tooltip text="Tạo phối cảnh 3D ấn phẩm thực tế (Render 3D Mockup)">
+          <Tooltip text="Chỉnh kích thước chính xác & Resize chuẩn in (mm, cm, in, px & DPI)">
+            <button
+              type="button"
+              className="liquid-icon-btn"
+              onClick={onOpenResize}
+              disabled={!resultImage || isGenerating}
+              aria-label="Chỉnh kích thước"
+            >
+              <i className="bi bi-aspect-ratio"></i>
+            </button>
+          </Tooltip>
+
+          <Tooltip text="Hậu kỳ chuyên sâu: HSL, Brightness/Contrast, Blue/Red & Curves">
+            <button
+              type="button"
+              className="liquid-icon-btn"
+              onClick={onOpenColorGrading}
+              disabled={!resultImage || isGenerating}
+              aria-label="Hậu kỳ màu & Curves"
+            >
+              <i className="bi bi-sliders2-vertical"></i>
+            </button>
+          </Tooltip>
+
+          <Tooltip text="Đặt trong không gian thực tế (Render 3D Mockup)">
             <button
               type="button"
               className="liquid-icon-btn"
               onClick={onOpenMockup3D}
               disabled={!resultImage || isGenerating}
-              aria-label="3D Mockup"
+              aria-label="Đặt trong không gian thực tế"
             >
               <i className="bi bi-box-seam-fill"></i>
             </button>

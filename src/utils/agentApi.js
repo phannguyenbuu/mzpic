@@ -37,7 +37,13 @@ export function getStoredAuthToken() {
 export function getStoredUser() {
   try {
     const data = localStorage.getItem(USER_KEY);
-    return data ? JSON.parse(data) : null;
+    if (!data) return null;
+    const user = JSON.parse(data);
+    if (user && user.expiresAt && Date.now() > user.expiresAt) {
+      clearStoredAuth();
+      return null;
+    }
+    return user;
   } catch (e) {
     return null;
   }

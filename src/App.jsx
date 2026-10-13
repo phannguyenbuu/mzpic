@@ -8,6 +8,9 @@ import GoogleAuthModal from './components/GoogleAuthModal';
 import TopupModal from './components/TopupModal';
 import EditImageModal from './components/EditImageModal';
 import ImageLightboxModal from './components/ImageLightboxModal';
+import CropRotateModal from './components/CropRotateModal';
+import ExactResizeModal from './components/ExactResizeModal';
+import ColorGradingModal from './components/ColorGradingModal';
 import AdminPromptModal from './components/AdminPromptModal';
 import ToastStack from './components/ToastStack';
 import GallerySection from './components/GallerySection';
@@ -16,10 +19,46 @@ import BatchSection from './components/BatchSection';
 import UpscaleSection from './components/UpscaleSection';
 import ApiDocsSection from './components/ApiDocsSection';
 import AdminSection from './components/AdminSection';
+import UserGalleryModal from './components/UserGalleryModal';
 import { DESIGN_PRESETS, convertDimension, calculatePixels } from './data/presets';
 import { getPromptTemplates, savePromptTemplates, getGeneralComment, saveGeneralComment } from './data/promptTemplates';
 import { createRenderJob, formatReferenceImageUrl } from './utils/api';
 import { getStoredUser, logoutUser, fetchMzPicSettings, fetchMzPicPrompts } from './utils/agentApi';
+
+// Demo Before/After samples for initial User Gallery display
+const DEFAULT_DEMO_GALLERY = [
+  {
+    id: 'demo_1',
+    userId: 'default',
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+    beforeImage: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80',
+    afterImage: 'https://images.unsplash.com/photo-1526947425960-945c6e72858f?auto=format&fit=crop&w=800&q=80',
+    prompt: 'Thiết kế lại poster mỹ phẩm dưỡng trắng da cao cấp, ánh sáng studio sang trọng, tone pastel hiện đại',
+    presetName: 'Poster Dọc A4',
+    dimensions: '21 × 29.7 CM (300 DPI)',
+    aspectRatio: 'poster_a4'
+  },
+  {
+    id: 'demo_2',
+    userId: 'default',
+    timestamp: new Date(Date.now() - 7200000).toISOString(),
+    beforeImage: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80',
+    afterImage: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80',
+    prompt: 'Banner quảng cáo tai nghe âm thanh cao cấp, công nghệ futuristic, ánh sáng neon cyberpunk',
+    presetName: 'Banner Vuông 1:1',
+    dimensions: '100 × 100 CM (300 DPI)',
+    aspectRatio: 'square_100'
+  }
+];
+
+// Helper lọc bỏ prompt kỹ thuật của app, không lưu prompt vào gallery để bảo mật
+const extractUserPrompt = () => '';
+
+// Làm sạch các tác phẩm đã lưu trước đó trong localStorage: xóa bỏ toàn bộ prompt
+const cleanStoredGallery = (items) => {
+  if (!Array.isArray(items)) return [];
+  return items.map((item) => ({ ...item, prompt: '' }));
+};
 
 // Route synchronizer: mỗi tab là 1 route
 const ROUTE_MAP = {
@@ -87,15 +126,30 @@ export default function App() {
   const [selectedStyleId, setSelectedStyleId] = useState(() => {
     return localStorage.getItem('mzpic_default_style_id') || 'none';
   });
-  const [referenceImage, setReferenceImage] = useState(null);
+  const [referenceImages, setReferenceImages] = useState([]);
+  const referenceImage = referenceImages[0] || null;
+  const setReferenceImage = useCallback((val) => {
+    if (!val) {
+      setReferenceImages([]);
+    } else if (Array.isArray(val)) {
+      setReferenceImages(val);
+    } else {
+      const item = typeof val === 'string'
+        ? { id: 'ref_' + Date.now(), url: val, name: 'Ảnh mẫu' }
+        : (val.id ? val : { ...val, id: 'ref_' + Date.now() });
+      setReferenceImages([item]);
+    }
+  }, []);
 
   // Custom Prompt Templates & Admin
   const [promptTemplates, setPromptTemplates] = useState(getPromptTemplates);
   const [selectedTemplateId, setSelectedTemplateId] = useState(() => {
-    const saved = localStorage.getItem('mzpic_default_template_id');
+    const saved = localStorage.getItem('mzpic_selected_template_id') || localStorage.getItem('mzpic_default_template_id');
     const list = getPromptTemplates();
     if (saved && list.some(t => t.id === saved)) return saved;
-    return list[0]?.id || 'tpl_voucher_gold';
+    const freeTpl = list.find(t => t.id === 'tpl_free_style' || (t.name && t.name.startsWith('Tự Do')));
+    if (freeTpl) return freeTpl.id;
+    return list[0]?.id || 'tpl_free_style';
   });
   const [generalComment, setGeneralComment] = useState(getGeneralComment);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
@@ -104,12 +158,21 @@ export default function App() {
   const [walletBalance, setWalletBalance] = useState(50000);
   const costPerImage = 2000;
   const [user, setUser] = useState(() => {
-    return getStoredUser() || {
-      name: 'GoPrinx Admin',
-      email: 'gox@quanlymay.com',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80',
-      role: 'admin'
-    };
+    return getStoredUser() || null;
+  });
+
+  // User Gallery Modal & Items State
+  const [galleryModalOpen, setGalleryModalOpen] = useState(false);
+  const [userGallery, setUserGallery] = useState(() => {
+    const key = 'mzpic_user_gallery_' + (getStoredUser()?.id || getStoredUser()?.email || 'guest');
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return cleanStoredGallery(parsed);
+      } catch (e) {}
+    }
+    return DEFAULT_DEMO_GALLERY;
   });
 
   // Đồng bộ cài đặt & Mẫu Prompt từ agentapi.quanlymay.com khi mở ứng dụng
@@ -124,7 +187,13 @@ export default function App() {
 
     fetchMzPicPrompts().then((p) => {
       if (p && p.templates && p.templates.length > 0) {
-        setPromptTemplates(p.templates);
+        const cleaned = p.templates.map(t => {
+          if (t.id === 'tpl_free_style' || (t.name && t.name.startsWith('Tự Do'))) {
+            return { ...t, name: 'Tự Do' };
+          }
+          return t;
+        });
+        setPromptTemplates(cleaned);
       }
       if (p && p.generalComment) {
         setGeneralComment(p.generalComment);
@@ -170,7 +239,7 @@ export default function App() {
 
   // Modals
   const [topupOpen, setTopupOpen] = useState(false);
-  const [googleAuthOpen, setGoogleAuthOpen] = useState(false);
+  const [googleAuthOpen, setGoogleAuthOpen] = useState(() => !getStoredUser());
   const [mockup3DOpen, setMockup3DOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [lightboxState, setLightboxState] = useState({
@@ -197,6 +266,116 @@ export default function App() {
   const [isRenderingMockup, setIsRenderingMockup] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
+  // 1. Crop & Rotate Modal State
+  const [cropModalState, setCropModalState] = useState({
+    isOpen: false,
+    imageUrl: null,
+    imageName: 'Ảnh mẫu cần sửa',
+    targetId: null
+  });
+
+  const handleOpenCropRotate = (img, index) => {
+    if (!user) {
+      setGoogleAuthOpen(true);
+      showToast('🔒 Vui lòng đăng nhập để sử dụng tính năng này!', 'warning');
+      return;
+    }
+    const url = img?.url || (typeof img === 'string' ? img : null);
+    const name = img?.name || 'Ảnh mẫu cần sửa';
+    const targetId = img?.id || (typeof index === 'number' ? index : null);
+    if (!url) return;
+    setCropModalState({
+      isOpen: true,
+      imageUrl: url,
+      imageName: name,
+      targetId
+    });
+  };
+
+  const handleApplyCropRotate = (editedDataUrl) => {
+    const targetId = cropModalState.targetId;
+    setReferenceImages((prev) => {
+      if (prev.length === 0) {
+        return [{ id: 'ref_' + Date.now(), url: editedDataUrl, name: 'Ảnh đã sửa' }];
+      }
+      let found = false;
+      const next = prev.map((item, idx) => {
+        if (
+          (targetId !== null && targetId !== undefined && (item.id === targetId || idx === targetId)) ||
+          item.url === cropModalState.imageUrl
+        ) {
+          found = true;
+          return {
+            ...item,
+            url: editedDataUrl,
+            sizeMb: ((editedDataUrl.length * 0.75) / (1024 * 1024)).toFixed(2)
+          };
+        }
+        return item;
+      });
+      if (!found && next.length > 0) {
+        next[0] = {
+          ...next[0],
+          url: editedDataUrl,
+          sizeMb: ((editedDataUrl.length * 0.75) / (1024 * 1024)).toFixed(2)
+        };
+      }
+      return next;
+    });
+    showToast('✓ Đã cập nhật ảnh sau khi cắt & xoay!', 'success');
+  };
+
+  // 2. Exact Resize Modal State
+  const [resizeModalState, setResizeModalState] = useState({
+    isOpen: false,
+    mode: 'result'
+  });
+
+  const handleOpenResize = (mode = 'result') => {
+    if (!user) {
+      setGoogleAuthOpen(true);
+      showToast('🔒 Vui lòng đăng nhập để sử dụng tính năng này!', 'warning');
+      return;
+    }
+    setResizeModalState({
+      isOpen: true,
+      mode
+    });
+  };
+
+  const handleApplyResize = ({ width: newW, height: newH, unit: newU, dpi: newDpi, resizedDataUrl }) => {
+    setWidth(newW);
+    setHeight(newH);
+    setUnit(newU);
+    if (resizedDataUrl) {
+      setResultImage(resizedDataUrl);
+      showToast(`✓ Đã cập nhật kích thước chuẩn in: ${newW}×${newH} ${newU} (${newDpi} DPI)!`, 'success');
+    } else {
+      showToast(`✓ Đã áp dụng kích thước chuẩn in: ${newW}×${newH} ${newU}!`, 'success');
+    }
+  };
+
+  // 3. Color Grading & Curves Modal State
+  const [colorGradingOpen, setColorGradingOpen] = useState(false);
+
+  const handleOpenColorGrading = () => {
+    if (!user) {
+      setGoogleAuthOpen(true);
+      showToast('🔒 Vui lòng đăng nhập để sử dụng tính năng này!', 'warning');
+      return;
+    }
+    if (!resultImage) {
+      showToast('Chưa có ảnh kết quả để chỉnh màu!', 'warning');
+      return;
+    }
+    setColorGradingOpen(true);
+  };
+
+  const handleApplyColorGrading = (adjustedDataUrl) => {
+    setResultImage(adjustedDataUrl);
+    showToast('✓ Đã áp dụng các thông số hậu kỳ màu sắc & Tone Curves!', 'success');
+  };
+
   // Polling ref
   const pollIntervalRef = useRef(null);
 
@@ -214,6 +393,43 @@ export default function App() {
   const dismissToast = (id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
+
+  // Đồng bộ gallery khi user thay đổi
+  useEffect(() => {
+    const key = 'mzpic_user_gallery_' + (user?.id || user?.email || 'guest');
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setUserGallery(cleanStoredGallery(parsed));
+          return;
+        }
+      } catch (e) {}
+    }
+    setUserGallery(DEFAULT_DEMO_GALLERY);
+  }, [user]);
+
+  const handleDeleteGalleryItem = useCallback((itemId) => {
+    setUserGallery((prev) => {
+      const next = prev.filter((item) => item.id !== itemId);
+      const key = 'mzpic_user_gallery_' + (user?.id || user?.email || 'guest');
+      try {
+        localStorage.setItem(key, JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+    showToast('Đã xóa tác phẩm khỏi Gallery', 'info');
+  }, [user, showToast]);
+
+  const handleClearUserGallery = useCallback(() => {
+    setUserGallery([]);
+    const key = 'mzpic_user_gallery_' + (user?.id || user?.email || 'guest');
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {}
+    showToast('Đã xóa toàn bộ lịch sử Gallery của bạn', 'info');
+  }, [user, showToast]);
 
   // Sync health & status from VPS ToolXPrint on load
   useEffect(() => {
@@ -306,6 +522,7 @@ export default function App() {
   // Handle dropdown selection (chọn mẫu prompt ẩn)
   const handleSelectTemplateId = (tplId) => {
     setSelectedTemplateId(tplId);
+    localStorage.setItem('mzpic_selected_template_id', tplId);
     localStorage.setItem('mzpic_default_template_id', tplId);
     const found = promptTemplates.find((t) => t.id === tplId);
     if (found && found.presetId) {
@@ -324,7 +541,8 @@ export default function App() {
         localStorage.setItem('mzpic_default_aspect_ratio', r);
       }
     }
-    showToast(`Đã chọn mẫu: ${found ? found.name : tplId}`, 'info');
+    const displayName = (found?.id === 'tpl_free_style' || found?.name?.startsWith('Tự Do')) ? 'Tự Do' : (found?.name || tplId);
+    showToast(`Đã chọn mẫu: ${displayName}`, 'info');
   };
 
   // Handle saving customized templates from Admin Modal
@@ -351,34 +569,80 @@ export default function App() {
     setResultImage(null);
     setResultFilename(null);
     setFileMeta(null);
-    setReferenceImage(null);
+    setReferenceImages([]);
     setProgress(0);
     setProgressText('');
     setMockupUrl(null);
     showToast('Đã reset phiên làm việc!', 'info');
   };
 
-  // Handle Reference Image Upload (Ảnh cũ để AI sửa)
+  // Handle Reference Image Upload (Ảnh cũ để AI sửa - hỗ trợ nhiều ảnh)
   const handleUploadReferenceImage = (file) => {
+    if (!user) {
+      setGoogleAuthOpen(true);
+      showToast('🔒 Vui lòng đăng nhập để tải ảnh lên!', 'warning');
+      return;
+    }
+
     if (!file.type.startsWith('image/')) {
       showToast('Vui lòng chọn file hình ảnh (PNG, JPG, WEBP)!', 'error');
       return;
     }
     const reader = new FileReader();
     reader.onload = (event) => {
-      setReferenceImage({
+      const newImg = {
+        id: 'ref_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         url: event.target.result,
         name: file.name,
         sizeMb: (file.size / (1024 * 1024)).toFixed(2)
-      });
-      showToast(`Đã tải ảnh cũ lên: ${file.name}`, 'success');
+      };
+      setReferenceImages((prev) => [...prev, newImg]);
+      showToast(`Đã thêm ảnh tham chiếu: ${file.name}`, 'success');
     };
     reader.readAsDataURL(file);
   };
 
-  const handleRemoveReferenceImage = () => {
-    setReferenceImage(null);
-    showToast('Đã gỡ ảnh cũ tham chiếu', 'info');
+  const handleUploadReferenceImages = (files) => {
+    if (!user) {
+      setGoogleAuthOpen(true);
+      showToast('🔒 Vui lòng đăng nhập để tải ảnh lên!', 'warning');
+      return;
+    }
+
+    const fileList = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    if (fileList.length === 0) {
+      showToast('Vui lòng chọn file hình ảnh!', 'error');
+      return;
+    }
+    fileList.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const newImg = {
+          id: 'ref_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          url: event.target.result,
+          name: file.name,
+          sizeMb: (file.size / (1024 * 1024)).toFixed(2)
+        };
+        setReferenceImages((prev) => [...prev, newImg]);
+      };
+      reader.readAsDataURL(file);
+    });
+    showToast(`Đã thêm ${fileList.length} ảnh tham chiếu!`, 'success');
+  };
+
+  const handleRemoveReferenceImage = (targetIdOrIndex) => {
+    if (targetIdOrIndex === undefined || targetIdOrIndex === null) {
+      setReferenceImages([]);
+      showToast('Đã gỡ tất cả ảnh tham chiếu', 'info');
+      return;
+    }
+    setReferenceImages((prev) => {
+      if (typeof targetIdOrIndex === 'number') {
+        return prev.filter((_, idx) => idx !== targetIdOrIndex);
+      }
+      return prev.filter((img) => img.id !== targetIdOrIndex && img.url !== targetIdOrIndex);
+    });
+    showToast('Đã gỡ ảnh tham chiếu', 'info');
   };
 
   // Format Currency
@@ -394,17 +658,27 @@ export default function App() {
   };
 
   const handleGenerate = async (overrideRefImage = null, overridePrompt = null) => {
+    if (!user) {
+      setGoogleAuthOpen(true);
+      showToast('🔒 Vui lòng đăng nhập để bắt đầu thiết kế ấn phẩm!', 'warning');
+      return;
+    }
+
     // Chống nhận nhầm React Event object khi trigger từ onClick
     const isImageRef = overrideRefImage && (
       typeof overrideRefImage === 'string' ||
       Boolean(overrideRefImage.url) ||
-      Boolean(overrideRefImage.data)
+      Boolean(overrideRefImage.data) ||
+      Array.isArray(overrideRefImage)
     );
     const activeRef = isImageRef ? overrideRefImage : referenceImage;
+    const activeRefs = Array.isArray(overrideRefImage)
+      ? overrideRefImage
+      : (referenceImages.length > 0 ? referenceImages : (activeRef ? [activeRef] : []));
     const rawPrompt = typeof overridePrompt === 'string' ? overridePrompt : prompt;
     const trimmed = (rawPrompt || '').trim();
 
-    if (!trimmed && !activeRef) {
+    if (!trimmed && !activeRef && activeRefs.length === 0) {
       showToast('Vui lòng nhập mô tả bức ảnh bạn muốn tạo ra hoặc tải ảnh cũ lên!', 'info');
       return;
     }
@@ -447,6 +721,7 @@ export default function App() {
         aspectRatio: mappedRatio,
         style: selectedStyleId,
         referenceImage: activeRef,
+        referenceImages: activeRefs,
         preserveSurroundings: true
       });
 
@@ -494,6 +769,31 @@ export default function App() {
                 engine: 'vps'
               });
 
+              // Tự động lưu vào Gallery của user kèm Before (ảnh mẫu gốc) / After (kết quả)
+              // Không lưu prompt mặc định của app, chỉ lưu lại nội dung prompt nếu người dùng có nhập thêm
+              const currentPreset = DESIGN_PRESETS.flatMap((c) => c.items).find((i) => i.id === selectedPresetId);
+              const galPrompt = extractUserPrompt(prompt, overridePrompt);
+              const newGalItem = {
+                id: 'gal_' + Date.now(),
+                userId: user?.id || user?.email || 'guest',
+                timestamp: new Date().toISOString(),
+                beforeImage: activeRef?.url || referenceImage?.url || null,
+                afterImage: imgUrl,
+                prompt: galPrompt,
+                presetName: currentPreset?.name || 'Ấn phẩm',
+                dimensions: `${width} × ${height} ${unit.toUpperCase()} (300 DPI)`,
+                aspectRatio: selectedPresetId,
+                style: selectedStyleId
+              };
+              setUserGallery((prev) => {
+                const next = [newGalItem, ...prev];
+                const key = 'mzpic_user_gallery_' + (user?.id || user?.email || 'guest');
+                try {
+                  localStorage.setItem(key, JSON.stringify(next));
+                } catch (e) {}
+                return next;
+              });
+
               setWalletBalance((prev) => Math.max(0, prev - costPerImage));
               setIsGenerating(false);
               showToast(`🎉 Đã xuất ấn phẩm 300 DPI thành công! (-${formatCurrency(costPerImage)})`, 'success');
@@ -524,8 +824,13 @@ export default function App() {
 
   // Handle 3D Mockup: đưa ảnh mới thành reference images, ghép prompt 3D mockup, gửi về render sửa tiếp và nhận ảnh mới tiếp
   const handleOpenMockup3D = () => {
+    if (!user) {
+      setGoogleAuthOpen(true);
+      showToast('🔒 Vui lòng đăng nhập để đặt trong không gian thực tế!', 'warning');
+      return;
+    }
     if (!resultImage) {
-      showToast('Chưa có ấn phẩm nào để tạo phối cảnh 3D!', 'info');
+      showToast('Chưa có ấn phẩm nào để đặt trong không gian thực tế!', 'info');
       return;
     }
 
@@ -537,14 +842,21 @@ export default function App() {
 
     const baseDesc = prompt ? prompt.trim() : 'Ấn phẩm thiết kế';
     const mockupPrompt = `${baseDesc}. Tạo phối cảnh 3D thực tế (realistic 3D mockup display presentation): đặt ấn phẩm này trong không gian thực tế hoặc trên bàn làm việc sang trọng, góc nghiêng 3D chuyên nghiệp, đổ bóng tự nhiên, ánh sáng studio sắc nét, giữ nguyên vẹn nội dung thiết kế gốc của ấn phẩm`;
-    setPrompt(mockupPrompt);
+    
+    // Che nội dung prompt trên UI: xóa trắng ô nhập để người dùng nhìn vào thấy rỗng
+    setPrompt('');
 
-    showToast('🚀 Đang gửi ấn phẩm sang render Phối Cảnh 3D thực tế...', 'info');
+    showToast('🚀 Đang gửi ấn phẩm sang render đặt trong không gian thực tế...', 'info');
     handleGenerate(newRefImage, mockupPrompt);
   };
 
   // Handle Remove Background: đưa ảnh mới thành reference images, ghép prompt tách nền, gửi về render sửa tiếp
   const handleRemoveBg = async () => {
+    if (!user) {
+      setGoogleAuthOpen(true);
+      showToast('🔒 Vui lòng đăng nhập để tách nền ấn phẩm!', 'warning');
+      return;
+    }
     if (!resultImage) {
       showToast('Chưa có ấn phẩm nào để tách nền!', 'info');
       return;
@@ -559,7 +871,7 @@ export default function App() {
 
     const baseDesc = prompt ? prompt.trim() : 'Ấn phẩm thiết kế';
     const transparentPrompt = `${baseDesc}. Tách nền ấn phẩm trong suốt hoàn toàn (isolated transparent cutout on pure background), giữ nguyên vẹn đường nét thiết kế`;
-    setPrompt(transparentPrompt);
+    setPrompt('');
 
     showToast('✂ Đang gửi yêu cầu tách nền ấn phẩm...', 'info');
     handleGenerate(newRefImage, transparentPrompt);
@@ -567,11 +879,16 @@ export default function App() {
 
   // Handle Edit Image
   const handleConfirmEdit = async (editPromptText) => {
+    if (!user) {
+      setGoogleAuthOpen(true);
+      showToast('🔒 Vui lòng đăng nhập để chỉnh sửa ấn phẩm!', 'warning');
+      return;
+    }
     setIsEditing(true);
     showToast(`Đang gửi yêu cầu sửa ảnh: "${editPromptText.slice(0, 40)}..."`, 'info');
     
     const newCombined = `${prompt ? prompt + '. ' : ''}Yêu cầu chỉnh sửa chi tiết: ${editPromptText}`;
-    setPrompt(newCombined);
+    setPrompt(''); // Che nội dung prompt, làm rỗng ô nhập để giao diện sạch sẽ
     setEditModalOpen(false);
     setIsEditing(false);
 
@@ -588,6 +905,11 @@ export default function App() {
 
   // Handle Download Processed
   const handleDownload = () => {
+    if (!user) {
+      setGoogleAuthOpen(true);
+      showToast('🔒 Vui lòng đăng nhập để tải ảnh chuẩn in!', 'warning');
+      return;
+    }
     if (!resultImage) {
       showToast('Chưa có ảnh được xử lý để tải về!', 'info');
       return;
@@ -618,15 +940,33 @@ export default function App() {
   };
 
   // Handle Open Image from Gallery or Batch into Studio
-  const handleOpenInStudio = (imageUrl, promptText) => {
+  const handleOpenInStudio = (imageUrl, promptText, beforeImageUrl) => {
     setResultImage(imageUrl);
     const filename = imageUrl ? imageUrl.split('/').pop() : 'gallery_image.png';
-    setReferenceImage({
-      url: imageUrl,
-      name: filename,
-      sizeMb: '1.5'
-    });
-    if (promptText) setPrompt(promptText);
+    if (beforeImageUrl) {
+      setReferenceImage({
+        url: beforeImageUrl,
+        name: 'Ảnh mẫu gốc',
+        sizeMb: '1.2'
+      });
+    } else {
+      setReferenceImage({
+        url: imageUrl,
+        name: filename,
+        sizeMb: '1.5'
+      });
+    }
+    if (
+      promptText &&
+      promptText !== 'Đặt trong không gian thực tế' &&
+      promptText !== 'Phối cảnh 3D thực tế' &&
+      promptText !== 'Tách nền trong suốt' &&
+      !promptText.includes('realistic 3D mockup')
+    ) {
+      setPrompt(promptText);
+    } else {
+      setPrompt('');
+    }
     setActiveTab('single');
     showToast('Đã nạp ấn phẩm vào Studio để tạo hoặc sửa!', 'success');
   };
@@ -647,7 +987,8 @@ export default function App() {
   const handleLogout = async () => {
     await logoutUser();
     setUser(null);
-    showToast('Đã đăng xuất tài khoản.', 'info');
+    setGoogleAuthOpen(true);
+    showToast('Đã đăng xuất tài khoản. Vui lòng đăng nhập để tiếp tục làm việc.', 'info');
   };
 
   return (
@@ -673,6 +1014,15 @@ export default function App() {
           setActiveTab={setActiveTab}
           onlineWorkersCount={onlineWorkersCount}
           onOpenAdmin={() => setAdminModalOpen(true)}
+          onOpenGalleryModal={() => {
+            if (!user) {
+              setGoogleAuthOpen(true);
+              showToast('🔒 Vui lòng đăng nhập để xem Gallery cá nhân!', 'warning');
+            } else {
+              setGalleryModalOpen(true);
+            }
+          }}
+          galleryCount={userGallery.length}
         />
 
         {/* Content based on Active Tab */}
@@ -690,11 +1040,20 @@ export default function App() {
                 transparentBg={transparentBg}
                 presetId={selectedPresetId}
                 fileMeta={fileMeta}
-                onOpenEdit={() => setEditModalOpen(true)}
+                onOpenEdit={() => {
+                  if (!user) {
+                    setGoogleAuthOpen(true);
+                    showToast('🔒 Vui lòng đăng nhập để chỉnh sửa ấn phẩm!', 'warning');
+                  } else {
+                    setEditModalOpen(true);
+                  }
+                }}
                 onOpenMockup3D={handleOpenMockup3D}
                 onDownload={handleDownload}
                 onRemoveBg={handleRemoveBg}
                 onOpenLightbox={handleOpenLightbox}
+                onOpenResize={() => handleOpenResize('result')}
+                onOpenColorGrading={handleOpenColorGrading}
               />
 
               {/* Prompt & Khổ In Unified 2-Tab Liquid Card */}
@@ -711,7 +1070,9 @@ export default function App() {
                 onSelectTemplateId={handleSelectTemplateId}
                 onOpenAdmin={() => setAdminModalOpen(true)}
                 referenceImage={referenceImage}
+                referenceImages={referenceImages}
                 onUploadReferenceImage={handleUploadReferenceImage}
+                onUploadReferenceImages={handleUploadReferenceImages}
                 onRemoveReferenceImage={handleRemoveReferenceImage}
                 selectedPresetId={selectedPresetId}
                 onSelectPreset={handleSelectPreset}
@@ -726,6 +1087,8 @@ export default function App() {
                 transparentBg={transparentBg}
                 setTransparentBg={setTransparentBg}
                 onOpenLightbox={handleOpenLightbox}
+                onOpenCropRotate={handleOpenCropRotate}
+                onOpenExactResize={() => handleOpenResize('input')}
               />
             </>
           )}
@@ -805,9 +1168,26 @@ export default function App() {
       />
 
       <GoogleAuthModal
-        isOpen={googleAuthOpen}
-        onClose={() => setGoogleAuthOpen(false)}
+        isOpen={googleAuthOpen || !user}
+        isRequired={!user}
+        onClose={() => {
+          if (user) setGoogleAuthOpen(false);
+          else showToast('🔒 Bạn cần đăng nhập để bắt đầu làm việc trong Studio!', 'warning');
+        }}
         onLogin={handleGoogleLogin}
+        showToast={showToast}
+      />
+
+      {/* User Personal Transformation Gallery Modal with Before/After Slider */}
+      <UserGalleryModal
+        isOpen={galleryModalOpen}
+        onClose={() => setGalleryModalOpen(false)}
+        user={user}
+        galleryItems={userGallery}
+        onDeleteItem={handleDeleteGalleryItem}
+        onClearAll={handleClearUserGallery}
+        onOpenInStudio={handleOpenInStudio}
+        onOpenLightbox={handleOpenLightbox}
         showToast={showToast}
       />
 
@@ -844,6 +1224,41 @@ export default function App() {
         title={lightboxState.title}
         onClose={handleCloseLightbox}
       />
+
+      {/* Crop & Rotate Modal for Reference Image */}
+      {cropModalState.isOpen && (
+        <CropRotateModal
+          isOpen={cropModalState.isOpen}
+          imageUrl={cropModalState.imageUrl}
+          imageName={cropModalState.imageName}
+          onClose={() => setCropModalState((prev) => ({ ...prev, isOpen: false }))}
+          onApply={handleApplyCropRotate}
+        />
+      )}
+
+      {/* Exact Resize & Dimensions Modal */}
+      {resizeModalState.isOpen && (
+        <ExactResizeModal
+          isOpen={resizeModalState.isOpen}
+          mode={resizeModalState.mode}
+          imageUrl={resizeModalState.mode === 'result' ? resultImage : (referenceImage?.url || null)}
+          currentWidth={width}
+          currentHeight={height}
+          currentUnit={unit}
+          onClose={() => setResizeModalState((prev) => ({ ...prev, isOpen: false }))}
+          onApplyResize={handleApplyResize}
+        />
+      )}
+
+      {/* Photoshop-like Color Grading & Tone Curves Modal */}
+      {colorGradingOpen && (
+        <ColorGradingModal
+          isOpen={colorGradingOpen}
+          imageUrl={resultImage}
+          onClose={() => setColorGradingOpen(false)}
+          onApply={handleApplyColorGrading}
+        />
+      )}
 
       {/* Toast Notifications */}
       <ToastStack toasts={toasts} onDismiss={dismissToast} />

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Tooltip from './Tooltip';
+import CropRotateModal from './CropRotateModal';
 import { DESIGN_PRESETS, DESIGN_STYLES } from '../data/presets';
 import { createRenderJob } from '../utils/api';
 import { extractImageFromPasteEvent, readImageFromClipboard } from '../utils/clipboard';
@@ -7,6 +8,9 @@ import { extractImageFromPasteEvent, readImageFromClipboard } from '../utils/cli
 export default function BatchSection({ onOpenInStudio, showToast, onOpenLightbox }) {
   // 3 Sub-tabs theo yêu cầu của bạn: 'images' (Ảnh Mẫu) | 'logo' (Logo Mới) | 'prompt' (Prompt)
   const [activeTab, setActiveTab] = useState('images');
+
+  // Crop / Rotate modal state for batch images
+  const [cropTarget, setCropTarget] = useState(null); // { id, url, name, type: 'main' | 'extra' }
 
   // 1. Danh sách Ảnh mẫu chính cần sửa (Main Target Images)
   const [mainImages, setMainImages] = useState([]);
@@ -176,6 +180,22 @@ export default function BatchSection({ onOpenInStudio, showToast, onOpenLightbox
   const handleClearAllMain = () => {
     setMainImages([]);
     if (showToast) showToast('Đã xóa tất cả ảnh mẫu', 'info');
+  };
+
+  // Cắt / xoay ảnh trong batch
+  const handleApplyBatchCrop = (editedDataUrl) => {
+    if (!cropTarget) return;
+    if (cropTarget.type === 'main') {
+      setMainImages((prev) =>
+        prev.map((item) => (item.id === cropTarget.id ? { ...item, url: editedDataUrl } : item))
+      );
+    } else if (cropTarget.type === 'extra') {
+      setExtraRefImages((prev) =>
+        prev.map((item) => (item.id === cropTarget.id ? { ...item, url: editedDataUrl } : item))
+      );
+    }
+    if (showToast) showToast('✓ Đã cập nhật ảnh sau khi cắt / xoay!', 'success');
+    setCropTarget(null);
   };
 
   // Chèn prompt nhanh
@@ -693,9 +713,9 @@ export default function BatchSection({ onOpenInStudio, showToast, onOpenLightbox
                   }}
                 >
                   <div
-                    style={{ position: 'relative', width: '100%', paddingTop: '100%', cursor: 'zoom-in', background: '#f1f5f9' }}
-                    onClick={() => onOpenLightbox && onOpenLightbox(img.url, `Ảnh Mẫu #${idx + 1}: ${img.name}`)}
-                    title="Bấm để xem ảnh gốc & phóng to (Zoom / Pan)"
+                    style={{ position: 'relative', width: '100%', paddingTop: '100%', cursor: 'pointer', background: '#f1f5f9' }}
+                    onClick={() => setCropTarget({ id: img.id, url: img.url, name: img.name, type: 'main' })}
+                    title="Bấm để Cắt & Xoay / Chỉnh sửa ảnh mẫu (Crop / Transform)"
                   >
                     <img
                       src={img.url}
@@ -721,29 +741,52 @@ export default function BatchSection({ onOpenInStudio, showToast, onOpenLightbox
                     #{idx + 1}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveMainImage(img.id)}
-                    style={{
-                      position: 'absolute',
-                      top: '5px',
-                      right: '5px',
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      background: 'rgba(239, 68, 68, 0.9)',
-                      border: 'none',
-                      color: '#ffffff',
-                      fontSize: '0.65rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    title="Gỡ ảnh này"
-                  >
-                    <i className="bi bi-x-lg"></i>
-                  </button>
+                  <div style={{ position: 'absolute', top: '5px', right: '5px', display: 'flex', gap: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCropTarget({ id: img.id, url: img.url, name: img.name, type: 'main' });
+                      }}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        background: 'rgba(37, 99, 235, 0.9)',
+                        border: 'none',
+                        color: '#ffffff',
+                        fontSize: '0.65rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Cắt & Xoay ảnh mẫu này"
+                    >
+                      <i className="bi bi-crop"></i>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMainImage(img.id)}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        background: 'rgba(239, 68, 68, 0.9)',
+                        border: 'none',
+                        color: '#ffffff',
+                        fontSize: '0.65rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Gỡ ảnh này"
+                    >
+                      <i className="bi bi-x-lg"></i>
+                    </button>
+                  </div>
 
                   <div style={{ padding: '4px 6px', fontSize: '0.62rem', fontWeight: 600, color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {img.name}
@@ -878,9 +921,10 @@ export default function BatchSection({ onOpenInStudio, showToast, onOpenLightbox
                         borderRadius: '6px',
                         objectFit: 'cover',
                         border: '1px solid #10b981',
-                        cursor: 'zoom-in'
+                        cursor: 'pointer'
                       }}
-                      onClick={() => onOpenLightbox && onOpenLightbox(img.url, `Tài nguyên phụ #${idx + 1}: ${img.label}`)}
+                      onClick={() => setCropTarget({ id: img.id, url: img.url, name: img.name, type: 'extra' })}
+                      title="Bấm để Cắt & Xoay / Chỉnh sửa logo (Crop / Transform)"
                     />
                     <div>
                       <span
@@ -901,26 +945,49 @@ export default function BatchSection({ onOpenInStudio, showToast, onOpenLightbox
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveExtraImage(img.id)}
-                    style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      background: '#fee2e2',
-                      border: 'none',
-                      color: '#ef4444',
-                      cursor: 'pointer',
-                      fontSize: '0.65rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    title="Gỡ ảnh này"
-                  >
-                    <i className="bi bi-x-lg"></i>
-                  </button>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setCropTarget({ id: img.id, url: img.url, name: img.name, type: 'extra' })}
+                      style={{
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        background: '#e0f2fe',
+                        border: 'none',
+                        color: '#0284c7',
+                        cursor: 'pointer',
+                        fontSize: '0.7rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Cắt & Xoay logo này"
+                    >
+                      <i className="bi bi-crop"></i>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveExtraImage(img.id)}
+                      style={{
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        background: '#fee2e2',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        fontSize: '0.65rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Gỡ ảnh này"
+                    >
+                      <i className="bi bi-x-lg"></i>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1411,6 +1478,17 @@ export default function BatchSection({ onOpenInStudio, showToast, onOpenLightbox
             ))}
           </div>
         </div>
+      )}
+
+      {/* Crop / Rotate Modal for Batch Images & Logos */}
+      {cropTarget && (
+        <CropRotateModal
+          isOpen={!!cropTarget}
+          imageUrl={cropTarget.url}
+          imageName={cropTarget.name}
+          onClose={() => setCropTarget(null)}
+          onApply={handleApplyBatchCrop}
+        />
       )}
     </div>
   );

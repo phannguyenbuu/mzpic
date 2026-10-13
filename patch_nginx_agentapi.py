@@ -9,11 +9,11 @@ mzpic_block = '''    # ── MzPic Admin Portal (/mzpic) ──
     }
 '''
 
-if 'location /mzpic' not in conf:
-    target = '    # ── Static JS/CSS Assets for SPA ──'
-    conf = conf.replace(target, mzpic_block + '\n' + target, 1)
+if mzpic_block in conf:
+    conf = conf.replace(mzpic_block + '\n', '')
+    conf = conf.replace(mzpic_block, '')
     with open('/etc/nginx/sites-available/agentapi.quanlymay.com.conf', 'w', encoding='utf-8') as f:
         f.write(conf)
-    print('Added /mzpic location to agentapi.quanlymay.com.conf')
+    print('Removed static /mzpic location block from nginx conf')
 else:
-    print('Already present in agentapi.quanlymay.com.conf')
+    print('Block not found or already removed')

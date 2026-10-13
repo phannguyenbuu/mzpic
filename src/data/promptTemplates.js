@@ -5,6 +5,13 @@
 
 export const DEFAULT_PROMPT_TEMPLATES = [
   {
+    id: "tpl_free_style",
+    name: "Tự Do",
+    badge: "Tự do",
+    presetId: null,
+    hiddenPrompt: ""
+  },
+  {
     id: "tpl_voucher_gold",
     name: "Voucher VIP Ép Kim Vàng",
     badge: "Voucher VIP",
@@ -52,13 +59,6 @@ export const DEFAULT_PROMPT_TEMPLATES = [
     badge: "Menu F&B",
     presetId: "menu_table",
     hiddenPrompt: "thực đơn để bàn 10x20cm, bố cục phân mục đồ uống và món ăn khoa học, giá tiền ngay hàng thẳng lối, phong cách nhà hàng trang nhã, màu sắc kích thích vị giác, chuẩn in offset 300 DPI"
-  },
-  {
-    id: "tpl_free_style",
-    name: "Tự Do (Không Ghép Mẫu Ẩn)",
-    badge: "Tự do",
-    presetId: null,
-    hiddenPrompt: ""
   }
 ];
 
@@ -74,7 +74,12 @@ export function getPromptTemplates() {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        return parsed.map((t) => {
+          if (t.id === 'tpl_free_style' || (t.name && t.name.startsWith('Tự Do'))) {
+            return { ...t, name: 'Tự Do' };
+          }
+          return t;
+        });
       }
     }
   } catch (e) {
