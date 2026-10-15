@@ -12,7 +12,14 @@ export default function LayerPostProcessModal({
   onReplaceLayerImage,
   onRegenerateLayer,
   onOpenLightbox,
-  isGenerating = false
+  isGenerating = false,
+  onOpenEdit,
+  onOpenResize,
+  onOpenColorGrading,
+  onOpenMockup3D,
+  onRemoveBg,
+  onDownload,
+  transparentBg = false
 }) {
   const fileInputRef = useRef(null);
 
@@ -274,8 +281,8 @@ export default function LayerPostProcessModal({
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, minWidth: '22px' }}>0%</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', minWidth: 0 }}>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, minWidth: '22px', flexShrink: 0 }}>0%</span>
               <input
                 type="range"
                 min="0"
@@ -285,12 +292,16 @@ export default function LayerPostProcessModal({
                 onChange={(e) => handleOpacityChange(Number(e.target.value))}
                 style={{
                   flex: 1,
+                  minWidth: 0,
+                  width: '100%',
+                  margin: 0,
+                  padding: 0,
                   accentColor: layer.accentColor || '#6366f1',
                   height: '6px',
                   cursor: 'pointer'
                 }}
               />
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, minWidth: '32px', textAlign: 'right' }}>100%</span>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, minWidth: '32px', textAlign: 'right', flexShrink: 0 }}>100%</span>
             </div>
 
             {/* Quick Presets */}
@@ -462,19 +473,124 @@ export default function LayerPostProcessModal({
           />
         </div>
 
-        {/* Modal Footer */}
+        {/* Modal Footer with Cloned Action Capsule Bar */}
         <div
           style={{
-            padding: '12px 20px',
+            padding: '10px 20px',
             borderTop: '1px solid #e2e8f0',
             background: '#f8fafc',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            gap: '12px',
+            flexWrap: 'wrap'
           }}
         >
-          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-            💡 Mẹo: Layer Khung nên đặt <b>Multiply</b> và 100%. Layer Thân Báo nên đặt <b>11% - 25%</b> để mờ nền viết bài.
+          {/* Primary Action Glass Capsule Bar: Cloned row of buttons */}
+          <div
+            style={{
+              padding: '5px 8px',
+              background: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: '18px',
+              border: '1px solid rgba(226, 232, 240, 0.95)',
+              boxShadow: '0 4px 16px -3px rgba(0, 0, 0, 0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexWrap: 'nowrap'
+            }}
+          >
+            <button
+              type="button"
+              className="liquid-icon-btn"
+              onClick={() => {
+                if (onOpenEdit) onOpenEdit(layer.image);
+                onClose();
+              }}
+              disabled={!layer.image || isGenerating}
+              title="Chỉnh sửa bổ sung layer trong Studio"
+              style={{ flexShrink: 0 }}
+            >
+              <i className="bi bi-pencil-fill"></i>
+            </button>
+            <button
+              type="button"
+              className="liquid-icon-btn"
+              onClick={() => {
+                if (onOpenResize) onOpenResize(layer.image);
+              }}
+              disabled={!layer.image || isGenerating}
+              title="Chỉnh kích thước chính xác (mm, cm, px, DPI)"
+              style={{ flexShrink: 0 }}
+            >
+              <i className="bi bi-aspect-ratio"></i>
+            </button>
+            <button
+              type="button"
+              className="liquid-icon-btn"
+              onClick={() => {
+                if (onOpenColorGrading) onOpenColorGrading(layer.image);
+              }}
+              disabled={!layer.image || isGenerating}
+              title="Hậu kỳ màu HSL & Curves"
+              style={{ flexShrink: 0 }}
+            >
+              <i className="bi bi-sliders2-vertical"></i>
+            </button>
+            <button
+              type="button"
+              className="liquid-icon-btn"
+              onClick={() => {
+                if (onOpenMockup3D) onOpenMockup3D(layer.image);
+                onClose();
+              }}
+              disabled={!layer.image || isGenerating}
+              title="Render Mockup 3D trong không gian thực tế"
+              style={{ flexShrink: 0 }}
+            >
+              <i className="bi bi-box-seam-fill"></i>
+            </button>
+            {!transparentBg && (
+              <button
+                type="button"
+                className="liquid-icon-btn"
+                onClick={() => {
+                  if (onRemoveBg) onRemoveBg(layer.image);
+                }}
+                disabled={!layer.image || isGenerating}
+                title="Xóa phông tách nền PNG trong suốt"
+                style={{ flexShrink: 0 }}
+              >
+                <i className="bi bi-transparency"></i>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                if (layer.image) {
+                  const a = document.createElement('a');
+                  a.href = layer.image;
+                  a.download = `layer_${layer.id || 'image'}.png`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                } else if (onDownload) {
+                  onDownload();
+                }
+              }}
+              disabled={!layer.image || isGenerating}
+              className="liquid-icon-btn primary-download"
+              title="Tải về layer này"
+              style={{
+                marginLeft: 'auto',
+                flexShrink: 0,
+                background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 50%, #4f46e5 100%)',
+                color: '#ffffff',
+                boxShadow: '0 4px 14px -2px rgba(37, 99, 235, 0.45)'
+              }}
+            >
+              <i className="bi bi-cloud-arrow-down-fill" style={{ fontSize: '1.15rem' }}></i>
+            </button>
           </div>
 
           <button

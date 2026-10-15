@@ -420,11 +420,22 @@ export default function SuggestionModal({
   onApplyPrompt,
   onSelectSampleImage,
   showToast,
-  onOpenLightbox
+  onOpenLightbox,
+  onOpenEdit,
+  onOpenResize,
+  onOpenColorGrading,
+  onOpenMockup3D,
+  onRemoveBg,
+  onDownload,
+  onDownloadWithGenAiUpscale,
+  aiUpscaleState,
+  resultImage,
+  transparentBg = false
 }) {
   const [modalTab, setModalTab] = useState('images'); // 'images' | 'prompts'
   const [imageCategory, setImageCategory] = useState('all'); // 'all' | 'border' | 'header' | 'body' | 'full'
   const [promptCategory, setPromptCategory] = useState(activeSection || 'border');
+  const [selectedImage, setSelectedImage] = useState(CURATED_PAPER_IMAGES[0] || null);
   const [apiImages, setApiImages] = useState([]);
   const [loadingImages, setLoadingImages] = useState(false);
 
@@ -506,6 +517,62 @@ export default function SuggestionModal({
       showToast(`✓ Đã chọn ảnh mẫu cho phần [${sectionName}]!`, 'success');
     }
     onClose();
+  };
+
+  const targetImageUrl = selectedImage?.url || resultImage;
+
+  const handleActionEdit = () => {
+    if (!targetImageUrl) return;
+    if (selectedImage?.url && onSelectSampleImage) {
+      onSelectSampleImage(activeSection || 'border', selectedImage.url, selectedImage.title);
+    }
+    if (onOpenEdit) onOpenEdit(targetImageUrl);
+    onClose();
+  };
+
+  const handleActionResize = () => {
+    if (onOpenResize) onOpenResize(targetImageUrl);
+  };
+
+  const handleActionColorGrading = () => {
+    if (onOpenColorGrading) onOpenColorGrading(targetImageUrl);
+  };
+
+  const handleActionMockup3D = () => {
+    if (!targetImageUrl) return;
+    if (selectedImage?.url && onSelectSampleImage) {
+      onSelectSampleImage(activeSection || 'border', selectedImage.url, selectedImage.title);
+    }
+    if (onOpenMockup3D) onOpenMockup3D(targetImageUrl);
+    onClose();
+  };
+
+  const handleActionRemoveBg = () => {
+    if (onRemoveBg) onRemoveBg(targetImageUrl);
+  };
+
+  const handleActionDownload = async () => {
+    if (selectedImage?.url) {
+      try {
+        const res = await fetch(selectedImage.url);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `${selectedImage.id || 'bao_tuong_mau'}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+        if (showToast) showToast(`✓ Đã tải ảnh mẫu "${selectedImage.title}" về máy!`, 'success');
+      } catch {
+        window.open(selectedImage.url, '_blank');
+      }
+    } else if (onDownloadWithGenAiUpscale) {
+      onDownloadWithGenAiUpscale();
+    } else if (onDownload) {
+      onDownload();
+    }
   };
 
   return ReactDOM.createPortal(
@@ -727,60 +794,87 @@ export default function SuggestionModal({
                   gap: '12px'
                 }}
               >
-                {filteredImages.map((img) => (
-                  <div
-                    key={img.id}
-                    style={{
-                      background: '#ffffff',
-                      border: '1.5px solid #e2e8f0',
-                      borderRadius: '16px',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                      transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-                    }}
-                  >
-                    {/* Thumbnail Image */}
+                {filteredImages.map((img) => {
+                  const isSelected = selectedImage?.id === img.id;
+                  return (
                     <div
+                      key={img.id}
+                      onClick={() => setSelectedImage(img)}
                       style={{
-                        position: 'relative',
-                        width: '100%',
-                        height: '140px',
-                        background: '#f1f5f9',
+                        background: '#ffffff',
+                        border: isSelected ? '2px solid #2563eb' : '1.5px solid #e2e8f0',
+                        borderRadius: '16px',
                         overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        boxShadow: isSelected ? '0 0 0 3px rgba(37, 99, 235, 0.2), 0 4px 12px rgba(0,0,0,0.08)' : '0 2px 8px rgba(0,0,0,0.04)',
+                        transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
                         cursor: 'pointer'
                       }}
-                      onClick={() => onOpenLightbox && onOpenLightbox(img.url, img.title)}
-                      title="Bấm để phóng to xem chi tiết"
                     >
-                      <img
-                        src={img.url}
-                        alt={img.title}
-                        loading="lazy"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'contain',
-                          background: '#ffffff'
-                        }}
-                      />
+                      {/* Thumbnail Image */}
                       <div
                         style={{
-                          position: 'absolute',
-                          top: '6px',
-                          left: '6px',
-                          background: 'rgba(15, 23, 42, 0.75)',
-                          backdropFilter: 'blur(4px)',
-                          color: '#ffffff',
-                          fontSize: '0.62rem',
-                          fontWeight: 700,
-                          padding: '2px 6px',
-                          borderRadius: '6px'
+                          position: 'relative',
+                          width: '100%',
+                          height: '140px',
+                          background: '#f1f5f9',
+                          overflow: 'hidden',
+                          cursor: 'pointer'
                         }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedImage(img);
+                          onOpenLightbox && onOpenLightbox(img.url, img.title);
+                        }}
+                        title="Bấm để phóng to xem chi tiết"
                       >
-                        {img.emoji} {img.categoryLabel}
-                      </div>
+                        <img
+                          src={img.url}
+                          alt={img.title}
+                          loading="lazy"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            background: '#ffffff'
+                          }}
+                        />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '6px',
+                            left: '6px',
+                            background: 'rgba(15, 23, 42, 0.75)',
+                            backdropFilter: 'blur(4px)',
+                            color: '#ffffff',
+                            fontSize: '0.62rem',
+                            fontWeight: 700,
+                            padding: '2px 6px',
+                            borderRadius: '6px'
+                          }}
+                        >
+                          {img.emoji} {img.categoryLabel}
+                        </div>
+
+                        {isSelected && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              bottom: '6px',
+                              left: '6px',
+                              background: '#2563eb',
+                              color: '#ffffff',
+                              fontSize: '0.62rem',
+                              fontWeight: 800,
+                              padding: '2px 7px',
+                              borderRadius: '6px',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.25)'
+                            }}
+                          >
+                            ✓ Đang chọn
+                          </div>
+                        )}
 
                       <div
                         style={{
@@ -838,7 +932,8 @@ export default function SuggestionModal({
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1035,7 +1130,7 @@ export default function SuggestionModal({
           )}
         </div>
 
-        {/* Modal Footer */}
+        {/* Modal Footer with Cloned Primary Action Capsule Bar */}
         <div
           style={{
             padding: '10px 20px',
@@ -1043,29 +1138,133 @@ export default function SuggestionModal({
             background: '#f8fafc',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            gap: '12px',
+            flexWrap: 'wrap'
           }}
         >
-          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-            💡 Mẹo: Bạn có thể chọn ảnh mẫu hoặc chèn prompt gợi ý, sau đó tùy chỉnh thêm theo ý muốn.
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
+          {/* Cloned Action Glass Capsule Bar */}
+          <div
             style={{
-              padding: '6px 16px',
-              borderRadius: '10px',
-              border: '1px solid #cbd5e1',
-              background: '#ffffff',
-              color: '#334155',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              cursor: 'pointer'
+              padding: '5px 8px',
+              background: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: '18px',
+              border: '1px solid rgba(226, 232, 240, 0.95)',
+              boxShadow: '0 4px 16px -3px rgba(0, 0, 0, 0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexWrap: 'nowrap'
             }}
           >
-            Đóng
-          </button>
+            <button
+              type="button"
+              className="liquid-icon-btn"
+              onClick={handleActionEdit}
+              disabled={!targetImageUrl}
+              title="Chỉnh sửa bổ sung ấn phẩm trong Studio"
+              style={{ flexShrink: 0 }}
+            >
+              <i className="bi bi-pencil-fill"></i>
+            </button>
+            <button
+              type="button"
+              className="liquid-icon-btn"
+              onClick={handleActionResize}
+              disabled={!targetImageUrl}
+              title="Chỉnh kích thước chính xác (mm, cm, px, DPI)"
+              style={{ flexShrink: 0 }}
+            >
+              <i className="bi bi-aspect-ratio"></i>
+            </button>
+            <button
+              type="button"
+              className="liquid-icon-btn"
+              onClick={handleActionColorGrading}
+              disabled={!targetImageUrl}
+              title="Hậu kỳ màu HSL & Curves"
+              style={{ flexShrink: 0 }}
+            >
+              <i className="bi bi-sliders2-vertical"></i>
+            </button>
+            <button
+              type="button"
+              className="liquid-icon-btn"
+              onClick={handleActionMockup3D}
+              disabled={!targetImageUrl}
+              title="Render Mockup 3D trong không gian thực tế"
+              style={{ flexShrink: 0 }}
+            >
+              <i className="bi bi-box-seam-fill"></i>
+            </button>
+            {!transparentBg && (
+              <button
+                type="button"
+                className="liquid-icon-btn"
+                onClick={handleActionRemoveBg}
+                disabled={!targetImageUrl}
+                title="Xóa phông tách nền PNG trong suốt"
+                style={{ flexShrink: 0 }}
+              >
+                <i className="bi bi-transparency"></i>
+              </button>
+            )}
+
+            {/* Nút Tải về (Không có chữ, chỉ dùng icon, cùng hàng ngang, đẩy sang phải) */}
+            <button
+              type="button"
+              onClick={handleActionDownload}
+              disabled={!targetImageUrl}
+              className="liquid-icon-btn primary-download"
+              title="Tải về ảnh đang chọn (Kích nét AI / HD)"
+              style={{
+                marginLeft: '6px',
+                flexShrink: 0,
+                background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 50%, #4f46e5 100%)',
+                color: '#ffffff',
+                boxShadow: '0 4px 14px -2px rgba(37, 99, 235, 0.45)'
+              }}
+            >
+              <i className="bi bi-cloud-arrow-down-fill" style={{ fontSize: '1.15rem' }}></i>
+            </button>
+          </div>
+
+          {/* Right side: Selected target info + Close button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {selectedImage && (
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  color: '#475569',
+                  fontWeight: 700,
+                  maxWidth: '220px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+                title={selectedImage.title}
+              >
+                {selectedImage.emoji} {selectedImage.title}
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '6px 18px',
+                borderRadius: '10px',
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#334155',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Đóng
+            </button>
+          </div>
         </div>
       </div>
     </div>,

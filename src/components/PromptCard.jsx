@@ -37,6 +37,15 @@ export default function PromptCard({
   onOpenLightbox,
   onOpenCropRotate,
   onOpenExactResize,
+  onOpenEdit,
+  onOpenResize,
+  onOpenColorGrading,
+  onOpenMockup3D,
+  onRemoveBg,
+  onDownload,
+  onDownloadWithGenAiUpscale,
+  aiUpscaleState,
+  resultImage,
   // 4 Tabs Báo Tường: Đường Viền, Header, Footer, Body
   borderPrompt = '',
   setBorderPrompt,
@@ -811,6 +820,16 @@ export default function PromptCard({
         onSelectSampleImage={onSelectSampleImage}
         showToast={showToast}
         onOpenLightbox={onOpenLightbox}
+        onOpenEdit={onOpenEdit}
+        onOpenResize={onOpenResize}
+        onOpenColorGrading={onOpenColorGrading}
+        onOpenMockup3D={onOpenMockup3D}
+        onRemoveBg={onRemoveBg}
+        onDownload={onDownload}
+        onDownloadWithGenAiUpscale={onDownloadWithGenAiUpscale}
+        aiUpscaleState={aiUpscaleState}
+        resultImage={resultImage}
+        transparentBg={transparentBg}
       />
     </div>
   );

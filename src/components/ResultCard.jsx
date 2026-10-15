@@ -474,12 +474,14 @@ export default function ResultCard({
                       background: l.visible !== false ? '#f8fafc' : '#f1f5f9',
                       border: `1.5px solid ${l.visible !== false ? l.accentColor + '55' : '#cbd5e1'}`,
                       borderRadius: '14px',
-                      padding: '8px',
+                      padding: '8px 10px',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '6px',
                       opacity: l.visible !== false ? 1 : 0.6,
-                      transition: 'all 0.2s ease'
+                      transition: 'all 0.2s ease',
+                      minWidth: 0,
+                      boxSizing: 'border-box'
                     }}
                   >
                     {/* Header: Clickable Title (Opens Liquid Post-Processing Modal) + Regenerate + Eye toggle */}
@@ -573,8 +575,8 @@ export default function ResultCard({
                       }}
                     />
 
-                    {/* Opacity Slider & % nằm ngang hàng */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                    {/* Opacity Slider & % nằm ngang hàng (co giãn linh hoạt, không bị tràn ra ngoài) */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                       <input
                         type="range"
                         min="0"
@@ -583,6 +585,10 @@ export default function ResultCard({
                         onChange={(e) => onUpdateLayer && onUpdateLayer(l.id, { opacity: Number(e.target.value) })}
                         style={{
                           flex: 1,
+                          minWidth: 0,
+                          width: '100%',
+                          margin: 0,
+                          padding: 0,
                           accentColor: l.accentColor,
                           height: '5px',
                           cursor: 'pointer'
@@ -594,7 +600,7 @@ export default function ResultCard({
                           fontWeight: 800,
                           color: l.accentColor,
                           fontFamily: 'monospace',
-                          minWidth: '32px',
+                          flexShrink: 0,
                           textAlign: 'right'
                         }}
                       >
@@ -709,6 +715,13 @@ export default function ResultCard({
         onRegenerateLayer={onRegenerateLayer}
         onOpenLightbox={onOpenLightbox}
         isGenerating={isGenerating}
+        onOpenEdit={onOpenEdit}
+        onOpenResize={onOpenResize}
+        onOpenColorGrading={onOpenColorGrading}
+        onOpenMockup3D={onOpenMockup3D}
+        onRemoveBg={onRemoveBg}
+        onDownload={onDownload}
+        transparentBg={transparentBg}
       />
     </div>
   );

@@ -1688,6 +1688,15 @@ export default function App() {
                 onOpenLightbox={handleOpenLightbox}
                 onOpenCropRotate={handleOpenCropRotate}
                 onOpenExactResize={() => handleOpenResize('input')}
+                onOpenEdit={() => setEditModalOpen(true)}
+                onOpenResize={() => handleOpenResize('result')}
+                onOpenColorGrading={handleOpenColorGrading}
+                onOpenMockup3D={handleOpenMockup3D}
+                onRemoveBg={handleRemoveBg}
+                onDownload={handleDownload}
+                onDownloadWithGenAiUpscale={handleDownloadWithGenAiUpscale}
+                aiUpscaleState={aiUpscaleState}
+                resultImage={resultImage}
                 // 4 Tabs: Đường Viền, Header, Footer, Body
                 borderPrompt={borderPrompt}
                 setBorderPrompt={setBorderPrompt}
