@@ -35,6 +35,38 @@ export function calculatePixels(val, unit, dpi = 300) {
 // Danh mục ấn phẩm và kích thước chuẩn
 export const DESIGN_PRESETS = [
   {
+    category: "Báo Tường & Bích Báo",
+    icon: "bi-newspaper",
+    items: [
+      {
+        id: "wall_newspaper_a0",
+        name: "Báo Tường A0 (841 × 1189 mm)",
+        desc: "841 × 1189 mm, chuẩn khổ báo tường A0, viền hoa văn chữ U ngược",
+        width: 841,
+        height: 1189,
+        unit: "mm",
+        orientation: "portrait",
+        popular: true,
+        recommendedDpi: 300,
+        badge: "Báo Tường A0",
+        promptHint: "Tôi muốn tạo viền hình vuông, viền hoa văn màu hồng, lưu ý viền hình chữ u (u ngược). Viền dày tối đa 1% chiều rộng của ảnh, sau khi tạo xong ảnh thì upscale về kích thước 841 *1189mm, báo tường hay có header và footer, cho phép chèn cái này vào để tạo luôn"
+      },
+      {
+        id: "wall_newspaper_a1",
+        name: "Báo Tường A1 (594 × 841 mm)",
+        desc: "594 × 841 mm, chuẩn khổ báo tường A1 nhỏ gọn",
+        width: 594,
+        height: 841,
+        unit: "mm",
+        orientation: "portrait",
+        popular: false,
+        recommendedDpi: 300,
+        badge: "Báo Tường A1",
+        promptHint: "Báo tường khổ A1 594×841 mm, viền hoa văn màu hồng chữ U ngược, viền dày tối đa 1% chiều rộng ảnh, có tiêu đề Header và chân trang Footer"
+      }
+    ]
+  },
+  {
     category: "Ấn phẩm quảng cáo & Tiếp thị",
     icon: "bi-megaphone",
     items: [

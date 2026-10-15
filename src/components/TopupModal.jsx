@@ -32,7 +32,7 @@ export default function TopupModal({ isOpen, onClose, currentBalance, onConfirmT
             </div>
             <div>
               <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
-                Nạp Tiền Vào Ví MzPic
+                Nạp Tiền Vào Ví School Paper
               </div>
               <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
                 Số dư hiện tại: <strong style={{ color: '#2563eb' }}>{formatCurrency(currentBalance)}</strong>

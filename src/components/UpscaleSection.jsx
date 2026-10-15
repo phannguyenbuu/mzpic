@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Tooltip from './Tooltip';
 import { extractImageFromPasteEvent, readImageFromClipboard } from '../utils/clipboard';
+import { requestAiUpscale, downloadFile } from '../utils/upscale';
 
 export default function UpscaleSection({ currentStudioImage, showToast, onOpenLightbox }) {
   const [imageSrc, setImageSrc] = useState(
@@ -14,8 +15,12 @@ export default function UpscaleSection({ currentStudioImage, showToast, onOpenLi
     const saved = localStorage.getItem('mzpic_upscale_target_dpi');
     return saved ? parseInt(saved, 10) : 300;
   });
+  const [modelId, setModelId] = useState('digital-art-4x');
   const [isUpscaling, setIsUpscaling] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [stepText, setStepText] = useState('');
   const [upscaledUrl, setUpscaledUrl] = useState(null);
+  const [jobMeta, setJobMeta] = useState(null);
 
   const processImageFile = (file) => {
     if (!file) return;
@@ -27,6 +32,7 @@ export default function UpscaleSection({ currentStudioImage, showToast, onOpenLi
     reader.onload = (ev) => {
       setImageSrc(ev.target.result);
       setUpscaledUrl(null);
+      setJobMeta(null);
       if (showToast) showToast(`Đã nhận ảnh: ${file.name || 'Pasted-Image.png'}`, 'success');
     };
     reader.readAsDataURL(file);
@@ -66,30 +72,50 @@ export default function UpscaleSection({ currentStudioImage, showToast, onOpenLi
     return () => window.removeEventListener('paste', handleGlobalPaste);
   }, []);
 
-  const handleStartUpscale = () => {
+  const handleStartUpscale = async () => {
+    if (!imageSrc) {
+      if (showToast) showToast('Chưa có nguồn ảnh để kích nét AI!', 'warning');
+      return;
+    }
     setIsUpscaling(true);
-    if (showToast) showToast(`Đang kích nét x${scale} với chuẩn ${targetDpi} DPI...`, 'info');
+    setProgress(5);
+    setStepText('Đang gửi ảnh lên máy chủ GPU Kích Nét AI (genai.toolxprint)...');
+    if (showToast) showToast(`🚀 Đang kích nét x${scale} (${targetDpi} DPI) bằng GPU GTX 1080 Ti...`, 'info');
 
-    setTimeout(() => {
+    try {
+      const upscaled = await requestAiUpscale(imageSrc, {
+        scale,
+        modelId,
+        printDpi: targetDpi,
+        onProgress: ({ progress: p, current_step }) => {
+          setProgress(p);
+          setStepText(current_step);
+        }
+      });
+
+      const finalUrl = upscaled.downloadUrl || upscaled.url;
+      setUpscaledUrl(finalUrl);
+      setJobMeta({
+        targetDimensions: upscaled.targetDimensions,
+        fileSizeMb: upscaled.fileSizeMb,
+        durationSeconds: upscaled.durationSeconds
+      });
       setIsUpscaling(false);
-      setUpscaledUrl(imageSrc);
-      if (showToast) showToast(`🎉 Kích nét thành công x${scale} (${targetDpi} DPI siêu nét in ấn)!`, 'success');
-    }, 2000);
+      setProgress(100);
+      setStepText('Hoàn tất!');
+      if (showToast) showToast(`🎉 Kích nét AI thành công x${scale} (${upscaled.targetDimensions || targetDpi + ' DPI'})!`, 'success');
+    } catch (err) {
+      setIsUpscaling(false);
+      setProgress(0);
+      setStepText('');
+      if (showToast) showToast(`❌ Lỗi kích nét AI: ${err.message}`, 'error');
+    }
   };
 
   const handleDownload = () => {
     if (!upscaledUrl) return;
-    window.open(upscaledUrl, '_blank', 'noopener,noreferrer');
-    try {
-      const a = document.createElement('a');
-      a.href = upscaledUrl;
-      a.download = `Upscale_${scale}X_${targetDpi}DPI_${Date.now()}.png`;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (e) {}
+    downloadFile(upscaledUrl, `KichNet_AI_${scale}X_${targetDpi}DPI_${Date.now()}.png`);
+    if (showToast) showToast('✅ Đã tải file ảnh kích nét siêu phân giải!', 'success');
   };
 
   return (
@@ -120,7 +146,6 @@ export default function UpscaleSection({ currentStudioImage, showToast, onOpenLi
               maxHeight: '340px',
               objectFit: 'contain',
               borderRadius: '16px',
-              filter: upscaledUrl ? 'contrast(1.05) sharpness(1.2)' : 'none',
               cursor: 'zoom-in'
             }}
             onClick={() => onOpenLightbox && onOpenLightbox(upscaledUrl || imageSrc, upscaledUrl ? `Ảnh Kích Nét Siêu Phân Giải (${scale}X - ${targetDpi} DPI)` : 'Ảnh Gốc Cần Kích Nét')}
@@ -152,91 +177,137 @@ export default function UpscaleSection({ currentStudioImage, showToast, onOpenLi
                   fontSize: '0.65rem',
                   fontWeight: 700,
                   padding: '3px 8px',
+                  borderRadius: '9999px'
+                }}
+              >
+                {scale}X AI
+              </span>
+            </Tooltip>
+            {upscaledUrl && (
+              <span
+                style={{
+                  background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+                  color: '#ffffff',
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  padding: '3px 8px',
+                  borderRadius: '9999px',
+                  boxShadow: '0 2px 6px rgba(236, 72, 153, 0.4)'
+                }}
+              >
+                ⚡ GPU GTX 1080 Ti
+              </span>
+            )}
+          </div>
+
+          {/* Dimension badge if available */}
+          {jobMeta?.targetDimensions && (
+            <div style={{ position: 'absolute', bottom: '10px', left: '10px' }}>
+              <span
+                style={{
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  backdropFilter: 'blur(8px)',
+                  color: '#ffffff',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  padding: '4px 10px',
                   borderRadius: '9999px',
                   fontFamily: 'var(--font-mono)'
                 }}
               >
-                {scale}X Super-Res
+                {jobMeta.targetDimensions} px • {jobMeta.fileSizeMb}
               </span>
-            </Tooltip>
-          </div>
+            </div>
+          )}
 
+          {/* Action on image */}
           {upscaledUrl && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '10px',
-                right: '10px',
-                background: 'rgba(16, 185, 129, 0.85)',
-                backdropFilter: 'blur(8px)',
-                color: '#ffffff',
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                padding: '4px 10px',
-                borderRadius: '9999px'
-              }}
-            >
-              <i className="bi bi-shield-check"></i> Đã hoàn tất {scale}X
+            <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '6px' }}>
+              <Tooltip text="Tải ảnh gốc đã kích nét siêu phân giải">
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: '#ec4899',
+                    color: '#ffffff',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(236, 72, 153, 0.4)'
+                  }}
+                >
+                  <i className="bi bi-download" style={{ fontSize: '0.85rem' }}></i>
+                </button>
+              </Tooltip>
             </div>
           )}
         </div>
       </div>
 
-      {/* Controls Card */}
-      <div className="liquid-card">
+      {/* Control Panel */}
+      <div className="liquid-card" style={{ padding: '16px' }}>
         <div className="liquid-card-glow"></div>
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Kích Nét Chuẩn In (2X, 4X, 8X)</span>
+        {/* Section Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <i className="bi bi-gpu-card" style={{ color: '#ec4899', fontSize: '1.05rem' }}></i>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Kích Nét GPU AI (NVIDIA GTX 1080 Ti)</span>
+          </div>
           {currentStudioImage && (
-            <Tooltip text="Lấy ảnh hiện tại đang làm trong Studio">
-              <button
-                type="button"
-                className="liquid-pill-btn active"
-                style={{ fontSize: '0.68rem', padding: '3px 8px' }}
-                onClick={() => { setImageSrc(currentStudioImage); setUpscaledUrl(null); }}
-              >
-                <i className="bi bi-magic"></i> Lấy từ Studio
-              </button>
-            </Tooltip>
+            <button
+              type="button"
+              className="liquid-pill-btn"
+              style={{ fontSize: '0.7rem', padding: '4px 8px' }}
+              onClick={() => { setImageSrc(currentStudioImage); setUpscaledUrl(null); setJobMeta(null); }}
+            >
+              Lấy ảnh Studio
+            </button>
           )}
         </div>
 
-        {/* 2 Buttons nằm ngang, song song, liquid style */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+        {/* Upload & Paste Image Toolbar */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
           <Tooltip text="Chọn ảnh từ thiết bị để kích nét">
             <label
-              className="liquid-pill-btn"
               style={{
-                flex: 1,
-                padding: '8px 12px',
+                height: '38px',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '0.76rem',
                 fontWeight: 700,
-                border: '1.5px dashed rgba(59, 130, 246, 0.45)',
-                background: 'rgba(239, 246, 255, 0.7)',
-                color: '#1d4ed8',
+                border: '1.5px dashed rgba(236, 72, 153, 0.45)',
+                background: 'rgba(255, 255, 255, 0.8)',
+                color: '#db2777',
                 cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
                 gap: '6px',
                 whiteSpace: 'nowrap'
               }}
             >
-              <i className="bi bi-cloud-arrow-up" style={{ fontSize: '0.95rem' }}></i>
-              <span>Up Ảnh Cần Sửa</span>
-              <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+              <i className="bi bi-upload" style={{ fontSize: '0.95rem' }}></i>
+              <span>Chọn ảnh</span>
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleFileUpload}
+              />
             </label>
           </Tooltip>
 
-          <Tooltip text="Dán ảnh từ bộ nhớ tạm (Ctrl + V)">
+          <Tooltip text="Dán ảnh trực tiếp từ bộ nhớ tạm (Ctrl + V)">
             <button
               type="button"
-              className="liquid-pill-btn"
               style={{
-                flex: 1,
-                padding: '8px 12px',
+                height: '38px',
+                borderRadius: '12px',
                 justifyContent: 'center',
                 fontSize: '0.76rem',
                 fontWeight: 700,
@@ -255,6 +326,41 @@ export default function UpscaleSection({ currentStudioImage, showToast, onOpenLi
               <span>Paste (Ctrl+V)</span>
             </button>
           </Tooltip>
+        </div>
+
+        {/* AI Model Selector */}
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>Mô hình AI:</span>
+            <Tooltip text="Mô hình tối ưu cho từng loại ấn phẩm">
+              <span className="tooltip-trigger-icon">?</span>
+            </Tooltip>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+            {[
+              { id: 'digital-art-4x', label: 'Báo Tường / Đồ họa', hint: 'In ấn / Poster' },
+              { id: 'upscayl-standard-4x', label: 'Chuẩn', hint: 'Đa năng' },
+              { id: 'ultrasharp-4x', label: 'UltraSharp', hint: 'Viền chữ sắc nét' }
+            ].map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                className={`liquid-pill-btn ${modelId === m.id ? 'active' : ''}`}
+                style={{
+                  flexDirection: 'column',
+                  padding: '6px 4px',
+                  height: 'auto',
+                  justifyContent: 'center',
+                  borderRadius: '12px',
+                  gap: '2px'
+                }}
+                onClick={() => setModelId(m.id)}
+              >
+                <span style={{ fontSize: '0.74rem', fontWeight: 800 }}>{m.label}</span>
+                <span style={{ fontSize: '0.62rem', opacity: 0.8 }}>{m.hint}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Scale Multiplier */}
@@ -316,6 +422,22 @@ export default function UpscaleSection({ currentStudioImage, showToast, onOpenLi
           </div>
         </div>
 
+        {/* Live Progress Bar during upscale */}
+        {isUpscaling && (
+          <div style={{ marginBottom: '14px', padding: '10px 12px', background: 'rgba(236, 72, 153, 0.08)', borderRadius: '14px', border: '1px solid rgba(236, 72, 153, 0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, marginBottom: '6px', color: '#db2777' }}>
+              <span>⚡ GPU Worker Đang Kích Nét (GTX 1080 Ti)</span>
+              <span style={{ fontFamily: 'var(--font-mono)' }}>{progress}%</span>
+            </div>
+            <div style={{ width: '100%', height: '6px', background: '#fce7f3', borderRadius: '9999px', overflow: 'hidden', marginBottom: '6px' }}>
+              <div style={{ width: `${progress}%`, height: '100%', background: 'linear-gradient(90deg, #ec4899, #8b5cf6)', borderRadius: '9999px', transition: 'width 0.4s ease' }}></div>
+            </div>
+            <div style={{ fontSize: '0.68rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {stepText || 'AI đang nâng độ phân giải ảnh...'}
+            </div>
+          </div>
+        )}
+
         {/* Action Button */}
         <button
           type="button"
@@ -326,12 +448,12 @@ export default function UpscaleSection({ currentStudioImage, showToast, onOpenLi
           {isUpscaling ? (
             <>
               <i className="bi bi-arrow-repeat spin"></i>
-              <span>Đang Kích Nét...</span>
+              <span>GPU Đang Kích Nét ({progress}%)...</span>
             </>
           ) : (
             <>
               <i className="bi bi-stars"></i>
-              <span>Bắt đầu Kích Nét {scale}X</span>
+              <span>Bắt đầu Kích Nét AI {scale}X (GTX 1080 Ti)</span>
             </>
           )}
         </button>
@@ -343,7 +465,7 @@ export default function UpscaleSection({ currentStudioImage, showToast, onOpenLi
             onClick={handleDownload}
             style={{ width: '100%', marginTop: '10px', padding: '10px', justifyContent: 'center', fontWeight: 700 }}
           >
-            <i className="bi bi-download"></i> Tải ảnh {scale}X ({targetDpi} DPI)
+            <i className="bi bi-download"></i> Tải ảnh {scale}X ({jobMeta?.targetDimensions || `${targetDpi} DPI`})
           </button>
         )}
       </div>

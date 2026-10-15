@@ -1,65 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-export default function Tooltip({ text, children, position = 'top', className = '', style = {} }) {
-  const [visible, setVisible] = useState(false);
-
-  if (!text) return children;
-
-  const getPositionStyle = () => {
-    switch (position) {
-      case 'bottom':
-        return {
-          top: 'calc(100% + 8px)',
-          left: '50%',
-          transform: 'translateX(-50%)',
-        };
-      case 'left':
-        return {
-          right: 'calc(100% + 8px)',
-          top: '50%',
-          transform: 'translateY(-50%)',
-        };
-      case 'right':
-        return {
-          left: 'calc(100% + 8px)',
-          top: '50%',
-          transform: 'translateY(-50%)',
-        };
-      case 'top':
-      default:
-        return {
-          bottom: 'calc(100% + 8px)',
-          left: '50%',
-          transform: 'translateX(-50%)',
-        };
-    }
-  };
-
-  return (
-    <div
-      className={className}
-      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', ...style }}
-      onMouseEnter={() => setVisible(true)}
-      onMouseLeave={() => setVisible(false)}
-      onTouchStart={() => setVisible(!visible)}
-    >
-      {children}
-      {visible && (
-        <div
-          className="liquid-tooltip"
-          style={{
-            position: 'absolute',
-            zIndex: 9999,
-            pointerEvents: 'none',
-            whiteSpace: 'normal',
-            maxWidth: '220px',
-            minWidth: '120px',
-            ...getPositionStyle(),
-          }}
-        >
-          {text}
-        </div>
-      )}
-    </div>
-  );
+/**
+ * Tooltip component - Bỏ hết tooltip popup theo yêu cầu người dùng, chỉ trả về children
+ */
+export default function Tooltip({ children, className = '', style = {} }) {
+  if (className || (style && Object.keys(style).length > 0)) {
+    return (
+      <span className={className} style={{ display: 'inline-flex', alignItems: 'center', ...style }}>
+        {children}
+      </span>
+    );
+  }
+  return children;
 }
+

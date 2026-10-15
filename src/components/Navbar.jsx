@@ -21,16 +21,28 @@ export default function Navbar({
   };
 
   return (
-    <header className="liquid-topbar" style={{ position: 'relative' }}>
+    <header
+      className="liquid-topbar"
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        background: 'rgba(248, 250, 252, 0.92)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(226, 232, 240, 0.85)',
+        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)'
+      }}
+    >
       {/* Brand / Logo Capsule (Trái) */}
-      <Tooltip text="MzPic Pro - Về trang chủ Studio" position="bottom">
+      <Tooltip text="SchoolPaper - Báo Tường AI Studio" position="bottom">
         <div
           className="liquid-brand-capsule"
           onClick={() => setActiveTab('single')}
-          style={{ cursor: 'pointer' }}
+          style={{ cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
         >
-          <div className="liquid-brand-logo">M</div>
-          <span className="liquid-brand-title">MzPic</span>
+          <div className="liquid-brand-logo" style={{ background: 'linear-gradient(135deg, #ec4899, #db2777)', flexShrink: 0 }}>S</div>
+          <span className="liquid-brand-title" style={{ whiteSpace: 'nowrap' }}>SchoolPaper</span>
         </div>
       </Tooltip>
 
@@ -186,7 +198,7 @@ export default function Navbar({
                 >
                   <div style={{ padding: '8px', borderBottom: '1px solid #f1f5f9' }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>{user.name}</div>
-                    <div style={{ fontSize: '0.68rem', color: '#64748b', textOverflow: 'ellipsis', overflow: 'hidden' }}>{user.email || 'user@mzpic.com'}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b', textOverflow: 'ellipsis', overflow: 'hidden' }}>{user.email || 'user@schoolpaper.com'}</div>
                     <span
                       style={{
                         display: 'inline-block',

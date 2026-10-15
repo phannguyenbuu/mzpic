@@ -35,7 +35,7 @@ body {
   background: #0f1422;
   color: #0f172a;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   position: relative;
   -webkit-font-smoothing: antialiased;
 }
@@ -109,7 +109,7 @@ body {
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
   box-shadow: 0 0 80px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2);
-  padding-bottom: 110px; /* Space for fixed bottom dock */
+  padding-bottom: 28px;
   border-radius: 0;
   border: none;
 }
@@ -518,6 +518,8 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 9999px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .liquid-brand-logo {
@@ -531,12 +533,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .liquid-brand-title {
   font-size: 0.85rem;
   font-weight: 800;
   color: #0f172a;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .liquid-wallet-capsule {
@@ -569,20 +574,11 @@ body {
 
 /* ===================================================================
    LIQUID TOOLTIP BUBBLE
-   =================================================================== */
 .liquid-tooltip {
-  background: rgba(15, 23, 42, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  color: #f8fafc;
-  font-size: 0.72rem;
-  line-height: 1.4;
-  padding: 6px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 14px 30px -4px rgba(0, 0, 0, 0.45);
-  text-align: center;
-  animation: tooltipFade 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 @keyframes tooltipFade {
@@ -661,6 +657,29 @@ body {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Floating Circular CTA (Plane Icon - Fixed to Viewport Screen bottom: 100px) */
+.fab-generate-cta {
+  border-radius: 50% !important;
+  cursor: pointer;
+  overflow: hidden;
+  position: fixed !important;
+  bottom: 100px !important;
+  right: max(20px, calc(50% - 220px + 20px)) !important;
+  width: 54px !important;
+  height: 54px !important;
+  z-index: 9999 !important;
+}
+
+.fab-generate-cta:hover {
+  transform: translateY(-3px) scale(1.08) !important;
+  box-shadow: 0 16px 36px -2px rgba(6, 182, 212, 0.85), 0 6px 18px rgba(37, 99, 235, 0.65), inset 0 2px 2px rgba(255, 255, 255, 0.95) !important;
+}
+
+.fab-generate-cta:active {
+  transform: scale(0.92) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4), inset 0 2px 3px rgba(0, 0, 0, 0.2) !important;
 }
 
 /* 3D Liquid Glass Icon Buttons (for ResultCard: Sửa, 3D Mockup, Tải về) */
@@ -838,4 +857,176 @@ body {
   textarea {
     font-size: 16px !important;
   }
+}
+
+/* ===================================================================
+   CURVED / NOTCHED FLOATING TAB BAR (Modern Minimalist UI)
+   =================================================================== */
+.curved-tab-wrapper {
+  position: relative;
+  padding-top: 18px; /* Khoảng trống cho quả cầu nổi tròn nhô lên */
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.curved-tab-bar {
+  position: relative;
+  background: #ffffff;
+  border-radius: 36px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  box-shadow: 0 12px 32px -4px rgba(124, 58, 237, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.04);
+  border: 1.5px solid rgba(241, 245, 249, 0.95);
+  overflow: visible;
+}
+
+.curved-tab-item {
+  flex: 1;
+  height: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0 2px;
+  user-select: none;
+}
+
+/* ===================================================================
+   BỘ ICON LIQUID (Liquid 3D Glass Orbs & Squircles)
+   =================================================================== */
+
+.liquid-tab-icon {
+  position: relative;
+  width: 36px;
+  height: 33px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.88);
+  box-shadow: 0 4px 14px -2px var(--tab-glow, rgba(0, 0, 0, 0.22)), inset 0 1px 2px rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin-bottom: 2px;
+}
+
+.curved-tab-item:not(.active):hover .liquid-tab-icon {
+  transform: translateY(-3px) scale(1.12);
+  box-shadow: 0 8px 20px -2px var(--tab-glow, rgba(0, 0, 0, 0.32)), inset 0 1px 3px rgba(255, 255, 255, 0.95);
+}
+
+.liquid-tab-icon i {
+  font-size: 1.18rem;
+  color: #ffffff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+  z-index: 2;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.liquid-tab-icon-shine {
+  position: absolute;
+  top: 1px;
+  left: 8%;
+  right: 8%;
+  height: 44%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 100%);
+  border-radius: 10px 10px 50% 50%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.curved-tab-item:not(.active) .curved-label {
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 700;
+  transition: color 0.18s ease;
+  white-space: nowrap;
+}
+
+.curved-tab-item:not(.active):hover .curved-label {
+  color: #0f172a;
+}
+
+/* Trạng thái Active: Quả cầu nổi tròn nhô lên trong lòng đường cong lõm */
+.curved-tab-item.active {
+  justify-content: flex-end;
+  padding-bottom: 7px;
+}
+
+.curved-active-bubble {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 3px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  animation: bubblePop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+  color: #ffffff;
+  box-shadow: 0 10px 24px -2px var(--tab-glow, rgba(124, 58, 237, 0.45)), 0 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+.curved-active-bubble i {
+  font-size: 1.45rem;
+  color: #ffffff;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+  z-index: 2;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.curved-active-bubble .bubble-specular-shine {
+  position: absolute;
+  top: 2px;
+  left: 14%;
+  right: 14%;
+  height: 44%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 100%);
+  border-radius: 50% 50% 40% 40%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.curved-tab-item.active .curved-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: -0.1px;
+  white-space: nowrap;
+}
+
+/* Vết khoét cong Notched Scoop dạng sóng mượt mà */
+.curved-notch-scoop {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 74px;
+  height: 20px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+@keyframes bubblePop {
+  0% { transform: translateX(-50%) scale(0.65) translateY(12px); opacity: 0.4; }
+  100% { transform: translateX(-50%) scale(1) translateY(0); opacity: 1; }
 }

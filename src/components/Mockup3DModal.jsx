@@ -11,7 +11,7 @@ export default function Mockup3DModal({ isOpen, onClose, mockupUrl, originalImag
     try {
       const a = document.createElement('a');
       a.href = targetUrl;
-      a.download = `Mockup_3D_MzPic_${Date.now()}.png`;
+      a.download = `Mockup_3D_SchoolPaper_${Date.now()}.png`;
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       document.body.appendChild(a);

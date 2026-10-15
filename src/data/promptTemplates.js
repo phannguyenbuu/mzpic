@@ -5,6 +5,13 @@
 
 export const DEFAULT_PROMPT_TEMPLATES = [
   {
+    id: "tpl_wall_newspaper",
+    name: "Báo Tường (Viền U Hoa Văn Hồng Khổ A0)",
+    badge: "Báo Tường A0",
+    presetId: "wall_newspaper_a0",
+    hiddenPrompt: "khổ ấn phẩm báo tường chuẩn A0 841x1189mm, viền hoa văn màu hồng pastel trang nhã dáng hình chữ U ngược (inverted U-shaped pink floral and ornamental border spanning top and both left-right edges), độ dày đường viền cực kỳ thanh mảnh tối đa không quá 1% chiều rộng của trang ảnh, khu vực đỉnh đầu dành cho tiêu đề báo (Header), chân trang dành cho thông tin báo (Footer), khoảng trống ở giữa mênh mông sạch sẽ để trình bày các bài viết thơ văn báo tường, độ phân giải cao 300 DPI siêu sắc nét chuẩn in ấn bản lớn"
+  },
+  {
     id: "tpl_free_style",
     name: "Tự Do",
     badge: "Tự do",

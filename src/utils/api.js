@@ -62,7 +62,7 @@ export async function createRenderJob({
     prompt: (prompt || '').trim(),
     aspect_ratio: aspectRatio,
     style: style && style !== 'none' ? style : 'None',
-    caller: 'MzPic'
+    caller: 'SchoolPaper'
   };
 
   if (isEditing) {
@@ -84,4 +84,35 @@ export async function createRenderJob({
   }
 
   return await resp.json();
+}
+
+/**
+ * Trích xuất URL hình ảnh hợp lệ từ job data của ToolXPrint / ChatGPT Worker.
+ * Ưu tiên:
+ * 1. result_image_url
+ * 2. preview_image_url (ảnh preview tức thì do worker chụp/render)
+ * 3. filename (/images/${filename})
+ * 4. pins[0].url
+ *
+ * @param {Object} job
+ * @returns {string}
+ */
+export function extractJobImageUrl(job) {
+  if (!job) return '';
+  if (job.result_image_url && typeof job.result_image_url === 'string' && job.result_image_url.trim()) {
+    return job.result_image_url.trim();
+  }
+  if (job.preview_image_url && typeof job.preview_image_url === 'string' && job.preview_image_url.trim()) {
+    return job.preview_image_url.trim();
+  }
+  if (job.filename && typeof job.filename === 'string' && job.filename.trim()) {
+    const fn = job.filename.trim();
+    return fn.startsWith('http') ? fn : (fn.startsWith('/') ? fn : `/images/${fn}`);
+  }
+  if (Array.isArray(job.pins) && job.pins.length > 0) {
+    const pin = job.pins[0];
+    if (typeof pin === 'string' && pin.trim()) return pin.trim();
+    if (pin && typeof pin.url === 'string' && pin.url.trim()) return pin.url.trim();
+  }
+  return '';
 }

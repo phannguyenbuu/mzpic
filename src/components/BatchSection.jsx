@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Tooltip from './Tooltip';
 import CropRotateModal from './CropRotateModal';
 import { DESIGN_PRESETS, DESIGN_STYLES } from '../data/presets';
-import { createRenderJob } from '../utils/api';
+import { createRenderJob, extractJobImageUrl } from '../utils/api';
 import { extractImageFromPasteEvent, readImageFromClipboard } from '../utils/clipboard';
 
 export default function BatchSection({ onOpenInStudio, showToast, onOpenLightbox }) {
@@ -209,7 +209,7 @@ export default function BatchSection({ onOpenInStudio, showToast, onOpenLightbox
     if (e) e.stopPropagation();
     if (!task.resultUrl) return;
 
-    const fileName = `MZPic_Batch_${task.index}_${task.mainImage?.name || 'edited.png'}`;
+    const fileName = `SchoolPaper_Batch_${task.index}_${task.mainImage?.name || 'edited.png'}`;
     window.open(task.resultUrl, '_blank', 'noopener,noreferrer');
 
     try {
@@ -337,7 +337,7 @@ export default function BatchSection({ onOpenInStudio, showToast, onOpenLightbox
             const pollData = await pollRes.json();
             if (pollData.status === 'completed') {
               completed = true;
-              const fileUrl = pollData.result_image_url || (pollData.filename ? `/images/${pollData.filename}` : '');
+              const fileUrl = extractJobImageUrl(pollData);
               
               setTasks((prev) =>
                 prev.map((t, idx) =>
@@ -444,7 +444,7 @@ export default function BatchSection({ onOpenInStudio, showToast, onOpenLightbox
           const pollData = await pollRes.json();
           if (pollData.status === 'completed') {
             completed = true;
-            const fileUrl = pollData.result_image_url || (pollData.filename ? `/images/${pollData.filename}` : '');
+            const fileUrl = extractJobImageUrl(pollData);
             setTasks((prev) =>
               prev.map((t, idx) =>
                 idx === taskIndex

@@ -318,7 +318,7 @@ export default function AdminSection({
               href="https://mzpic.com"
               className="liquid-pill-btn"
               style={{ fontSize: '0.75rem', padding: '6px 14px', textDecoration: 'none', color: '#1e293b' }}
-              title="Quay lại Studio MzPic"
+              title="Quay lại Studio School Paper"
             >
               <i className="bi bi-arrow-left"></i>
               <span>Về Studio</span>
@@ -756,7 +756,7 @@ export default function AdminSection({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <div>
               <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>
-                Cài Đặt Hệ Thống MzPic
+                Cài Đặt Hệ Thống School Paper
               </div>
               <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
                 Đồng bộ cấu hình trung tâm tại agentapi.quanlymay.com

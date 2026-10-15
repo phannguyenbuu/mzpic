@@ -170,7 +170,7 @@ export default function ExactResizeModal({
   const handleDownloadDirect = async () => {
     const resizedDataUrl = await performCanvasResize();
     if (resizedDataUrl) {
-      const fileName = `MzPic_Resized_${width}x${height}${unit}_${dpi}DPI.png`;
+      const fileName = `SchoolPaper_Resized_${width}x${height}${unit}_${dpi}DPI.png`;
       const a = document.createElement('a');
       a.href = resizedDataUrl;
       a.download = fileName;
@@ -268,6 +268,8 @@ export default function ExactResizeModal({
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {[
+              { label: '📰 Báo Tường A0 (841×1189 mm)', w: 841, h: 1189, u: 'mm' },
+              { label: '📰 Báo Tường A1 (594×841 mm)', w: 594, h: 841, u: 'mm' },
               { label: 'A4 (210×297 mm)', w: 210, h: 297, u: 'mm' },
               { label: 'A5 (148×210 mm)', w: 148, h: 210, u: 'mm' },
               { label: 'A3 (297×420 mm)', w: 297, h: 420, u: 'mm' },

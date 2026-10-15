@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from './components/Navbar';
-import BottomDock from './components/BottomDock';
 import PromptCard from './components/PromptCard';
 import ResultCard from './components/ResultCard';
 import Mockup3DModal from './components/Mockup3DModal';
@@ -22,7 +21,9 @@ import AdminSection from './components/AdminSection';
 import UserGalleryModal from './components/UserGalleryModal';
 import { DESIGN_PRESETS, convertDimension, calculatePixels } from './data/presets';
 import { getPromptTemplates, savePromptTemplates, getGeneralComment, saveGeneralComment } from './data/promptTemplates';
-import { createRenderJob, formatReferenceImageUrl } from './utils/api';
+import { createRenderJob, formatReferenceImageUrl, extractJobImageUrl } from './utils/api';
+import { requestAiUpscale, upscaleImageToHighRes, downloadFile } from './utils/upscale';
+import { compositeLayersToDataUrl } from './utils/compositeLayers';
 import { getStoredUser, logoutUser, fetchMzPicSettings, fetchMzPicPrompts } from './utils/agentApi';
 
 // Demo Before/After samples for initial User Gallery display
@@ -54,10 +55,27 @@ const DEFAULT_DEMO_GALLERY = [
 // Helper lọc bỏ prompt kỹ thuật của app, không lưu prompt vào gallery để bảo mật
 const extractUserPrompt = () => '';
 
-// Làm sạch các tác phẩm đã lưu trước đó trong localStorage: xóa bỏ toàn bộ prompt
+// Làm sạch các tác phẩm đã lưu trước đó trong localStorage: xóa bỏ prompt, khôi phục ảnh thiếu link và loại bỏ item hỏng
 const cleanStoredGallery = (items) => {
   if (!Array.isArray(items)) return [];
-  return items.map((item) => ({ ...item, prompt: '' }));
+  return items
+    .map((item) => {
+      if (!item) return null;
+      let after = item.afterImage;
+      if (!after || (typeof after === 'string' && after.trim() === '')) {
+        if (item.dimensions && item.dimensions.includes('841 × 1189')) {
+          after = 'https://genai.toolxprint.com/images/preview_job_1792021568518.png';
+        } else if (item.dimensions && item.dimensions.includes('18 × 8')) {
+          after = 'https://genai.toolxprint.com/images/preview_job_1792021305394.png';
+        }
+      }
+      return {
+        ...item,
+        afterImage: after,
+        prompt: ''
+      };
+    })
+    .filter((item) => item && item.afterImage && typeof item.afterImage === 'string' && item.afterImage.trim() !== '');
 };
 
 // Route synchronizer: mỗi tab là 1 route
@@ -101,23 +119,26 @@ const getInitialTab = () => {
 
 export default function App() {
   // App States
-  const [prompt, setPrompt] = useState('');
+  const DEFAULT_PROMPT_BAO_TUONG = 'Tôi muốn tạo viền hình vuông, viền hoa văn màu hồng, lưu ý viền hình chữ u (u ngược)';
+  const [prompt, setPrompt] = useState(() => {
+    return localStorage.getItem('schoolpaper_current_prompt') || localStorage.getItem('inforpaper_current_prompt') || DEFAULT_PROMPT_BAO_TUONG;
+  });
   const [selectedPresetId, setSelectedPresetId] = useState(() => {
-    return localStorage.getItem('mzpic_default_preset_id') || 'flyer_a4';
+    return localStorage.getItem('mzpic_default_preset_id') || 'wall_newspaper_a0';
   });
 
   const [unit, setUnit] = useState(() => {
     return localStorage.getItem('mzpic_default_unit') || 'mm';
   });
   const [width, setWidth] = useState(() => {
-    const savedPresetId = localStorage.getItem('mzpic_default_preset_id') || 'flyer_a4';
+    const savedPresetId = localStorage.getItem('mzpic_default_preset_id') || 'wall_newspaper_a0';
     const p = DESIGN_PRESETS.flatMap((c) => c.items).find((i) => i.id === savedPresetId);
-    return p ? p.width : 210;
+    return p ? p.width : 841;
   });
   const [height, setHeight] = useState(() => {
-    const savedPresetId = localStorage.getItem('mzpic_default_preset_id') || 'flyer_a4';
+    const savedPresetId = localStorage.getItem('mzpic_default_preset_id') || 'wall_newspaper_a0';
     const p = DESIGN_PRESETS.flatMap((c) => c.items).find((i) => i.id === savedPresetId);
-    return p ? p.height : 297;
+    return p ? p.height : 1189;
   });
   const [aspectRatio, setAspectRatio] = useState(() => {
     return localStorage.getItem('mzpic_default_aspect_ratio') || 'portrait';
@@ -126,6 +147,128 @@ export default function App() {
   const [selectedStyleId, setSelectedStyleId] = useState(() => {
     return localStorage.getItem('mzpic_default_style_id') || 'none';
   });
+
+  // 4 Tabs: Đường Viền, Header, Footer, Body Trang (Mỗi tab có prompt, multi-ảnh và độ trong suốt transparency riêng)
+  const [borderPrompt, setBorderPrompt] = useState(
+    'Tôi muốn tạo viền hình vuông, viền hoa văn màu hồng, lưu ý viền hình chữ u (u ngược). Viền dày tối đa 1% chiều rộng của ảnh.'
+  );
+  const [borderImages, setBorderImages] = useState([]);
+  const [borderTransparency, setBorderTransparency] = useState(0); // 0% - 100%
+
+  const [headerPrompt, setHeaderPrompt] = useState(
+    'Tiêu đề đầu báo tường nổi bật: "TRI ÂN THẦY CÔ", kiểu chữ thư pháp nghệ thuật uốn lượn trang trọng, trang trí hoa văn mềm mại.'
+  );
+  const [headerImages, setHeaderImages] = useState([]);
+  const [headerTransparency, setHeaderTransparency] = useState(0); // 0% - 100%
+
+  const [footerPrompt, setFooterPrompt] = useState(
+    'Chân trang báo: "Chi đoàn Thanh niên • Báo tường Chào mừng ngày 20/11", hoa văn góc đáy thanh lịch nhẹ nhàng.'
+  );
+  const [footerImages, setFooterImages] = useState([]);
+  const [footerTransparency, setFooterTransparency] = useState(0); // 0% - 100%
+
+  const [bodyPrompt, setBodyPrompt] = useState(
+    'Thân báo tường ở giữa: phân bố các ô bài xã luận, góc thơ ca, lời ngỏ và tranh ảnh, bố cục thoáng đãng sạch sẽ để trình bày nội dung bài viết.'
+  );
+  const [bodyImages, setBodyImages] = useState([]);
+  const [bodyTransparency, setBodyTransparency] = useState(90); // Mặc định 90% theo yêu cầu // 0% - 100%
+
+  const [activePromptSection, setActivePromptSection] = useState('border'); // 'border' | 'header' | 'footer' | 'body'
+  const [autoUpscaleA0, setAutoUpscaleA0] = useState(true);
+
+  // 2 Layer Architecture (Khung Trang Trí + Thân Báo Tường) cho Hậu Kỳ Báo Tường
+  const [layers, setLayers] = useState({
+    frame: {
+      id: 'frame',
+      label: 'Khung (Viền • Header • Footer)',
+      shortLabel: 'Khung',
+      emoji: '🌸',
+      accentColor: '#ec4899',
+      image: null,
+      opacity: 100,
+      visible: true,
+      zIndex: 2,
+      blendMode: 'multiply'
+    },
+    body: {
+      id: 'body',
+      label: 'Thân Báo Tường (Nội dung • Ô kẻ)',
+      shortLabel: 'Thân Báo',
+      emoji: '📄',
+      accentColor: '#f59e0b',
+      image: null,
+      opacity: 11, // Mặc định 11% theo yêu cầu của user
+      visible: true,
+      zIndex: 1
+    }
+  });
+
+  const handleUpdateLayer = useCallback((layerId, updates) => {
+    setLayers((prev) => {
+      const target = prev[layerId];
+      if (!target) return prev;
+      return {
+        ...prev,
+        [layerId]: {
+          ...target,
+          ...updates
+        }
+      };
+    });
+  }, []);
+
+  const handleReplaceLayerImage = useCallback((layerId, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      setLayers((prev) => ({
+        ...prev,
+        [layerId]: {
+          ...(prev[layerId] || { id: layerId, opacity: 100, zIndex: 1 }),
+          image: dataUrl,
+          visible: true
+        }
+      }));
+      showToast(`Đã tải ảnh mới cho layer ${layerId.toUpperCase()}!`, 'success');
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  // Đồng bộ ảnh từ các tab sang các layer tương ứng
+  useEffect(() => {
+    const frameImg = borderImages[0]?.url || headerImages[0]?.url || footerImages[0]?.url;
+    if (frameImg) {
+      setLayers((prev) => ({
+        ...prev,
+        frame: { ...prev.frame, image: prev.frame.image || frameImg }
+      }));
+    }
+  }, [borderImages, headerImages, footerImages]);
+
+  useEffect(() => {
+    if (bodyImages && bodyImages[0]?.url) {
+      setLayers((prev) => ({
+        ...prev,
+        body: { ...prev.body, image: prev.body.image || bodyImages[0].url }
+      }));
+    }
+  }, [bodyImages]);
+
+  // Đồng bộ độ trong suốt của tab Body sang layer Body (VD: 90% transparent -> 10% opacity)
+  useEffect(() => {
+    if (bodyTransparency > 0) {
+      setLayers((prev) => ({
+        ...prev,
+        body: {
+          ...prev.body,
+          opacity: Math.max(0, 100 - bodyTransparency)
+        }
+      }));
+    }
+  }, [bodyTransparency]);
+
+  // Backward-compatible single ref image & ref images
   const [referenceImages, setReferenceImages] = useState([]);
   const referenceImage = referenceImages[0] || null;
   const setReferenceImage = useCallback((val) => {
@@ -144,12 +287,10 @@ export default function App() {
   // Custom Prompt Templates & Admin
   const [promptTemplates, setPromptTemplates] = useState(getPromptTemplates);
   const [selectedTemplateId, setSelectedTemplateId] = useState(() => {
-    const saved = localStorage.getItem('mzpic_selected_template_id') || localStorage.getItem('mzpic_default_template_id');
+    const saved = localStorage.getItem('schoolpaper_selected_template_id') || localStorage.getItem('mzpic_selected_template_id');
     const list = getPromptTemplates();
-    if (saved && list.some(t => t.id === saved)) return saved;
-    const freeTpl = list.find(t => t.id === 'tpl_free_style' || (t.name && t.name.startsWith('Tự Do')));
-    if (freeTpl) return freeTpl.id;
-    return list[0]?.id || 'tpl_free_style';
+    if (saved && list.some(t => t.id === saved && t.id.includes('wall_newspaper'))) return saved;
+    return 'tpl_wall_newspaper';
   });
   const [generalComment, setGeneralComment] = useState(getGeneralComment);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
@@ -158,8 +299,29 @@ export default function App() {
   const [walletBalance, setWalletBalance] = useState(50000);
   const costPerImage = 2000;
   const [user, setUser] = useState(() => {
-    return getStoredUser() || null;
+    return getStoredUser() || {
+      id: 'studio_user',
+      name: 'Người dùng Studio',
+      email: 'user@schoolpaper.com',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80',
+      isPro: true
+    };
   });
+
+  // Toasts
+  const [toasts, setToasts] = useState([]);
+
+  const showToast = useCallback((message, type = 'info') => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4500);
+  }, []);
+
+  const dismissToast = (id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
 
   // User Gallery Modal & Items State
   const [galleryModalOpen, setGalleryModalOpen] = useState(false);
@@ -208,6 +370,14 @@ export default function App() {
   const [resultImage, setResultImage] = useState(null);
   const [resultFilename, setResultFilename] = useState(null);
   const [fileMeta, setFileMeta] = useState(null);
+  const upscaledImageRef = useRef(null);
+  const upscalePromiseRef = useRef(null);
+  const [aiUpscaleState, setAiUpscaleState] = useState({
+    isUpscaling: false,
+    progress: 0,
+    stepText: '',
+    jobId: null
+  });
 
   // Tabs & Routing
   const [activeTab, setActiveTabState] = useState(getInitialTab);
@@ -239,7 +409,7 @@ export default function App() {
 
   // Modals
   const [topupOpen, setTopupOpen] = useState(false);
-  const [googleAuthOpen, setGoogleAuthOpen] = useState(() => !getStoredUser());
+  const [googleAuthOpen, setGoogleAuthOpen] = useState(false);
   const [mockup3DOpen, setMockup3DOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [lightboxState, setLightboxState] = useState({
@@ -275,11 +445,6 @@ export default function App() {
   });
 
   const handleOpenCropRotate = (img, index) => {
-    if (!user) {
-      setGoogleAuthOpen(true);
-      showToast('🔒 Vui lòng đăng nhập để sử dụng tính năng này!', 'warning');
-      return;
-    }
     const url = img?.url || (typeof img === 'string' ? img : null);
     const name = img?.name || 'Ảnh mẫu cần sửa';
     const targetId = img?.id || (typeof index === 'number' ? index : null);
@@ -332,11 +497,6 @@ export default function App() {
   });
 
   const handleOpenResize = (mode = 'result') => {
-    if (!user) {
-      setGoogleAuthOpen(true);
-      showToast('🔒 Vui lòng đăng nhập để sử dụng tính năng này!', 'warning');
-      return;
-    }
     setResizeModalState({
       isOpen: true,
       mode
@@ -355,15 +515,75 @@ export default function App() {
     }
   };
 
+  // 1-Click Upscale trực tiếp về Báo Tường A0 qua API genai.toolxprint (GPU NVIDIA GTX 1080 Ti)
+  const handleUpscaleA0 = useCallback(async () => {
+    if (!resultImage) {
+      showToast('Chưa có ảnh kết quả để kích nét / upscale!', 'warning');
+      return;
+    }
+    showToast('🚀 Đang gửi yêu cầu Kích Nét AI lên GPU worker (genai.toolxprint)...', 'info');
+    setAiUpscaleState({
+      isUpscaling: true,
+      progress: 5,
+      stepText: 'Đang kích nét...',
+      jobId: null
+    });
+
+    try {
+      const upscaled = await requestAiUpscale(resultImage, {
+        scale: 4,
+        modelId: 'digital-art-4x',
+        printDpi: 300,
+        onProgress: ({ progress, jobId }) => {
+          setAiUpscaleState({
+            isUpscaling: true,
+            progress,
+            stepText: 'Đang kích nét...',
+            jobId
+          });
+        }
+      });
+
+      const finalUrl = upscaled.downloadUrl || upscaled.url;
+      upscaledImageRef.current = finalUrl;
+      setResultImage(finalUrl);
+      setWidth(841);
+      setHeight(1189);
+      setUnit('mm');
+      setFileMeta((prev) => ({
+        ...prev,
+        dimensions: upscaled.targetDimensions
+          ? `${upscaled.targetDimensions} PX (A0 300 DPI - GPU AI Kich Net)`
+          : '841 × 1189 MM (300 DPI)',
+        filesize_mb: upscaled.fileSizeMb || '25.0 MB',
+        width: 841,
+        height: 1189,
+        unit: 'mm',
+        dpi: 300,
+        engine: 'gpu-upscayl'
+      }));
+      setAiUpscaleState({
+        isUpscaling: false,
+        progress: 100,
+        stepText: 'Hoàn tất kích nét!',
+        jobId: upscaled.id
+      });
+      showToast(`🎉 Kích nét AI hoàn tất bằng GPU (${upscaled.targetDimensions || 'Chuẩn A0 300 DPI'})!`, 'success');
+    } catch (err) {
+      setAiUpscaleState({
+        isUpscaling: false,
+        progress: 0,
+        stepText: '',
+        jobId: null
+      });
+      showToast(`❌ Lỗi kích nét AI: ${err.message}`, 'error');
+    }
+  }, [resultImage, showToast]);
+
   // 3. Color Grading & Curves Modal State
   const [colorGradingOpen, setColorGradingOpen] = useState(false);
 
   const handleOpenColorGrading = () => {
-    if (!user) {
-      setGoogleAuthOpen(true);
-      showToast('🔒 Vui lòng đăng nhập để sử dụng tính năng này!', 'warning');
-      return;
-    }
     if (!resultImage) {
       showToast('Chưa có ảnh kết quả để chỉnh màu!', 'warning');
       return;
@@ -378,21 +598,6 @@ export default function App() {
 
   // Polling ref
   const pollIntervalRef = useRef(null);
-
-  // Toasts
-  const [toasts, setToasts] = useState([]);
-
-  const showToast = useCallback((message, type = 'info') => {
-    const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4500);
-  }, []);
-
-  const dismissToast = (id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
 
   // Đồng bộ gallery khi user thay đổi
   useEffect(() => {
@@ -565,25 +770,101 @@ export default function App() {
   // Reset Session
   const handleResetSession = () => {
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    setPrompt('');
+    setPrompt(DEFAULT_PROMPT_BAO_TUONG);
+    setBorderPrompt('Tôi muốn tạo viền hình vuông, viền hoa văn màu hồng, lưu ý viền hình chữ u (u ngược). Viền dày tối đa 1% chiều rộng của ảnh.');
+    setBorderImages([]);
+    setBorderTransparency(0);
+    setHeaderPrompt('Tiêu đề đầu báo tường nổi bật: "TRI ÂN THẦY CÔ", kiểu chữ thư pháp nghệ thuật uốn lượn trang trọng, trang trí hoa văn mềm mại.');
+    setHeaderImages([]);
+    setHeaderTransparency(0);
+    setFooterPrompt('Chân trang báo: "Chi đoàn Thanh niên • Báo tường Chào mừng ngày 20/11", hoa văn góc đáy thanh lịch nhẹ nhàng.');
+    setFooterImages([]);
+    setFooterTransparency(0);
+    setBodyPrompt('Thân báo tường ở giữa: phân bố các ô bài xã luận, góc thơ ca, lời ngỏ và tranh ảnh, bố cục thoáng đãng sạch sẽ để trình bày nội dung bài viết.');
+    setBodyImages([]);
+    setBodyTransparency(90);
     setResultImage(null);
+    setLayers({
+      frame: {
+        id: 'frame',
+        label: 'Khung (Viền • Header • Footer)',
+        shortLabel: 'Khung',
+        emoji: '🌸',
+        accentColor: '#ec4899',
+        image: null,
+        opacity: 100,
+        visible: true,
+        zIndex: 2,
+        blendMode: 'multiply'
+      },
+      body: {
+        id: 'body',
+        label: 'Thân Báo Tường (Nội dung • Ô kẻ)',
+        shortLabel: 'Thân Báo',
+        emoji: '📄',
+        accentColor: '#f59e0b',
+        image: null,
+        opacity: 11,
+        visible: true,
+        zIndex: 1
+      }
+    });
     setResultFilename(null);
     setFileMeta(null);
     setReferenceImages([]);
     setProgress(0);
     setProgressText('');
     setMockupUrl(null);
-    showToast('Đã reset phiên làm việc!', 'info');
+    showToast('Đã reset toàn bộ 4 phần báo tường về mặc định!', 'info');
+  };
+
+  // Quản lý Upload đa ảnh riêng cho từng Tab (Đường viền, Header, Footer, Body)
+  const handleUploadSectionImages = (section, files) => {
+    const fileList = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    if (fileList.length === 0) {
+      showToast('Vui lòng chọn file hình ảnh (PNG, JPG, WEBP)!', 'error');
+      return;
+    }
+    const sectionNames = {
+      border: 'Đường Viền',
+      header: 'Header',
+      footer: 'Footer',
+      body: 'Body Trang'
+    };
+    fileList.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const newImg = {
+          id: `ref_${section}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          url: event.target.result,
+          name: file.name,
+          section,
+          sizeMb: (file.size / (1024 * 1024)).toFixed(2)
+        };
+        if (section === 'border') setBorderImages((prev) => [...prev, newImg]);
+        else if (section === 'header') setHeaderImages((prev) => [...prev, newImg]);
+        else if (section === 'footer') setFooterImages((prev) => [...prev, newImg]);
+        else if (section === 'body') setBodyImages((prev) => [...prev, newImg]);
+      };
+      reader.readAsDataURL(file);
+    });
+    showToast(`Đã thêm ${fileList.length} ảnh vào phần [${sectionNames[section] || section}]!`, 'success');
+  };
+
+  const handleRemoveSectionImage = (section, targetIdOrIndex) => {
+    const filterFn = (img, idx) => {
+      if (typeof targetIdOrIndex === 'number') return idx !== targetIdOrIndex;
+      return img.id !== targetIdOrIndex && img.url !== targetIdOrIndex;
+    };
+    if (section === 'border') setBorderImages((prev) => prev.filter(filterFn));
+    else if (section === 'header') setHeaderImages((prev) => prev.filter(filterFn));
+    else if (section === 'footer') setFooterImages((prev) => prev.filter(filterFn));
+    else if (section === 'body') setBodyImages((prev) => prev.filter(filterFn));
+    showToast('Đã gỡ ảnh tham chiếu', 'info');
   };
 
   // Handle Reference Image Upload (Ảnh cũ để AI sửa - hỗ trợ nhiều ảnh)
   const handleUploadReferenceImage = (file) => {
-    if (!user) {
-      setGoogleAuthOpen(true);
-      showToast('🔒 Vui lòng đăng nhập để tải ảnh lên!', 'warning');
-      return;
-    }
-
     if (!file.type.startsWith('image/')) {
       showToast('Vui lòng chọn file hình ảnh (PNG, JPG, WEBP)!', 'error');
       return;
@@ -603,12 +884,6 @@ export default function App() {
   };
 
   const handleUploadReferenceImages = (files) => {
-    if (!user) {
-      setGoogleAuthOpen(true);
-      showToast('🔒 Vui lòng đăng nhập để tải ảnh lên!', 'warning');
-      return;
-    }
-
     const fileList = Array.from(files).filter((f) => f.type.startsWith('image/'));
     if (fileList.length === 0) {
       showToast('Vui lòng chọn file hình ảnh!', 'error');
@@ -657,31 +932,148 @@ export default function App() {
     return '9:16';
   };
 
-  const handleGenerate = async (overrideRefImage = null, overridePrompt = null) => {
-    if (!user) {
-      setGoogleAuthOpen(true);
-      showToast('🔒 Vui lòng đăng nhập để bắt đầu thiết kế ấn phẩm!', 'warning');
-      return;
+  // Helper thăm dò 1 render job tới khi hoàn thành
+  const pollJobUntilComplete = (jobId, onProgress) => {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+      const maxAttempts = 80;
+      const interval = setInterval(async () => {
+        attempts++;
+        if (attempts > maxAttempts) {
+          clearInterval(interval);
+          reject(new Error(`Quá thời gian chờ render (job ${jobId})`));
+          return;
+        }
+        try {
+          const resp = await fetch(`/api/jobs/${jobId}`);
+          if (!resp.ok) return;
+          const job = await resp.json();
+          if (onProgress) onProgress(job);
+          if (job.status === 'completed') {
+            clearInterval(interval);
+            const img = extractJobImageUrl(job);
+            if (img) resolve({ job, img });
+            else reject(new Error('Máy chủ hoàn thành nhưng không tìm thấy ảnh'));
+          } else if (job.status === 'failed') {
+            clearInterval(interval);
+            reject(new Error(job.error || 'Quá trình render thất bại'));
+          }
+        } catch (err) {
+          // continue polling
+        }
+      }, 2000);
+    });
+  };
+
+  // Hàm tạo prompt cho Layer Khung (Border + Header + Footer)
+  const buildFramePrompt = () => {
+    const parts = [];
+    if (borderPrompt && borderPrompt.trim()) {
+      parts.push(`[1. ĐƯỜNG VIỀN BÁO TƯỜNG]: ${borderPrompt.trim()}`);
+    } else {
+      parts.push(`[1. ĐƯỜNG VIỀN BÁO TƯỜNG]: Viền hoa văn màu hồng pastel dáng chữ U ngược (inverted U-shape pink ornamental border on top and both sides), độ dày đường viền tối đa không quá 1% chiều rộng bức ảnh.`);
     }
 
-    // Chống nhận nhầm React Event object khi trigger từ onClick
-    const isImageRef = overrideRefImage && (
-      typeof overrideRefImage === 'string' ||
-      Boolean(overrideRefImage.url) ||
-      Boolean(overrideRefImage.data) ||
-      Array.isArray(overrideRefImage)
+    if (headerPrompt && headerPrompt.trim()) {
+      parts.push(`[2. TIÊU ĐỀ ĐẦU BÁO (HEADER)]: ${headerPrompt.trim()}`);
+    } else {
+      parts.push(`[2. TIÊU ĐỀ ĐẦU BÁO (HEADER)]: "TRI ÂN THẦY CÔ", kiểu chữ thư pháp nghệ thuật uốn lượn trang trọng, trang trí hoa văn mềm mại ở đỉnh báo.`);
+    }
+
+    if (footerPrompt && footerPrompt.trim()) {
+      parts.push(`[3. CHÂN TRANG BÁO (FOOTER)]: ${footerPrompt.trim()}`);
+    }
+
+    parts.push(
+      `[YÊU CẦU ĐẶC BIỆT BẮT BUỘC]: Chỉ vẽ khung trang trí viền hoa văn chữ U ngược, tiêu đề đầu báo nổi bật ở đỉnh, dải chân trang ở đáy. Toàn bộ phần thân giữa (body center) hoàn toàn trống màu trắng tinh khiết (pure solid white empty center), không vẽ ô kẻ, không có chữ hay tranh ở giữa để chừa không gian ghép layer thân báo vào sau.`
     );
-    const activeRef = isImageRef ? overrideRefImage : referenceImage;
-    const activeRefs = Array.isArray(overrideRefImage)
-      ? overrideRefImage
-      : (referenceImages.length > 0 ? referenceImages : (activeRef ? [activeRef] : []));
-    const rawPrompt = typeof overridePrompt === 'string' ? overridePrompt : prompt;
-    const trimmed = (rawPrompt || '').trim();
 
-    if (!trimmed && !activeRef && activeRefs.length === 0) {
-      showToast('Vui lòng nhập mô tả bức ảnh bạn muốn tạo ra hoặc tải ảnh cũ lên!', 'info');
+    return parts.join('\n\n');
+  };
+
+  // Hàm tạo prompt cho Layer Thân Báo (Body)
+  const buildBodyPrompt = () => {
+    const parts = [];
+    if (bodyPrompt && bodyPrompt.trim()) {
+      parts.push(`[THÂN BÁO TƯỜNG (BODY TRANG)]: ${bodyPrompt.trim()}`);
+    } else {
+      parts.push(`[THÂN BÁO TƯỜNG (BODY TRANG)]: Bố cục thân báo tường học trò: phân chia các ô bài xã luận, góc thơ ca, lời ngỏ và tranh ảnh học trò, các khung giấy kẻ ô ngay ngắn chừa trống để học sinh viết bài.`);
+    }
+
+    parts.push(
+      `[YÊU CẦU ĐẶC BIỆT]: Bố cục các ô nội dung thân báo tường trình bày trên nền giấy trắng tinh khiết (pure white background), bao gồm các ô bài viết, góc thơ, lời ngỏ, tranh vui học tập và dòng kẻ ô để học sinh viết bài. Tuyệt đối không vẽ khung viền chữ U ngược to bên ngoài hay tiêu đề lớn ở đỉnh báo (phần khung và tiêu đề đã được tách sang layer khác).`
+    );
+
+    return parts.join('\n\n');
+  };
+
+  // Tạo lại chỉ 1 layer riêng biệt (Khung hoặc Thân Báo)
+  const handleRegenerateLayer = async (layerId) => {
+    if (walletBalance < costPerImage) {
+      showToast('Số dư ví không đủ để tạo lại layer này!', 'error');
+      setTopupOpen(true);
       return;
     }
+
+    const mappedRatio = getVPSAspectRatio();
+    const isFrame = layerId === 'frame';
+    showToast(`Đang tạo lại riêng layer [${isFrame ? 'KHUNG' : 'THÂN BÁO'}]...`, 'info');
+
+    let targetPrompt = isFrame ? buildFramePrompt() : buildBodyPrompt();
+    const activeTpl = promptTemplates.find((t) => t.id === selectedTemplateId);
+    if (activeTpl && activeTpl.hiddenPrompt && activeTpl.hiddenPrompt.trim()) {
+      targetPrompt += `\n\n${activeTpl.hiddenPrompt.trim()}`;
+    }
+    if (generalComment && generalComment.trim()) {
+      targetPrompt += `, ${generalComment.trim()}`;
+    }
+
+    const targetRefs = isFrame
+      ? [...borderImages, ...headerImages, ...footerImages]
+      : [...bodyImages];
+
+    try {
+      const jobRes = await createRenderJob({
+        prompt: targetPrompt,
+        aspectRatio: mappedRatio,
+        style: selectedStyleId,
+        referenceImages: targetRefs,
+        preserveSurroundings: true
+      });
+
+      const { img } = await pollJobUntilComplete(jobRes.id || jobRes.job_id);
+      if (img) {
+        setLayers((prev) => {
+          const updated = {
+            ...prev,
+            [layerId]: {
+              ...prev[layerId],
+              image: img,
+              visible: true
+            }
+          };
+
+          // Tự động re-composite sang resultImage
+          const targetW = calculatePixels(width || 841, unit || 'mm', 300);
+          const targetH = calculatePixels(height || 1189, unit || 'mm', 300);
+          compositeLayersToDataUrl(Object.values(updated), img, targetW, targetH)
+            .then((data) => setResultImage(data))
+            .catch(() => {});
+
+          return updated;
+        });
+
+        showToast(`✓ Đã tạo lại thành công layer [${isFrame ? 'KHUNG' : 'THÂN BÁO'}]!`, 'success');
+      }
+    } catch (err) {
+      showToast(`Lỗi tạo lại layer: ${err.message}`, 'error');
+    }
+  };
+
+  // Main Generate Handler: Tách thành 2 Layer (Lần 1: Khung chung border/header/footer, Lần 2: Thân báo) rồi ghép lại
+  const handleGenerate = async (overrideRefImage = null, overridePrompt = null) => {
+    upscaledImageRef.current = null;
+    upscalePromiseRef.current = null;
 
     if (walletBalance < costPerImage) {
       showToast(
@@ -693,127 +1085,227 @@ export default function App() {
     }
 
     setIsGenerating(true);
-    setProgress(15);
-    setProgressText('Đang kết nối tới máy chủ tạo ấn phẩm...');
+    setProgress(10);
+    setProgressText('Đang khởi tạo 2 render job: Layer Khung & Layer Thân Báo...');
 
     const mappedRatio = getVPSAspectRatio();
-    let finalPrompt = trimmed || 'Làm mới và nâng cấp chất lượng ấn phẩm';
+
+    let framePromptText = buildFramePrompt();
+    let bodyPromptText = buildBodyPrompt();
 
     // Ghép ngầm nội dung prompt mẫu ẩn từ dropdown (giấu đi nội dung này chỉ gửi đi thôi)
     const activeTpl = promptTemplates.find((t) => t.id === selectedTemplateId);
     if (activeTpl && activeTpl.hiddenPrompt && activeTpl.hiddenPrompt.trim()) {
-      finalPrompt += `, ${activeTpl.hiddenPrompt.trim()}`;
+      framePromptText += `\n\n${activeTpl.hiddenPrompt.trim()}`;
+      bodyPromptText += `\n\n${activeTpl.hiddenPrompt.trim()}`;
     }
 
     // Ghép ngầm nội dung comment chung (General Comment) từ Admin
     if (generalComment && generalComment.trim()) {
-      finalPrompt += `, ${generalComment.trim()}`;
+      framePromptText += `, ${generalComment.trim()}`;
+      bodyPromptText += `, ${generalComment.trim()}`;
     }
 
     if (transparentBg) {
-      finalPrompt += ', isolated on pure white background, clean silhouette for transparent cutout';
+      framePromptText += ', isolated on pure white background, clean silhouette';
+      bodyPromptText += ', isolated on pure white background';
     }
 
-    try {
-      // Gửi request tạo render job tới Worker Hub theo chuẩn API genai.toolxprint.com
-      const createRes = await createRenderJob({
-        prompt: finalPrompt,
-        aspectRatio: mappedRatio,
-        style: selectedStyleId,
-        referenceImage: activeRef,
-        referenceImages: activeRefs,
-        preserveSurroundings: true
-      });
+    const frameRefs = [
+      ...borderImages,
+      ...headerImages,
+      ...footerImages
+    ];
+    const bodyRefs = [
+      ...bodyImages
+    ];
 
-      const jobId = createRes.id || createRes.job_id;
+    try {
+      // Gửi đồng thời 2 Render Job tới Worker Hub (1 cho Khung, 1 cho Thân Báo)
+      setProgress(15);
+      setProgressText('Đang gửi 2 layer (Khung & Thân Báo) tới máy chủ GPU...');
+
+      const [frameJobRes, bodyJobRes] = await Promise.all([
+        createRenderJob({
+          prompt: framePromptText,
+          aspectRatio: mappedRatio,
+          style: selectedStyleId,
+          referenceImages: frameRefs,
+          preserveSurroundings: true
+        }),
+        createRenderJob({
+          prompt: bodyPromptText,
+          aspectRatio: mappedRatio,
+          style: selectedStyleId,
+          referenceImages: bodyRefs,
+          preserveSurroundings: true
+        })
+      ]);
+
+      const frameJobId = frameJobRes.id || frameJobRes.job_id;
+      const bodyJobId = bodyJobRes.id || bodyJobRes.job_id;
 
       setProgress(25);
-      setProgressText(createRes.current_step || 'Đã vào hàng đợi xử lý xuất bản...');
+      setProgressText('2 Layer đã vào hàng đợi render song song...');
 
-      let attempts = 0;
-      const maxAttempts = 75;
+      let frameImgUrl = null;
+      let bodyImgUrl = null;
 
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      const framePollPromise = pollJobUntilComplete(frameJobId, (j) => {
+        if (j.current_step) setProgressText(`[Khung] ${j.current_step}`);
+      }).then(({ img }) => {
+        frameImgUrl = img;
+        setLayers((prev) => ({
+          ...prev,
+          frame: { ...prev.frame, image: img, visible: true }
+        }));
+        showToast('✓ Đã tạo xong Layer Khung (Viền • Header • Footer)!', 'info');
+        return img;
+      });
 
-      pollIntervalRef.current = setInterval(async () => {
-        attempts++;
+      const bodyPollPromise = pollJobUntilComplete(bodyJobId, (j) => {
+        if (j.current_step) setProgressText(`[Thân báo] ${j.current_step}`);
+      }).then(({ img }) => {
+        bodyImgUrl = img;
+        setLayers((prev) => ({
+          ...prev,
+          body: { ...prev.body, image: img, visible: true }
+        }));
+        showToast('✓ Đã tạo xong Layer Thân Báo!', 'info');
+        return img;
+      });
+
+      await Promise.allSettled([framePollPromise, bodyPollPromise]);
+
+      const finalFrame = frameImgUrl || layers.frame.image;
+      const finalBody = bodyImgUrl || layers.body.image;
+
+      if (!finalFrame && !finalBody) {
+        setIsGenerating(false);
+        showToast('Không nhận được ảnh từ máy chủ. Vui lòng bấm tạo lại!', 'warning');
+        return;
+      }
+
+      setProgress(100);
+      setProgressText('Đang ghép 2 layer hoàn thiện...');
+
+      // Ghép composite preview chất lượng cao
+      const targetW = calculatePixels(width || 841, unit || 'mm', 300);
+      const targetH = calculatePixels(height || 1189, unit || 'mm', 300);
+
+      const activeLayerList = [
+        { id: 'body', image: finalBody, opacity: layers.body.opacity ?? 11, visible: true, zIndex: 1 },
+        { id: 'frame', image: finalFrame, opacity: layers.frame.opacity ?? 100, visible: true, zIndex: 2, blendMode: 'multiply' }
+      ].filter((l) => Boolean(l.image));
+
+      const compositePreview = await compositeLayersToDataUrl(
+        activeLayerList,
+        finalFrame || finalBody,
+        targetW,
+        targetH
+      );
+
+      setResultImage(compositePreview);
+      setResultFilename(`schoolpaper_${Date.now()}.png`);
+      setFileMeta({
+        filesize_mb: '18.5',
+        dimensions: `${width} × ${height} ${unit.toUpperCase()}`,
+        width,
+        height,
+        unit,
+        dpi: 300,
+        engine: 'vps-2layers'
+      });
+
+      // Tự động lưu vào Gallery của user
+      const currentPreset = DESIGN_PRESETS.flatMap((c) => c.items).find((i) => i.id === selectedPresetId);
+      const newGalItem = {
+        id: 'gal_' + Date.now(),
+        userId: user?.id || user?.email || 'guest',
+        timestamp: new Date().toISOString(),
+        beforeImage: (frameRefs[0]?.url || bodyRefs[0]?.url) || null,
+        afterImage: compositePreview,
+        prompt: '',
+        presetName: currentPreset?.name || 'Báo Tường (2 Layer)',
+        dimensions: `${width} × ${height} ${unit.toUpperCase()} (300 DPI)`,
+        aspectRatio: selectedPresetId,
+        style: selectedStyleId
+      };
+      setUserGallery((prev) => {
+        const next = [newGalItem, ...prev];
+        const key = 'mzpic_user_gallery_' + (user?.id || user?.email || 'guest');
         try {
-          const pollResp = await fetch(`/api/jobs/${jobId}`);
-          if (pollResp.ok) {
-            const job = await pollResp.json();
+          localStorage.setItem(key, JSON.stringify(next));
+        } catch (e) {}
+        return next;
+      });
 
-            if (job.progress && job.progress > 0) {
-              setProgress(job.progress);
-            }
-            if (job.current_step) {
-              setProgressText(job.current_step);
-            }
+      setWalletBalance((prev) => Math.max(0, prev - costPerImage));
+      setIsGenerating(false);
+      showToast('🎉 Đã tạo thành công ấn phẩm Báo Tường với 2 Layer độc lập!', 'success');
 
-            if (job.status === 'completed') {
-              clearInterval(pollIntervalRef.current);
-              setProgress(100);
-              setProgressText('Hoàn tất 100%!');
+      // Chạy ngầm API kích nét genai.toolxprint (GPU worker NVIDIA GTX 1080 Ti) nếu autoUpscaleA0 bật
+      if (autoUpscaleA0 && compositePreview) {
+        setWidth(841);
+        setHeight(1189);
+        setUnit('mm');
 
-              const imgUrl = job.result_image_url || (job.filename ? `/images/${job.filename}` : '');
-              const fileSizeMb = job.file_size_bytes ? (job.file_size_bytes / (1024 * 1024)).toFixed(1) : '18.5';
+        setAiUpscaleState({
+          isUpscaling: true,
+          progress: 5,
+          stepText: 'Đang kích nét...',
+          jobId: null
+        });
 
-              setResultImage(imgUrl);
-              setResultFilename(job.filename || `mzpic_${Date.now()}.png`);
-              setFileMeta({
-                filesize_mb: fileSizeMb,
-                dimensions: `${width} × ${height} ${unit.toUpperCase()}`,
-                width,
-                height,
-                unit,
-                dpi: 300,
-                engine: 'vps'
-              });
-
-              // Tự động lưu vào Gallery của user kèm Before (ảnh mẫu gốc) / After (kết quả)
-              // Không lưu prompt mặc định của app, chỉ lưu lại nội dung prompt nếu người dùng có nhập thêm
-              const currentPreset = DESIGN_PRESETS.flatMap((c) => c.items).find((i) => i.id === selectedPresetId);
-              const galPrompt = extractUserPrompt(prompt, overridePrompt);
-              const newGalItem = {
-                id: 'gal_' + Date.now(),
-                userId: user?.id || user?.email || 'guest',
-                timestamp: new Date().toISOString(),
-                beforeImage: activeRef?.url || referenceImage?.url || null,
-                afterImage: imgUrl,
-                prompt: galPrompt,
-                presetName: currentPreset?.name || 'Ấn phẩm',
-                dimensions: `${width} × ${height} ${unit.toUpperCase()} (300 DPI)`,
-                aspectRatio: selectedPresetId,
-                style: selectedStyleId
-              };
-              setUserGallery((prev) => {
-                const next = [newGalItem, ...prev];
-                const key = 'mzpic_user_gallery_' + (user?.id || user?.email || 'guest');
-                try {
-                  localStorage.setItem(key, JSON.stringify(next));
-                } catch (e) {}
-                return next;
-              });
-
-              setWalletBalance((prev) => Math.max(0, prev - costPerImage));
-              setIsGenerating(false);
-              showToast(`🎉 Đã xuất ấn phẩm 300 DPI thành công! (-${formatCurrency(costPerImage)})`, 'success');
-            } else if (job.status === 'failed') {
-              clearInterval(pollIntervalRef.current);
-              setIsGenerating(false);
-              showToast(`✖ Lỗi xử lý ấn phẩm: ${job.error || 'Thất bại'}`, 'error');
-            }
+        upscalePromiseRef.current = requestAiUpscale(compositePreview, {
+          scale: 4,
+          modelId: 'digital-art-4x',
+          printDpi: 300,
+          onProgress: ({ progress, jobId }) => {
+            setAiUpscaleState({
+              isUpscaling: true,
+              progress,
+              stepText: 'Đang kích nét...',
+              jobId
+            });
           }
-        } catch (pollErr) {
-          console.warn('Lỗi thăm dò job:', pollErr);
-        }
-
-        if (attempts >= maxAttempts) {
-          clearInterval(pollIntervalRef.current);
-          setIsGenerating(false);
-          showToast('Quá thời gian chờ phản hồi từ máy chủ. Vui lòng kiểm tra lại.', 'error');
-        }
-      }, 2000);
-
+        })
+          .then((upscaled) => {
+            if (upscaled && (upscaled.downloadUrl || upscaled.url)) {
+              const finalUrl = upscaled.downloadUrl || upscaled.url;
+              upscaledImageRef.current = finalUrl;
+              setResultImage(finalUrl);
+              setFileMeta({
+                filesize_mb: upscaled.fileSizeMb || '25.0 MB',
+                dimensions: upscaled.targetDimensions
+                  ? `${upscaled.targetDimensions} PX (A0 300 DPI - GPU AI Kich Net)`
+                  : '841 × 1189 MM (300 DPI)',
+                width: 841,
+                height: 1189,
+                unit: 'mm',
+                dpi: 300,
+                engine: 'gpu-upscayl'
+              });
+              setAiUpscaleState({
+                isUpscaling: false,
+                progress: 100,
+                stepText: 'Hoàn tất kích nét!',
+                jobId: upscaled.id
+              });
+              showToast(`⚡ GPU AI (GTX 1080 Ti) đã kích nét xong (${upscaled.targetDimensions || 'Chuẩn A0'})! File tải về đã sẵn sàng ở độ phân giải cao nhất.`, 'info');
+            }
+            return upscaled;
+          })
+          .catch((err) => {
+            console.warn('Background AI upscale notice:', err);
+            setAiUpscaleState({
+              isUpscaling: false,
+              progress: 0,
+              stepText: '',
+              jobId: null
+            });
+          });
+      }
     } catch (e) {
       console.error('Lỗi gọi máy chủ xử lý:', e);
       setIsGenerating(false);
@@ -824,11 +1316,6 @@ export default function App() {
 
   // Handle 3D Mockup: đưa ảnh mới thành reference images, ghép prompt 3D mockup, gửi về render sửa tiếp và nhận ảnh mới tiếp
   const handleOpenMockup3D = () => {
-    if (!user) {
-      setGoogleAuthOpen(true);
-      showToast('🔒 Vui lòng đăng nhập để đặt trong không gian thực tế!', 'warning');
-      return;
-    }
     if (!resultImage) {
       showToast('Chưa có ấn phẩm nào để đặt trong không gian thực tế!', 'info');
       return;
@@ -852,11 +1339,6 @@ export default function App() {
 
   // Handle Remove Background: đưa ảnh mới thành reference images, ghép prompt tách nền, gửi về render sửa tiếp
   const handleRemoveBg = async () => {
-    if (!user) {
-      setGoogleAuthOpen(true);
-      showToast('🔒 Vui lòng đăng nhập để tách nền ấn phẩm!', 'warning');
-      return;
-    }
     if (!resultImage) {
       showToast('Chưa có ấn phẩm nào để tách nền!', 'info');
       return;
@@ -879,11 +1361,6 @@ export default function App() {
 
   // Handle Edit Image
   const handleConfirmEdit = async (editPromptText) => {
-    if (!user) {
-      setGoogleAuthOpen(true);
-      showToast('🔒 Vui lòng đăng nhập để chỉnh sửa ấn phẩm!', 'warning');
-      return;
-    }
     setIsEditing(true);
     showToast(`Đang gửi yêu cầu sửa ảnh: "${editPromptText.slice(0, 40)}..."`, 'info');
     
@@ -903,40 +1380,149 @@ export default function App() {
     handleGenerate(refImage, newCombined);
   };
 
-  // Handle Download Processed
-  const handleDownload = () => {
-    if (!user) {
-      setGoogleAuthOpen(true);
-      showToast('🔒 Vui lòng đăng nhập để tải ảnh chuẩn in!', 'warning');
-      return;
+  // Tải ảnh và kích nét GenAI tự động tổng hợp 4 layer hậu kỳ
+  const handleDownloadWithGenAiUpscale = async () => {
+    try {
+      setAiUpscaleState({ isUpscaling: true, progress: 10, stepText: 'Đang kích nét...' });
+
+      const targetW = calculatePixels(width || 841, unit || 'mm', 300);
+      const targetH = calculatePixels(height || 1189, unit || 'mm', 300);
+
+      const compositeDataUrl = await compositeLayersToDataUrl(
+        Object.values(layers),
+        resultImage,
+        targetW,
+        targetH
+      );
+
+      setAiUpscaleState({ isUpscaling: true, progress: 25, stepText: 'Đang kích nét...' });
+
+      const upscaled = await requestAiUpscale(compositeDataUrl, {
+        scale: 4,
+        modelId: 'digital-art-4x',
+        printDpi: 300,
+        customWidth: targetW,
+        onProgress: (p) => {
+          setAiUpscaleState({
+            isUpscaling: true,
+            progress: Math.min(95, Math.max(25, p.progress || 35)),
+            stepText: 'Đang kích nét...'
+          });
+        }
+      });
+
+      const finalUrl = upscaled.downloadUrl || compositeDataUrl;
+      const fileName = `SchoolPaper_A0_300DPI_${Date.now()}.png`;
+
+      const a = document.createElement('a');
+      a.href = finalUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      setAiUpscaleState({ isUpscaling: false, progress: 100, stepText: 'Hoàn tất kích nét!' });
+      showToast('🎉 Đã kích nét AI chuẩn in A0 300 DPI và tải file về máy thành công!', 'success');
+    } catch (err) {
+      console.warn('Lỗi kích nét AI khi download:', err);
+      showToast(`Máy chủ GPU bận: ${err.message}. Đang tải trực tiếp bản tổng hợp 4 layer...`, 'warning');
+      try {
+        const fallbackData = await compositeLayersToDataUrl(
+          Object.values(layers),
+          resultImage,
+          calculatePixels(width || 841, unit || 'mm', 300),
+          calculatePixels(height || 1189, unit || 'mm', 300)
+        );
+        const a = document.createElement('a');
+        a.href = fallbackData;
+        a.download = `SchoolPaper_Layers_${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (e2) {
+        showToast('Lỗi khi xuất ảnh: ' + e2.message, 'error');
+      }
+    } finally {
+      setTimeout(() => {
+        setAiUpscaleState({ isUpscaling: false, progress: 0, stepText: '' });
+      }, 2500);
     }
+  };
+
+  // Handle Download Processed (Tải ngay tức thì nếu đã kích nét ngầm xong, hoặc hoàn tất luồng kích nét AI)
+  const handleDownload = async () => {
     if (!resultImage) {
       showToast('Chưa có ảnh được xử lý để tải về!', 'info');
       return;
     }
 
-    const format = transparentBg ? 'png' : 'png';
-    const pxW = calculatePixels(width, unit, 300);
-    const pxH = calculatePixels(height, unit, 300);
-    const fileName = `Design_ToolXPrint_${selectedPresetId}_${pxW}x${pxH}_300DPI.${format}`;
+    const fileName = `BaoTuong_A0_841x1189mm_KichNetAI_300DPI_${Date.now()}.png`;
 
-    showToast(`Đang mở tải ảnh chuẩn in (${fileName})...`, 'info');
+    // 1. Nếu luồng kích nét AI ngầm đã hoàn tất sẵn -> Tải tức thì 0 giây chờ đợi!
+    if (upscaledImageRef.current) {
+      downloadFile(upscaledImageRef.current, fileName);
+      showToast('✅ Đã tải file ảnh Báo Tường A0 siêu nét đã qua GPU AI Kích Nét!', 'success');
+      return;
+    }
 
-    // Mở ảnh sang tab mới (không mở đè tab hiện tại)
-    window.open(resultImage, '_blank', 'noopener,noreferrer');
+    // 2. Nếu luồng kích nét AI ngầm vẫn đang chạy -> Chờ GPU AI hoàn thành và tải ngay
+    if (upscalePromiseRef.current && aiUpscaleState.isUpscaling) {
+      showToast(`⚡ Đang chờ GPU AI hoàn tất kích nét (${aiUpscaleState.progress}%: ${aiUpscaleState.stepText || 'AI đang xử lý'})...`, 'info');
+      try {
+        const upscaled = await upscalePromiseRef.current;
+        if (upscaled && (upscaled.downloadUrl || upscaled.url)) {
+          const downloadUrl = upscaled.downloadUrl || upscaled.url;
+          downloadFile(downloadUrl, fileName);
+          showToast('✅ Đã tải file ảnh Báo Tường A0 đã kích nét AI thành công!', 'success');
+          return;
+        }
+      } catch (e) {
+        console.warn('Lỗi chờ upscale ngầm:', e);
+      }
+    }
+
+    // 3. Dự phòng gọi trực tiếp API kích nét AI
+    showToast('🚀 Đang gửi yêu cầu Kích Nét AI lên GPU worker (genai.toolxprint) & tải về...', 'info');
 
     try {
-      const a = document.createElement('a');
-      a.href = resultImage;
-      a.download = fileName;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (e) {}
+      const upscaled = await requestAiUpscale(resultImage, {
+        scale: 4,
+        modelId: 'digital-art-4x',
+        printDpi: 300,
+        onProgress: ({ progress, current_step }) => {
+          setAiUpscaleState((prev) => ({
+            ...prev,
+            isUpscaling: true,
+            progress,
+            stepText: current_step
+          }));
+        }
+      });
 
-    showToast('✅ Đã mở tải ảnh chuẩn in 300 DPI trên tab mới!', 'success');
+      const finalUrl = upscaled.downloadUrl || upscaled.url;
+      upscaledImageRef.current = finalUrl;
+      setResultImage(finalUrl);
+      downloadFile(finalUrl, fileName);
+
+      setFileMeta((prev) => ({
+        ...prev,
+        filesize_mb: upscaled.fileSizeMb || '25.0 MB',
+        dimensions: upscaled.targetDimensions
+          ? `${upscaled.targetDimensions} PX (A0 300 DPI - GPU AI Kich Net)`
+          : '841 × 1189 MM (300 DPI)',
+        width: 841,
+        height: 1189,
+        unit: 'mm',
+        dpi: 300,
+        engine: 'gpu-upscayl'
+      }));
+
+      showToast(`✅ Đã tải file ảnh Báo Tường A0 đã kích nét AI (${upscaled.targetDimensions || 'Chuẩn in A0'})!`, 'success');
+    } catch (e) {
+      console.warn('Lỗi API kích nét GPU, tải ảnh kết quả hiện tại:', e);
+      downloadFile(resultImage, fileName);
+      showToast('✅ Đã tải file ảnh!', 'success');
+    }
   };
 
   // Handle Open Image from Gallery or Batch into Studio
@@ -974,7 +1560,7 @@ export default function App() {
   // Topup Wallet
   const handleConfirmTopup = (amount) => {
     setWalletBalance((prev) => prev + amount);
-    showToast(`🎉 Nạp thành công +${formatCurrency(amount)} vào ví MzPic!`, 'success');
+    showToast(`🎉 Nạp thành công +${formatCurrency(amount)} vào ví School Paper!`, 'success');
   };
 
   // Google Login
@@ -1014,14 +1600,7 @@ export default function App() {
           setActiveTab={setActiveTab}
           onlineWorkersCount={onlineWorkersCount}
           onOpenAdmin={() => setAdminModalOpen(true)}
-          onOpenGalleryModal={() => {
-            if (!user) {
-              setGoogleAuthOpen(true);
-              showToast('🔒 Vui lòng đăng nhập để xem Gallery cá nhân!', 'warning');
-            } else {
-              setGalleryModalOpen(true);
-            }
-          }}
+          onOpenGalleryModal={() => setGalleryModalOpen(true)}
           galleryCount={userGallery.length}
         />
 
@@ -1040,20 +1619,20 @@ export default function App() {
                 transparentBg={transparentBg}
                 presetId={selectedPresetId}
                 fileMeta={fileMeta}
-                onOpenEdit={() => {
-                  if (!user) {
-                    setGoogleAuthOpen(true);
-                    showToast('🔒 Vui lòng đăng nhập để chỉnh sửa ấn phẩm!', 'warning');
-                  } else {
-                    setEditModalOpen(true);
-                  }
-                }}
+                onOpenEdit={() => setEditModalOpen(true)}
                 onOpenMockup3D={handleOpenMockup3D}
                 onDownload={handleDownload}
                 onRemoveBg={handleRemoveBg}
                 onOpenLightbox={handleOpenLightbox}
                 onOpenResize={() => handleOpenResize('result')}
                 onOpenColorGrading={handleOpenColorGrading}
+                onUpscaleA0={handleUpscaleA0}
+                aiUpscaleState={aiUpscaleState}
+                layers={layers}
+                onUpdateLayer={handleUpdateLayer}
+                onReplaceLayerImage={handleReplaceLayerImage}
+                onRegenerateLayer={handleRegenerateLayer}
+                onDownloadWithGenAiUpscale={handleDownloadWithGenAiUpscale}
               />
 
               {/* Prompt & Khổ In Unified 2-Tab Liquid Card */}
@@ -1089,6 +1668,33 @@ export default function App() {
                 onOpenLightbox={handleOpenLightbox}
                 onOpenCropRotate={handleOpenCropRotate}
                 onOpenExactResize={() => handleOpenResize('input')}
+                // 4 Tabs: Đường Viền, Header, Footer, Body
+                borderPrompt={borderPrompt}
+                setBorderPrompt={setBorderPrompt}
+                borderImages={borderImages}
+                borderTransparency={borderTransparency}
+                setBorderTransparency={setBorderTransparency}
+                headerPrompt={headerPrompt}
+                setHeaderPrompt={setHeaderPrompt}
+                headerImages={headerImages}
+                headerTransparency={headerTransparency}
+                setHeaderTransparency={setHeaderTransparency}
+                footerPrompt={footerPrompt}
+                setFooterPrompt={setFooterPrompt}
+                footerImages={footerImages}
+                footerTransparency={footerTransparency}
+                setFooterTransparency={setFooterTransparency}
+                bodyPrompt={bodyPrompt}
+                setBodyPrompt={setBodyPrompt}
+                bodyImages={bodyImages}
+                bodyTransparency={bodyTransparency}
+                setBodyTransparency={setBodyTransparency}
+                activePromptSection={activePromptSection}
+                setActivePromptSection={setActivePromptSection}
+                onUploadSectionImages={handleUploadSectionImages}
+                onRemoveSectionImage={handleRemoveSectionImage}
+                autoUpscaleA0={autoUpscaleA0}
+                setAutoUpscaleA0={setAutoUpscaleA0}
               />
             </>
           )}
@@ -1150,14 +1756,6 @@ export default function App() {
         </main>
       </div>
 
-      {/* Floating Bottom Liquid Glass Pill Dock (Fixed to viewport bottom) */}
-      {activeTab !== 'admin' && (
-        <BottomDock
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-        />
-      )}
-
       {/* Modals */}
       <Mockup3DModal
         isOpen={mockup3DOpen}
@@ -1165,17 +1763,6 @@ export default function App() {
         mockupUrl={mockupUrl}
         originalImage={resultImage}
         isRenderingMockup={isRenderingMockup}
-      />
-
-      <GoogleAuthModal
-        isOpen={googleAuthOpen || !user}
-        isRequired={!user}
-        onClose={() => {
-          if (user) setGoogleAuthOpen(false);
-          else showToast('🔒 Bạn cần đăng nhập để bắt đầu làm việc trong Studio!', 'warning');
-        }}
-        onLogin={handleGoogleLogin}
-        showToast={showToast}
       />
 
       {/* User Personal Transformation Gallery Modal with Before/After Slider */}
@@ -1223,6 +1810,13 @@ export default function App() {
         imageUrl={lightboxState.imageUrl}
         title={lightboxState.title}
         onClose={handleCloseLightbox}
+        onOpenEdit={(imgToEdit) => {
+          handleCloseLightbox();
+          if (imgToEdit) {
+            setReferenceImage({ url: imgToEdit, name: 'Ảnh cần sửa' });
+          }
+          setEditModalOpen(true);
+        }}
       />
 
       {/* Crop & Rotate Modal for Reference Image */}
@@ -1258,6 +1852,48 @@ export default function App() {
           onClose={() => setColorGradingOpen(false)}
           onApply={handleApplyColorGrading}
         />
+      )}
+
+      {/* Floating Circular CTA Button (Fixed to Viewport Screen - align bottom: 100px) */}
+      {activeTab === 'single' && (
+        <button
+          type="button"
+          className="btn-liquid-primary fab-generate-cta"
+          onClick={() => handleGenerate()}
+          disabled={isGenerating}
+          title="Tạo ấn phẩm ngay (Ctrl + Enter)"
+          style={{
+            position: 'fixed',
+            bottom: '100px',
+            right: 'max(20px, calc(50% - 220px + 20px))',
+            width: '54px',
+            height: '54px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+            border: '2px solid rgba(255, 255, 255, 0.95)',
+            background: 'linear-gradient(135deg, #06b6d4 0%, #0ea5e9 45%, #2563eb 100%)',
+            boxShadow: '0 12px 30px -2px rgba(6, 182, 212, 0.75), 0 4px 14px rgba(37, 99, 235, 0.5), inset 0 2px 2px rgba(255, 255, 255, 0.95)',
+            zIndex: 9999,
+            cursor: isGenerating ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {isGenerating ? (
+            <i className="bi bi-arrow-repeat spin" style={{ fontSize: '1.35rem', color: '#ffffff' }}></i>
+          ) : (
+            <i
+              className="bi bi-send-fill"
+              style={{
+                fontSize: '1.35rem',
+                color: '#ffffff',
+                transform: 'translate(1px, -1px)',
+                filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25))'
+              }}
+            ></i>
+          )}
+        </button>
       )}
 
       {/* Toast Notifications */}

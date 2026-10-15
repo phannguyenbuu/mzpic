@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Tooltip from './Tooltip';
 
-export default function ImageLightboxModal({ isOpen, imageUrl, title = 'Ảnh Gốc', onClose }) {
+export default function ImageLightboxModal({ isOpen, imageUrl, title = 'Ảnh Gốc', onClose, onOpenEdit }) {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -139,21 +139,29 @@ export default function ImageLightboxModal({ isOpen, imageUrl, title = 'Ảnh G�
     initialPinchDistRef.current = null;
   };
 
-  // Download handler
-  const handleDownload = (e) => {
+  // Download handler (trực tiếp không mở tab mới)
+  const handleDownload = async (e) => {
     if (e) e.stopPropagation();
     if (!imageUrl) return;
-    window.open(imageUrl, '_blank', 'noopener,noreferrer');
     try {
+      const res = await fetch(imageUrl);
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = imageUrl;
-      a.download = `MzPic_Original_${Date.now()}.png`;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
+      a.href = blobUrl;
+      a.download = `SchoolPaper_${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-    } catch (err) {}
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+    } catch (err) {
+      const a = document.createElement('a');
+      a.href = imageUrl;
+      a.download = `SchoolPaper_${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   };
 
   return (
@@ -229,7 +237,36 @@ export default function ImageLightboxModal({ isOpen, imageUrl, title = 'Ảnh G�
             {Math.round(scale * 100)}%
           </span>
 
-          <Tooltip text="Tải ảnh gốc về máy (Mở tab mới)">
+          {onOpenEdit && (
+            <Tooltip text="Chỉnh sửa hoặc tạo lại chỉ riêng ảnh này">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenEdit(imageUrl);
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  color: '#ffffff',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(109, 40, 217, 0.35)'
+                }}
+              >
+                <i className="bi bi-pencil-square"></i>
+                <span>Sửa / Tạo lại</span>
+              </button>
+            </Tooltip>
+          )}
+
+          <Tooltip text="Tải trực tiếp ảnh về máy">
             <button
               type="button"
               onClick={handleDownload}

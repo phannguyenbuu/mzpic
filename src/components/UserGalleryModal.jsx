@@ -44,8 +44,23 @@ function BeforeAfterSlider({ beforeUrl, afterUrl, alt = 'So sánh trước sau' 
     };
   }, []);
 
-  // Nếu chỉ có 1 ảnh (ví dụ ảnh sau mà không có ảnh trước), hiển thị đơn lẻ
-  if (!beforeUrl && afterUrl) {
+  const hasBefore = Boolean(beforeUrl && typeof beforeUrl === 'string' && beforeUrl.trim());
+  const hasAfter = Boolean(afterUrl && typeof afterUrl === 'string' && afterUrl.trim());
+
+  // 1. Nếu không có cả 2 ảnh
+  if (!hasBefore && !hasAfter) {
+    return (
+      <div style={{ position: 'relative', width: '100%', height: '260px', background: '#0f172a', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+        <div style={{ textAlign: 'center', padding: '16px' }}>
+          <i className="bi bi-image" style={{ fontSize: '2rem', color: '#475569', marginBottom: '8px', display: 'block' }}></i>
+          <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Chưa có ảnh xem trước</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Nếu chỉ có ảnh SAU (tạo mới từ prompt, không có ảnh mẫu gốc)
+  if (!hasBefore && hasAfter) {
     return (
       <div style={{ position: 'relative', width: '100%', height: '260px', background: '#0f172a', borderRadius: '12px', overflow: 'hidden' }}>
         <img
@@ -67,6 +82,34 @@ function BeforeAfterSlider({ beforeUrl, afterUrl, alt = 'So sánh trước sau' 
           }}
         >
           Sau (AI)
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Nếu chỉ có ảnh TRƯỚC (ảnh mẫu gốc)
+  if (hasBefore && !hasAfter) {
+    return (
+      <div style={{ position: 'relative', width: '100%', height: '260px', background: '#0f172a', borderRadius: '12px', overflow: 'hidden' }}>
+        <img
+          src={beforeUrl}
+          alt={alt}
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '8px',
+            left: '8px',
+            background: 'rgba(15, 23, 42, 0.85)',
+            color: '#ffffff',
+            padding: '2px 8px',
+            borderRadius: '9999px',
+            fontSize: '0.65rem',
+            fontWeight: 700
+          }}
+        >
+          Trước (Gốc)
         </div>
       </div>
     );
@@ -316,7 +359,7 @@ export default function UserGalleryModal({
     return matchSearch && matchPreset;
   });
 
-  const handleDownload = (url, fileName = 'MzPic_Result.png') => {
+  const handleDownload = (url, fileName = 'SchoolPaper_Result.png') => {
     if (!url) return;
     window.open(url, '_blank', 'noopener,noreferrer');
     try {
@@ -674,7 +717,7 @@ export default function UserGalleryModal({
                       <Tooltip text="Tải ảnh kết quả về máy">
                         <button
                           type="button"
-                          onClick={() => handleDownload(item.afterImage, `MzPic_${item.id || Date.now()}.png`)}
+                          onClick={() => handleDownload(item.afterImage, `SchoolPaper_${item.id || Date.now()}.png`)}
                           className="liquid-pill-btn"
                           style={{
                             padding: '5px 10px',

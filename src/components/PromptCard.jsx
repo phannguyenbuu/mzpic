@@ -23,8 +23,8 @@ export default function PromptCard({
   // Khổ in specs props
   selectedPresetId,
   onSelectPreset,
-  width = 210,
-  height = 297,
+  width = 841,
+  height = 1189,
   setWidth,
   setHeight,
   unit = 'mm',
@@ -35,15 +35,155 @@ export default function PromptCard({
   setTransparentBg,
   onOpenLightbox,
   onOpenCropRotate,
-  onOpenExactResize
+  onOpenExactResize,
+  // 4 Tabs Báo Tường: Đường Viền, Header, Footer, Body
+  borderPrompt = '',
+  setBorderPrompt,
+  borderImages = [],
+  borderTransparency = 0,
+  setBorderTransparency,
+  headerPrompt = '',
+  setHeaderPrompt,
+  headerImages = [],
+  headerTransparency = 0,
+  setHeaderTransparency,
+  footerPrompt = '',
+  setFooterPrompt,
+  footerImages = [],
+  footerTransparency = 0,
+  setFooterTransparency,
+  bodyPrompt = '',
+  setBodyPrompt,
+  bodyImages = [],
+  bodyTransparency = 0,
+  setBodyTransparency,
+  activePromptSection = 'border',
+  setActivePromptSection,
+  onUploadSectionImages,
+  onRemoveSectionImage,
+  autoUpscaleA0 = true,
+  setAutoUpscaleA0
 }) {
-  const [subTab, setSubTab] = useState('prompt'); // 'prompt' | 'specs'
+  const [localSection, setLocalSection] = useState('border');
+  const currentSection = activePromptSection || localSection;
+  const setSection = setActivePromptSection || setLocalSection;
   const fileInputRef = useRef(null);
 
-  const handleImageUpload = (e) => {
+  const sections = [
+    {
+      id: 'border',
+      label: 'Border (Đường Viền)',
+      shortLabel: 'Border',
+      icon: 'bi-border-style',
+      emoji: '🌸',
+      accentColor: '#f43f5e',
+      gradientClass: 'gradient-peach-rose',
+      glowColor: 'rgba(244, 63, 94, 0.55)',
+      activeBg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
+      borderColor: '#fecdd3',
+      badgeText: 'Border U ngược ≤ 1%',
+      prompt: borderPrompt,
+      setPrompt: setBorderPrompt,
+      images: borderImages || [],
+      transparency: borderTransparency,
+      setTransparency: setBorderTransparency,
+      placeholder: 'Mô tả Border đường viền (hoa văn màu hồng, viền chữ U ngược, độ dày tối đa ≤ 1% chiều rộng ảnh)...',
+      tags: [
+        'Border hoa văn chữ U ngược màu hồng',
+        'Độ dày border tối đa ≤ 1% chiều rộng',
+        'Border hoa hồng leo uốn lượn u ngược',
+        'Họa tiết hoa sen hồng thanh lịch',
+        'Border ren pastel nhẹ nhàng học trò'
+      ]
+    },
+    {
+      id: 'header',
+      label: 'Header (Đầu Báo)',
+      shortLabel: 'Header',
+      icon: 'bi-layout-text-window-reverse',
+      emoji: '🏷️',
+      accentColor: '#8b5cf6',
+      gradientClass: 'gradient-neon-violet',
+      glowColor: 'rgba(139, 92, 246, 0.55)',
+      activeBg: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+      borderColor: '#ddd6fe',
+      badgeText: 'Tiêu đề đầu trang',
+      prompt: headerPrompt,
+      setPrompt: setHeaderPrompt,
+      images: headerImages || [],
+      transparency: headerTransparency,
+      setTransparency: setHeaderTransparency,
+      placeholder: 'Mô tả tiêu đề đầu báo tường (tên báo, kiểu chữ thư pháp nghệ thuật, biểu ngữ, trang trí...)...',
+      tags: [
+        'TRI ÂN THẦY CÔ',
+        'CHẮP CÁNH ƯỚC MƠ',
+        'MÁI TRƯỜNG MẾN YÊU',
+        'BÁO TƯỜNG 20/11',
+        'NẮNG SÂN TRƯỜNG',
+        'Chữ thư pháp nghệ thuật mạ vàng viền đỏ nổi bật'
+      ]
+    },
+    {
+      id: 'footer',
+      label: 'Footer (Chân Báo)',
+      shortLabel: 'Footer',
+      icon: 'bi-layout-text-window',
+      emoji: '📝',
+      accentColor: '#06b6d4',
+      gradientClass: 'gradient-deep-cyan',
+      glowColor: 'rgba(6, 182, 212, 0.55)',
+      activeBg: 'linear-gradient(135deg, #ecfeff 0%, #cffafe 100%)',
+      borderColor: '#a5f3fc',
+      badgeText: 'Chân trang báo',
+      prompt: footerPrompt,
+      setPrompt: setFooterPrompt,
+      images: footerImages || [],
+      transparency: footerTransparency,
+      setTransparency: setFooterTransparency,
+      placeholder: 'Mô tả chân trang báo (thông tin chi đoàn, ngày tháng, hoa văn chân trang, lời ngỏ...)...',
+      tags: [
+        'Chi đoàn Thanh niên • Báo tường 20/11',
+        'Tập thể Lớp 12A1 thân tặng',
+        'Báo tường chào mừng Ngày Nhà Giáo Việt Nam',
+        'Băng rôn mềm mại & hoa sen góc chân trang'
+      ]
+    },
+    {
+      id: 'body',
+      label: 'Body Trang (Thân Báo)',
+      shortLabel: 'Body',
+      icon: 'bi-newspaper',
+      emoji: '📄',
+      accentColor: '#f59e0b',
+      gradientClass: 'gradient-solar-gold',
+      glowColor: 'rgba(245, 158, 11, 0.6)',
+      activeBg: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+      borderColor: '#fde68a',
+      badgeText: 'Nội dung thân báo',
+      prompt: bodyPrompt,
+      setPrompt: setBodyPrompt,
+      images: bodyImages || [],
+      transparency: bodyTransparency,
+      setTransparency: setBodyTransparency,
+      placeholder: 'Mô tả thân báo (bố cục các ô bài xã luận, góc thơ ca, tranh minh họa, khoảng trống viết bài...)...',
+      tags: [
+        'Bố cục chia 3 khung: Xã luận, góc thơ, tranh ảnh',
+        'Khung giấy kẻ ô cổ điển chừa chỗ viết bài học trò',
+        'Minh họa phấn trắng, bút mực, mái trường xưa',
+        'Bố cục thoáng đãng, hài hòa, dễ đọc'
+      ]
+    }
+  ];
+
+  const curSec = sections.find((s) => s.id === currentSection) || sections[0];
+  const totalTabImages = (borderImages?.length || 0) + (headerImages?.length || 0) + (footerImages?.length || 0) + (bodyImages?.length || 0);
+
+  const handleSectionUpload = (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    if (onUploadReferenceImages) {
+    if (onUploadSectionImages) {
+      onUploadSectionImages(currentSection, files);
+    } else if (onUploadReferenceImages) {
       onUploadReferenceImages(files);
     } else if (onUploadReferenceImage) {
       Array.from(files).forEach((f) => onUploadReferenceImage(f));
@@ -51,11 +191,15 @@ export default function PromptCard({
     e.target.value = '';
   };
 
-  const handlePasteClick = async () => {
+  const handleSectionPaste = async () => {
     try {
       const file = await readImageFromClipboard();
       if (file) {
-        if (onUploadReferenceImage) onUploadReferenceImage(file);
+        if (onUploadSectionImages) {
+          onUploadSectionImages(currentSection, [file]);
+        } else if (onUploadReferenceImage) {
+          onUploadReferenceImage(file);
+        }
       } else {
         alert('Không tìm thấy hình ảnh trong bộ nhớ tạm! Hãy chụp màn hình hoặc copy ảnh rồi bấm Paste.');
       }
@@ -69,14 +213,42 @@ export default function PromptCard({
       const file = extractImageFromPasteEvent(e);
       if (file) {
         e.preventDefault();
-        if (onUploadReferenceImage) {
+        if (onUploadSectionImages) {
+          onUploadSectionImages(currentSection, [file]);
+        } else if (onUploadReferenceImage) {
           onUploadReferenceImage(file);
         }
       }
     };
     window.addEventListener('paste', handleGlobalPaste);
     return () => window.removeEventListener('paste', handleGlobalPaste);
-  }, [onUploadReferenceImage]);
+  }, [currentSection, onUploadSectionImages, onUploadReferenceImage]);
+
+  const handleRemoveImage = (targetIdOrIndex) => {
+    if (onRemoveSectionImage) {
+      onRemoveSectionImage(currentSection, targetIdOrIndex);
+    } else if (onRemoveReferenceImage) {
+      onRemoveReferenceImage(targetIdOrIndex);
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    handleSectionUpload(e);
+  };
+
+  const handlePasteClick = () => {
+    handleSectionPaste();
+  };
+
+  const handleTagClick = (tag) => {
+    if (!curSec.setPrompt) return;
+    const currentVal = curSec.prompt || '';
+    if (!currentVal.trim()) {
+      curSec.setPrompt(tag);
+    } else if (!currentVal.includes(tag)) {
+      curSec.setPrompt(`${currentVal.trim()}, ${tag}`);
+    }
+  };
 
   const handleKeyDown = (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -97,6 +269,21 @@ export default function PromptCard({
   const pxH = calculatePixels(height, unit, 300);
 
   const primaryPresets = [
+    {
+      id: 'wall_newspaper_a0',
+      name: 'Báo Tường',
+      fullName: 'Báo Tường A0',
+      desc: '841 × 1189 mm',
+      width: 841,
+      height: 1189,
+      unit: 'mm',
+      gradientClass: 'gradient-peach-rose',
+      bubbleGlow: 'rgba(244, 63, 94, 0.75)',
+      animationBob: 'playfulBubbleBob1 4.2s ease-in-out infinite',
+      icon: 'bi-newspaper',
+      ratio: 'portrait',
+      hint: 'Khổ Báo Tường A0 841×1189 mm, viền hoa văn chữ U ngược màu hồng'
+    },
     {
       id: 'flyer_a4',
       name: 'A4',
@@ -178,398 +365,516 @@ export default function PromptCard({
     <div className="liquid-card" style={{ marginBottom: '14px' }}>
       <div className="liquid-card-glow"></div>
 
-      {/* Header bar: 2 Simple Tabs [Prompt] & [Khổ In] */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-        {/* 2 Tabs Segmented Capsule */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            background: 'rgba(241, 245, 249, 0.9)',
-            padding: '3px',
-            borderRadius: '9999px',
-            border: '1px solid rgba(226, 232, 240, 0.9)',
-            boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.04)'
-          }}
-        >
-          <button
-            type="button"
-            className={`liquid-pill-btn ${subTab === 'prompt' ? 'active' : ''}`}
-            onClick={() => setSubTab('prompt')}
-            style={{
-              padding: '4px 14px',
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              borderRadius: '9999px',
-              border: 'none',
-              boxShadow: subTab === 'prompt' ? '0 2px 8px rgba(37, 99, 235, 0.25)' : 'none'
-            }}
-          >
-            Prompt
-          </button>
-          <button
-            type="button"
-            className={`liquid-pill-btn ${subTab === 'specs' ? 'active' : ''}`}
-            onClick={() => setSubTab('specs')}
-            style={{
-              padding: '4px 14px',
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              borderRadius: '9999px',
-              border: 'none',
-              boxShadow: subTab === 'specs' ? '0 2px 8px rgba(37, 99, 235, 0.25)' : 'none'
-            }}
-          >
-            Khổ In
-          </button>
-        </div>
+      {/* Curved / Notched Floating Tab Bar (Modern Minimalist UI - Image 3 style) */}
+      <div className="curved-tab-wrapper">
+        <div className="curved-tab-bar">
+          {sections.map((sec) => {
+            const isActive = currentSection === sec.id;
+            const imgCount = sec.images?.length || 0;
+            const hasPrompt = Boolean(sec.prompt && sec.prompt.trim());
 
-        {/* Right utility icons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {/* If on specs tab, show 300 DPI px size */}
-          {subTab === 'specs' && (
-            <Tooltip text="Kích thước pixel tương ứng ở độ phân giải in 300 DPI">
-              <span
-                style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  color: '#475569',
-                  background: 'rgba(255, 255, 255, 0.85)',
-                  padding: '2px 8px',
-                  borderRadius: '9999px',
-                  fontFamily: 'var(--font-mono)'
-                }}
-              >
-                {pxW}×{pxH} px
-              </span>
-            </Tooltip>
-          )}
-
-          {/* Admin Gear Button */}
-          {onOpenAdmin && (
-            <Tooltip text="Trang Admin: Tùy chỉnh danh sách Dropdown & Prompt mẫu ẩn">
+            return (
               <button
+                key={sec.id}
                 type="button"
-                onClick={onOpenAdmin}
-                style={{
-                  width: '26px',
-                  height: '26px',
-                  borderRadius: '50%',
-                  background: 'rgba(255, 255, 255, 0.85)',
-                  border: '1px solid rgba(226, 232, 240, 0.9)',
-                  color: '#475569',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  fontSize: '0.75rem',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
-                }}
+                className={`curved-tab-item ${isActive ? 'active' : ''}`}
+                onClick={() => setSection(sec.id)}
+                aria-label={sec.label}
               >
-                <i className="bi bi-gear-fill"></i>
-              </button>
-            </Tooltip>
-          )}
+                {isActive ? (
+                  <>
+                    {/* Vết khoét lõm sóng mượt Notched Scoop */}
+                    <div className="curved-notch-scoop">
+                      <svg width="74" height="20" viewBox="0 0 74 20" fill="none">
+                        <path
+                          d="M 0,0 C 14,0 18,20 37,20 C 56,20 60,0 74,0 Z"
+                          fill="rgba(248, 250, 252, 0.98)"
+                        />
+                      </svg>
+                    </div>
 
-          {/* Refresh button */}
-          <Tooltip text="Xóa toàn bộ nội dung và làm mới">
-            <button
-              type="button"
-              onClick={onResetSession}
-              style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                background: 'transparent',
-                border: 'none',
-                color: '#94a3b8',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.85rem'
-              }}
-            >
-              <i className="bi bi-arrow-clockwise"></i>
-            </button>
-          </Tooltip>
+                    {/* Quả cầu tròn nổi Liquid 3D Bubble (Bộ icon Liquid Active) */}
+                    <div
+                      className={`curved-active-bubble liquid-style ${sec.gradientClass}`}
+                      style={{
+                        '--tab-glow': sec.glowColor,
+                        boxShadow: `0 10px 24px -2px ${sec.glowColor}, 0 3px 8px rgba(0, 0, 0, 0.12)`
+                      }}
+                    >
+                      <div className="bubble-specular-shine"></div>
+                      <i className={`bi ${sec.icon}`}></i>
+                      {/* Image count badge */}
+                      {imgCount > 0 && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '-3px',
+                            right: '-3px',
+                            background: '#0f172a',
+                            color: '#ffffff',
+                            fontSize: '0.58rem',
+                            fontWeight: 900,
+                            minWidth: '16px',
+                            height: '16px',
+                            borderRadius: '9999px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1.5px solid #ffffff',
+                            zIndex: 5
+                          }}
+                        >
+                          {imgCount}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Label Active */}
+                    <span className="curved-label" style={{ color: sec.accentColor, fontWeight: 800 }}>
+                      {sec.shortLabel}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {/* Inactive Liquid Glass Squircle (Bộ icon Liquid Inactive) */}
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div
+                        className={`liquid-tab-icon ${sec.gradientClass}`}
+                        style={{
+                          '--tab-glow': sec.glowColor
+                        }}
+                      >
+                        <div className="liquid-tab-icon-shine"></div>
+                        <i className={`bi ${sec.icon}`}></i>
+                      </div>
+                      {(hasPrompt || imgCount > 0) && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '-2px',
+                            right: '-3px',
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: sec.accentColor,
+                            boxShadow: `0 0 8px ${sec.accentColor}`,
+                            border: '1.5px solid #ffffff',
+                            zIndex: 4
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Inactive Label */}
+                    <span className="curved-label" style={{ color: '#475569', fontWeight: 700 }}>
+                      {sec.shortLabel}
+                    </span>
+                  </>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Tab Content: PROMPT */}
-      {subTab === 'prompt' && (
-        <div>
-          {/* Reference / Old Image Upload Section */}
+      {/* Active Section Header Banner */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '6px 12px',
+              background: curSec.activeBg,
+              borderRadius: '12px',
+              border: `1px solid ${curSec.borderColor}`,
+              marginBottom: '8px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '1rem' }}>{curSec.emoji}</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: curSec.accentColor }}>
+                Phần: {curSec.label}
+              </span>
+            </div>
+            <span
+              style={{
+                fontSize: '0.66rem',
+                fontWeight: 700,
+                color: curSec.accentColor,
+                background: 'rgba(255, 255, 255, 0.85)',
+                padding: '2px 8px',
+                borderRadius: '9999px',
+                border: `1px solid ${curSec.borderColor}`
+              }}
+            >
+              {curSec.badgeText}
+            </span>
+          </div>
+
+          {/* Hidden File Input for Active Section */}
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
             multiple
-            onChange={handleImageUpload}
+            onChange={handleSectionUpload}
             style={{ display: 'none' }}
           />
 
-          {(() => {
-            const imgList = (Array.isArray(referenceImages) && referenceImages.length > 0)
-              ? referenceImages
-              : (referenceImage ? [referenceImage] : []);
-
-            if (imgList.length === 0) {
-              return (
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="liquid-pill-btn"
+          {/* Multi-Image Strip or Upload Button */}
+          {curSec.images && curSec.images.length > 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 10px',
+                background: 'rgba(255, 255, 255, 0.92)',
+                border: `1.5px solid ${curSec.borderColor}`,
+                borderRadius: '16px',
+                marginBottom: '8px',
+                overflowX: 'auto',
+                scrollbarWidth: 'thin'
+              }}
+            >
+              {curSec.images.map((img, idx) => {
+                const url = img?.url || img;
+                return (
+                  <div
+                    key={img?.id || url || idx}
                     style={{
-                      flex: 1,
-                      padding: '7px 12px',
-                      justifyContent: 'center',
-                      fontSize: '0.76rem',
-                      fontWeight: 700,
-                      border: '1.5px dashed rgba(59, 130, 246, 0.45)',
-                      background: 'rgba(239, 246, 255, 0.65)',
-                      color: '#1d4ed8',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <i className="bi bi-cloud-arrow-up" style={{ fontSize: '0.95rem' }}></i>
-                    <span>Up Ảnh</span>
-                  </button>
-
-                  <Tooltip text="Dán ảnh từ bộ nhớ tạm (Ctrl + V)">
-                    <button
-                      type="button"
-                      onClick={handlePasteClick}
-                      className="liquid-pill-btn"
-                      style={{
-                        width: 'auto',
-                        padding: '7px 12px',
-                        justifyContent: 'center',
-                        fontSize: '0.76rem',
-                        fontWeight: 700,
-                        border: '1.5px solid rgba(59, 130, 246, 0.35)',
-                        background: 'rgba(255, 255, 255, 0.9)',
-                        color: '#2563eb',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      <i className="bi bi-clipboard-plus" style={{ fontSize: '0.95rem' }}></i>
-                      <span>Paste (Ctrl+V)</span>
-                    </button>
-                  </Tooltip>
-                </div>
-              );
-            }
-
-            return (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 10px',
-                  background: 'rgba(240, 249, 255, 0.92)',
-                  border: '1.5px solid rgba(186, 230, 253, 0.95)',
-                  borderRadius: '16px',
-                  marginBottom: '10px',
-                  overflowX: 'auto',
-                  scrollbarWidth: 'thin'
-                }}
-              >
-                {/* List of reference images with doubled height (76px x 76px) and NO TEXT */}
-                {imgList.map((img, idx) => {
-                  const url = img?.url || img;
-                  return (
-                    <div
-                      key={img?.id || url || idx}
-                      style={{
-                        position: 'relative',
-                        width: '76px',
-                        height: '76px',
-                        flexShrink: 0,
-                        borderRadius: '12px',
-                        overflow: 'hidden',
-                        border: '1.5px solid #0284c7',
-                        background: '#f1f5f9',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
-                      }}
-                    >
-                      <img
-                        src={url}
-                        alt={`Ảnh ref #${idx + 1}`}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          cursor: 'pointer'
-                        }}
-                        onClick={() => onOpenCropRotate && onOpenCropRotate(img, idx)}
-                        title="Bấm để Cắt & Xoay / Chỉnh sửa ảnh này"
-                      />
-
-                      {/* Crop tool icon badge at bottom-left */}
-                      <div
-                        onClick={() => onOpenCropRotate && onOpenCropRotate(img, idx)}
-                        style={{
-                          position: 'absolute',
-                          bottom: '3px',
-                          left: '3px',
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '6px',
-                          background: 'rgba(15, 23, 42, 0.65)',
-                          backdropFilter: 'blur(3px)',
-                          color: '#ffffff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.7rem',
-                          cursor: 'pointer'
-                        }}
-                        title="Cắt & Xoay ảnh"
-                      >
-                        <i className="bi bi-crop"></i>
-                      </div>
-
-                      {/* Delete button at top-right */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (onRemoveReferenceImage) {
-                            onRemoveReferenceImage(img?.id !== undefined ? img.id : idx);
-                          }
-                        }}
-                        style={{
-                          position: 'absolute',
-                          top: '3px',
-                          right: '3px',
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          background: 'rgba(239, 68, 68, 0.9)',
-                          border: 'none',
-                          color: '#ffffff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.65rem',
-                          cursor: 'pointer',
-                          boxShadow: '0 1px 4px rgba(0,0,0,0.2)'
-                        }}
-                        title="Gỡ ảnh này"
-                      >
-                        <i className="bi bi-x-lg"></i>
-                      </button>
-                    </div>
-                  );
-                })}
-
-                {/* Add more ref image button slot (76px x 76px) */}
-                <Tooltip text="Thêm ảnh mẫu tham chiếu (+)">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
+                      position: 'relative',
                       width: '76px',
                       height: '76px',
                       flexShrink: 0,
                       borderRadius: '12px',
-                      border: '1.5px dashed rgba(59, 130, 246, 0.45)',
-                      background: 'rgba(255, 255, 255, 0.85)',
-                      color: '#2563eb',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      gap: '2px',
-                      transition: 'all 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#2563eb';
-                      e.currentTarget.style.background = '#eff6ff';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.45)';
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.85)';
+                      overflow: 'hidden',
+                      border: `1.5px solid ${curSec.accentColor}`,
+                      background: '#f1f5f9',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
                     }}
                   >
-                    <i className="bi bi-plus-lg" style={{ fontSize: '1.25rem', lineHeight: 1 }}></i>
-                    <span style={{ fontSize: '0.62rem', fontWeight: 800 }}>Thêm ảnh</span>
-                  </button>
-                </Tooltip>
+                    <img
+                      src={url}
+                      alt={`${curSec.shortLabel} #${idx + 1}`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => onOpenCropRotate && onOpenCropRotate(img, idx)}
+                      title="Bấm để Cắt & Xoay / Chỉnh sửa ảnh mẫu này"
+                    />
 
-                {/* Quick Paste Button slot */}
-                <Tooltip text="Dán thêm ảnh từ Clipboard (Ctrl + V)">
-                  <button
-                    type="button"
-                    onClick={handlePasteClick}
-                    style={{
-                      width: '42px',
-                      height: '76px',
-                      flexShrink: 0,
-                      borderRadius: '12px',
-                      border: '1px solid rgba(59, 130, 246, 0.3)',
-                      background: '#ffffff',
-                      color: '#2563eb',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      gap: '3px'
-                    }}
-                    title="Dán thêm ảnh (Ctrl+V)"
-                  >
-                    <i className="bi bi-clipboard-plus" style={{ fontSize: '0.95rem' }}></i>
-                    <span style={{ fontSize: '0.55rem', fontWeight: 700 }}>Paste</span>
-                  </button>
-                </Tooltip>
-              </div>
-            );
-          })()}
+                    {/* Crop tool icon badge at bottom-left */}
+                    <div
+                      onClick={() => onOpenCropRotate && onOpenCropRotate(img, idx)}
+                      style={{
+                        position: 'absolute',
+                        bottom: '3px',
+                        left: '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '6px',
+                        background: 'rgba(15, 23, 42, 0.65)',
+                        backdropFilter: 'blur(3px)',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.7rem',
+                        cursor: 'pointer'
+                      }}
+                      title="Cắt & Xoay ảnh"
+                    >
+                      <i className="bi bi-crop"></i>
+                    </div>
 
-          {/* Textarea */}
-          <div style={{ position: 'relative' }}>
+                    {/* Delete button at top-right */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveImage(img?.id !== undefined ? img.id : idx);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: '3px',
+                        right: '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        background: 'rgba(239, 68, 68, 0.9)',
+                        border: 'none',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.65rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.2)'
+                      }}
+                      title={`Gỡ ảnh mẫu khỏi phần ${curSec.shortLabel}`}
+                    >
+                      <i className="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                );
+              })}
+
+              {/* Add more ref images button slot */}
+              <Tooltip text={`Thêm ảnh mẫu tham chiếu cho ${curSec.label} (+)`}>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    width: '76px',
+                    height: '76px',
+                    flexShrink: 0,
+                    borderRadius: '12px',
+                    border: `1.5px dashed ${curSec.accentColor}`,
+                    background: curSec.activeBg,
+                    color: curSec.accentColor,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    gap: '2px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <i className="bi bi-plus-lg" style={{ fontSize: '1.25rem', lineHeight: 1 }}></i>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800 }}>Thêm ảnh</span>
+                </button>
+              </Tooltip>
+
+              {/* Paste Button slot */}
+              <Tooltip text={`Dán thêm ảnh từ Clipboard vào ${curSec.label} (Ctrl + V)`}>
+                <button
+                  type="button"
+                  onClick={handleSectionPaste}
+                  style={{
+                    width: '42px',
+                    height: '76px',
+                    flexShrink: 0,
+                    borderRadius: '12px',
+                    border: `1px solid ${curSec.borderColor}`,
+                    background: '#ffffff',
+                    color: curSec.accentColor,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    gap: '3px'
+                  }}
+                >
+                  <i className="bi bi-clipboard-plus" style={{ fontSize: '0.95rem' }}></i>
+                  <span style={{ fontSize: '0.55rem', fontWeight: 700 }}>Paste</span>
+                </button>
+              </Tooltip>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="liquid-pill-btn"
+                style={{
+                  flex: 1,
+                  padding: '7px 12px',
+                  justifyContent: 'center',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  border: `1.5px dashed ${curSec.accentColor}`,
+                  background: curSec.activeBg,
+                  color: curSec.accentColor,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <i className="bi bi-cloud-arrow-up" style={{ fontSize: '0.95rem' }}></i>
+                <span>Up Nhiều Ảnh Mẫu [{curSec.shortLabel}]</span>
+              </button>
+
+              <Tooltip text={`Dán ảnh từ bộ nhớ tạm vào phần ${curSec.label} (Ctrl + V)`}>
+                <button
+                  type="button"
+                  onClick={handleSectionPaste}
+                  className="liquid-pill-btn"
+                  style={{
+                    width: 'auto',
+                    padding: '7px 12px',
+                    justifyContent: 'center',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    border: `1.5px solid ${curSec.borderColor}`,
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    color: curSec.accentColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <i className="bi bi-clipboard-plus" style={{ fontSize: '0.95rem' }}></i>
+                  <span>Paste (Ctrl+V)</span>
+                </button>
+              </Tooltip>
+            </div>
+          )}
+
+          {/* Textarea for current section */}
+          <div style={{ position: 'relative', marginBottom: '6px' }}>
             <textarea
               rows={3}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              value={curSec.prompt || ''}
+              onChange={(e) => curSec.setPrompt && curSec.setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Mô tả ấn phẩm in ấn bạn muốn thiết kế..."
+              placeholder={curSec.placeholder}
               className="liquid-pill-input"
               style={{
                 width: '100%',
-                borderRadius: '20px',
+                borderRadius: '16px',
                 resize: 'none',
-                fontSize: '0.85rem',
+                fontSize: '0.84rem',
                 lineHeight: '1.45',
-                padding: '12px 14px',
-                minHeight: '84px'
+                padding: '10px 14px',
+                minHeight: '76px',
+                border: `1.5px solid ${curSec.borderColor}`
               }}
             />
+          </div>
 
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '8px',
-                right: '12px',
-                fontSize: '0.65rem',
-                color: '#94a3b8',
-                pointerEvents: 'none',
-                fontFamily: 'var(--font-mono)'
-              }}
-            >
-              {prompt.length}
+          {/* Transparency Slider Control (0 - 100%) */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              padding: '8px 12px',
+              background: 'rgba(255, 255, 255, 0.88)',
+              border: `1.5px solid ${curSec.borderColor}`,
+              borderRadius: '14px',
+              marginBottom: '8px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <i className="bi bi-circle-half" style={{ color: curSec.accentColor, fontSize: '0.85rem' }}></i>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#334155' }}>
+                  Độ trong suốt (Transparency) [{curSec.shortLabel}]:
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.75rem',
+                    fontWeight: 900,
+                    color: curSec.accentColor,
+                    background: curSec.activeBg,
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    border: `1px solid ${curSec.borderColor}`
+                  }}
+                >
+                  {curSec.transparency || 0}%
+                </span>
+                <span style={{ fontSize: '0.64rem', color: '#64748b', fontWeight: 700 }}>
+                  {(curSec.transparency || 0) === 0 ? '(Đặc nét 100%)' : (curSec.transparency || 0) === 100 ? '(Trong suốt)' : `(Mờ ${curSec.transparency}%)`}
+                </span>
+              </div>
+            </div>
+
+            {/* Range input slider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', minWidth: '18px' }}>0%</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                value={curSec.transparency || 0}
+                onChange={(e) => curSec.setTransparency && curSec.setTransparency(parseInt(e.target.value, 10) || 0)}
+                style={{
+                  flex: 1,
+                  accentColor: curSec.accentColor,
+                  cursor: 'pointer',
+                  height: '6px'
+                }}
+              />
+              <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', minWidth: '28px', textAlign: 'right' }}>100%</span>
+            </div>
+
+            {/* Quick Presets */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ fontSize: '0.62rem', color: '#64748b', fontWeight: 700 }}>Chọn nhanh:</span>
+              {[0, 25, 50, 75, 90, 100].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => curSec.setTransparency && curSec.setTransparency(val)}
+                  style={{
+                    fontSize: '0.62rem',
+                    padding: '2px 7px',
+                    borderRadius: '6px',
+                    border: (curSec.transparency || 0) === val ? `1.5px solid ${curSec.accentColor}` : '1px solid rgba(226, 232, 240, 0.9)',
+                    background: (curSec.transparency || 0) === val ? curSec.activeBg : '#ffffff',
+                    color: (curSec.transparency || 0) === val ? curSec.accentColor : '#475569',
+                    fontWeight: (curSec.transparency || 0) === val ? 800 : 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {val === 0 ? '0% (Đặc)' : val === 90 ? '90% (Mờ)' : val === 100 ? '100% (Ẩn)' : `${val}%`}
+                </button>
+              ))}
             </div>
           </div>
+
+          {/* Quick Tags Suggestions for this section */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: curSec.accentColor, alignSelf: 'center', marginRight: '2px' }}>
+              Gợi ý:
+            </span>
+            {curSec.tags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => handleTagClick(tag)}
+                style={{
+                  fontSize: '0.64rem',
+                  padding: '2px 8px',
+                  borderRadius: '8px',
+                  border: `1px solid ${curSec.borderColor}`,
+                  background: 'rgba(255, 255, 255, 0.95)',
+                  color: '#475569',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = curSec.accentColor;
+                  e.currentTarget.style.color = curSec.accentColor;
+                  e.currentTarget.style.background = curSec.activeBg;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = curSec.borderColor;
+                  e.currentTarget.style.color = '#475569';
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
+                }}
+              >
+                + {tag}
+              </button>
+            ))}
+          </div>
+
+
 
           {/* Slim Liquid Progress Bar */}
           {isGenerating && (
@@ -579,472 +884,18 @@ export default function PromptCard({
                   style={{
                     height: '100%',
                     width: `${progress}%`,
-                    background: 'linear-gradient(90deg, #06b6d4, #3b82f6)',
+                    background: 'linear-gradient(90deg, #ec4899, #db2777)',
                     transition: 'width 0.3s ease'
                   }}
                 ></div>
               </div>
+              {progressText && (
+                <div style={{ fontSize: '0.68rem', color: '#64748b', textAlign: 'center', marginTop: '4px', fontWeight: 600 }}>
+                  {progressText}
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Tab Content: KHỔ IN */}
-      {subTab === 'specs' && (
-        <div>
-          {/* 5 Playful Liquid Olympic Bubbles (Spanning 100% full width) */}
-          <div
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '6px 2px 14px',
-              marginBottom: '2px'
-            }}
-          >
-            {primaryPresets.map((preset) => {
-              const isSelected = selectedPresetId === preset.id;
-              return (
-                <Tooltip key={preset.id} text={`${preset.fullName} (${preset.desc}) - ${preset.hint}`} position="top">
-                  <button
-                    type="button"
-                    className={`liquid-olympic-bubble ${preset.gradientClass} ${isSelected ? 'active' : ''}`}
-                    onClick={() => {
-                      if (onSelectPreset) onSelectPreset(preset);
-                      if (onAspectRatioChange) onAspectRatioChange(preset.ratio);
-                    }}
-                    style={{
-                      '--bubble-glow': preset.bubbleGlow,
-                      animation: isSelected ? undefined : preset.animationBob
-                    }}
-                  >
-                    {/* Glass Bubble Specular Reflection */}
-                    <div className="bubble-specular-shine"></div>
-
-                    {/* Icon */}
-                    <i
-                      className={`bi ${preset.icon}`}
-                      style={{
-                        fontSize: '1.05rem',
-                        filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4))',
-                        marginBottom: '1px'
-                      }}
-                    ></i>
-
-                    {/* Title */}
-                    <span
-                      style={{
-                        fontSize: '0.62rem',
-                        fontWeight: 800,
-                        lineHeight: 1,
-                        textShadow: '0 1px 3px rgba(0, 0, 0, 0.55)'
-                      }}
-                    >
-                      {preset.name}
-                    </span>
-
-                    {/* Active Bouncy Checkmark Badge */}
-                    {isSelected && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '-3px',
-                          right: '-3px',
-                          width: '16px',
-                          height: '16px',
-                          borderRadius: '50%',
-                          background: '#ffffff',
-                          color: '#0284c7',
-                          fontSize: '0.68rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
-                          fontWeight: 900
-                        }}
-                      >
-                        <i className="bi bi-check-lg"></i>
-                      </div>
-                    )}
-                  </button>
-                </Tooltip>
-              );
-            })}
-          </div>
-
-          {/* Quick Exact Dimensions Modal Opener */}
-          {onOpenExactResize && (
-            <div style={{ marginBottom: '8px' }}>
-              <button
-                type="button"
-                onClick={onOpenExactResize}
-                className="liquid-pill-btn"
-                style={{
-                  width: '100%',
-                  padding: '7px 12px',
-                  justifyContent: 'center',
-                  fontSize: '0.76rem',
-                  fontWeight: 800,
-                  background: 'rgba(239, 246, 255, 0.85)',
-                  border: '1px solid #bfdbfe',
-                  color: '#1d4ed8',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <i className="bi bi-aspect-ratio"></i>
-                <span>Chọn Kích Thước Chính Xác & DPI (A4, A5, Voucher, Standee...)</span>
-              </button>
-            </div>
-          )}
-
-          {/* Custom W / H input row (Spanning full 100% width) */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              width: '100%',
-              gap: '8px',
-              marginBottom: '8px'
-            }}
-          >
-            {/* Input W */}
-            <div
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                background: 'rgba(255, 255, 255, 0.88)',
-                border: '1.5px solid rgba(226, 232, 240, 0.95)',
-                borderRadius: '16px',
-                padding: '0 12px',
-                height: '42px',
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)'
-              }}
-            >
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0284c7', marginRight: '8px' }}>W:</span>
-              <input
-                type="number"
-                value={width}
-                onChange={(e) => setWidth && setWidth(parseFloat(e.target.value) || 0)}
-                placeholder="Rộng"
-                style={{
-                  width: '100%',
-                  border: 'none',
-                  background: 'transparent',
-                  outline: 'none',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  color: '#0f172a'
-                }}
-              />
-            </div>
-
-            {/* Input H */}
-            <div
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                background: 'rgba(255, 255, 255, 0.88)',
-                border: '1.5px solid rgba(226, 232, 240, 0.95)',
-                borderRadius: '16px',
-                padding: '0 12px',
-                height: '42px',
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)'
-              }}
-            >
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0284c7', marginRight: '8px' }}>H:</span>
-              <input
-                type="number"
-                value={height}
-                onChange={(e) => setHeight && setHeight(parseFloat(e.target.value) || 0)}
-                placeholder="Cao"
-                style={{
-                  width: '100%',
-                  border: 'none',
-                  background: 'transparent',
-                  outline: 'none',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  color: '#0f172a'
-                }}
-              />
-            </div>
-
-            {/* Unit Selector */}
-            <Tooltip text="Đơn vị đo lường (mm, cm, m, pt, px)">
-              <div
-                style={{
-                  width: '74px',
-                  height: '42px',
-                  background: 'rgba(255, 255, 255, 0.88)',
-                  border: '1.5px solid rgba(226, 232, 240, 0.95)',
-                  borderRadius: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '0 8px',
-                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
-                  position: 'relative'
-                }}
-              >
-                <select
-                  value={unit}
-                  onChange={(e) => onUnitChange && onUnitChange(e.target.value)}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                    background: 'transparent',
-                    outline: 'none',
-                    fontSize: '0.8rem',
-                    fontWeight: 800,
-                    color: '#0f172a',
-                    cursor: 'pointer',
-                    appearance: 'none',
-                    WebkitAppearance: 'none',
-                    textAlign: 'center',
-                    paddingRight: '14px'
-                  }}
-                >
-                  <option value="mm">mm</option>
-                  <option value="cm">cm</option>
-                  <option value="m">m</option>
-                  <option value="pt">pt</option>
-                  <option value="px">px</option>
-                </select>
-                <i
-                  className="bi bi-chevron-down"
-                  style={{
-                    position: 'absolute',
-                    right: '8px',
-                    pointerEvents: 'none',
-                    fontSize: '0.62rem',
-                    color: '#64748b'
-                  }}
-                ></i>
-              </div>
-            </Tooltip>
-          </div>
-
-          {/* Tỉ lệ Aspect Ratio Capsule (Spanning full 100% width) */}
-          <div
-            style={{
-              width: '100%',
-              display: 'flex',
-              background: 'rgba(241, 245, 249, 0.85)',
-              padding: '3px',
-              borderRadius: '16px',
-              border: '1px solid rgba(226, 232, 240, 0.9)',
-              gap: '4px',
-              marginBottom: '8px'
-            }}
-          >
-            <button
-              type="button"
-              className={`liquid-pill-btn ${aspectRatio === 'square' ? 'active' : ''}`}
-              onClick={() => onAspectRatioChange && onAspectRatioChange('square')}
-              style={{
-                flex: 1,
-                height: '38px',
-                justifyContent: 'center',
-                borderRadius: '13px',
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                gap: '6px'
-              }}
-            >
-              <i className="bi bi-square" style={{ fontSize: '0.75rem' }}></i>
-              <span>1:1 Vuông</span>
-            </button>
-
-            <button
-              type="button"
-              className={`liquid-pill-btn ${aspectRatio === 'landscape' ? 'active' : ''}`}
-              onClick={() => onAspectRatioChange && onAspectRatioChange('landscape')}
-              style={{
-                flex: 1,
-                height: '38px',
-                justifyContent: 'center',
-                borderRadius: '13px',
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                gap: '6px'
-              }}
-            >
-              <i className="bi bi-aspect-ratio" style={{ fontSize: '0.75rem' }}></i>
-              <span>16:9 Ngang</span>
-            </button>
-
-            <button
-              type="button"
-              className={`liquid-pill-btn ${aspectRatio === 'portrait' ? 'active' : ''}`}
-              onClick={() => onAspectRatioChange && onAspectRatioChange('portrait')}
-              style={{
-                flex: 1,
-                height: '38px',
-                justifyContent: 'center',
-                borderRadius: '13px',
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                gap: '6px'
-              }}
-            >
-              <i className="bi bi-phone" style={{ fontSize: '0.75rem' }}></i>
-              <span>9:16 Dọc</span>
-            </button>
-          </div>
-
-          {/* Tách nền toggle (Spanning full 100% width) */}
-          <div
-            onClick={() => setTransparentBg && setTransparentBg(!transparentBg)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              padding: '8px 12px',
-              borderRadius: '14px',
-              background: transparentBg ? 'rgba(219, 234, 254, 0.85)' : 'rgba(255, 255, 255, 0.75)',
-              border: transparentBg ? '1.5px solid #3b82f6' : '1px solid rgba(226, 232, 240, 0.85)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              marginBottom: '2px'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <i className={`bi bi-transparency ${transparentBg ? 'text-blue-600' : 'text-slate-500'}`} style={{ fontSize: '0.95rem' }}></i>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: transparentBg ? '#1d4ed8' : '#334155' }}>
-                Tách nền trong suốt (PNG không phông)
-              </span>
-            </div>
-
-            <div
-              style={{
-                width: '34px',
-                height: '18px',
-                borderRadius: '9999px',
-                background: transparentBg ? '#2563eb' : '#cbd5e1',
-                position: 'relative',
-                transition: 'background 0.2s ease'
-              }}
-            >
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '2px',
-                  left: transparentBg ? '18px' : '2px',
-                  width: '14px',
-                  height: '14px',
-                  borderRadius: '50%',
-                  background: '#ffffff',
-                  transition: 'left 0.2s ease',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bottom Action Row: Dropdown List (nằm phía trước) & Nút Tạo (nằm phía sau) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
-        {/* Dropdown list (phía trước) */}
-        <div style={{ flex: 1, position: 'relative' }}>
-          <Tooltip text={`Mẫu prompt đang chọn: ${currentTemplateDisplayName}`}>
-            <div style={{ position: 'relative', width: '100%' }}>
-              <select
-                value={selectedTemplateId || currentTemplate?.id || (templates[0] && templates[0].id)}
-                onChange={(e) => onSelectTemplateId && onSelectTemplateId(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: '46px',
-                  padding: '0 32px 0 14px',
-                  borderRadius: '18px',
-                  background: 'rgba(255, 255, 255, 0.85)',
-                  border: '1px solid rgba(255, 255, 255, 0.95)',
-                  boxShadow: '0 4px 14px -3px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.9)',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  color: '#0f172a',
-                  cursor: 'pointer',
-                  appearance: 'none',
-                  WebkitAppearance: 'none',
-                  outline: 'none',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {templates.map((tpl) => (
-                  <option key={tpl.id} value={tpl.id}>
-                    {formatTemplateDisplayName(tpl.name, tpl.id)}
-                  </option>
-                ))}
-              </select>
-              <i
-                className="bi bi-chevron-down"
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  pointerEvents: 'none',
-                  color: '#64748b',
-                  fontSize: '0.72rem'
-                }}
-              ></i>
-            </div>
-          </Tooltip>
-        </div>
-
-        {/* Nút Tạo (phía sau) */}
-        <Tooltip text="Bấm để tạo ảnh (hoặc Ctrl + Enter)">
-          <button
-            type="button"
-            className="btn-liquid-primary"
-            onClick={() => onGenerate && onGenerate()}
-            disabled={isGenerating}
-            style={{
-              width: 'auto',
-              minWidth: '130px',
-              height: '46px',
-              padding: '0 16px',
-              borderRadius: '18px',
-              fontSize: '0.88rem',
-              fontWeight: 800,
-              gap: '6px',
-              flexShrink: 0
-            }}
-          >
-            {isGenerating ? (
-              <>
-                <i className="bi bi-arrow-repeat spin"></i>
-                <span>Tạo...</span>
-              </>
-            ) : (
-              <>
-                <i className="bi bi-sparkles" style={{ fontSize: '0.88rem' }}></i>
-                <span>Tạo</span>
-                <span
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.28)',
-                    padding: '2px 7px',
-                    borderRadius: '9999px',
-                    fontSize: '0.65rem',
-                    fontWeight: 800,
-                    letterSpacing: '-0.02em',
-                    boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.6)'
-                  }}
-                >
-                  2.000đ/ảnh
-                </span>
-              </>
-            )}
-          </button>
-        </Tooltip>
-      </div>
     </div>
   );
 }
