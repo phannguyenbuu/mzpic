@@ -573,11 +573,8 @@ export default function ResultCard({
                       }}
                     />
 
-                    {/* Opacity Slider (Bỏ chữ "Opacity", chỉ hiện phần trăm và thanh trượt) */}
-                    <div style={{ marginTop: '2px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.66rem', fontWeight: 800, color: l.accentColor, marginBottom: '2px' }}>
-                        <span>{l.opacity ?? (l.id === 'body' ? 11 : 100)}%</span>
-                      </div>
+                    {/* Opacity Slider & % nằm ngang hàng */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                       <input
                         type="range"
                         min="0"
@@ -585,12 +582,24 @@ export default function ResultCard({
                         value={l.opacity ?? (l.id === 'body' ? 11 : 100)}
                         onChange={(e) => onUpdateLayer && onUpdateLayer(l.id, { opacity: Number(e.target.value) })}
                         style={{
-                          width: '100%',
+                          flex: 1,
                           accentColor: l.accentColor,
-                          height: '4px',
+                          height: '5px',
                           cursor: 'pointer'
                         }}
                       />
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          color: l.accentColor,
+                          fontFamily: 'monospace',
+                          minWidth: '32px',
+                          textAlign: 'right'
+                        }}
+                      >
+                        {l.opacity ?? (l.id === 'body' ? 11 : 100)}%
+                      </span>
                     </div>
                   </div>
                 );
