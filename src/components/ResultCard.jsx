@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import Tooltip from './Tooltip';
+import LayerPostProcessModal from './LayerPostProcessModal';
 import { calculatePixels } from '../data/presets';
 
 export default function ResultCard({
@@ -29,6 +30,7 @@ export default function ResultCard({
   onDownloadWithGenAiUpscale
 }) {
   const [layersExpanded, setLayersExpanded] = useState(true);
+  const [selectedLayerForModal, setSelectedLayerForModal] = useState(null);
 
   const pxW = calculatePixels(width, unit, 300);
   const pxH = calculatePixels(height, unit, 300);
@@ -480,13 +482,41 @@ export default function ResultCard({
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    {/* Header: Title + Regenerate + Eye toggle */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {/* Header: Clickable Title (Opens Liquid Post-Processing Modal) + Regenerate + Eye toggle */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLayerForModal(l.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          border: `1.5px solid ${l.accentColor}33`,
+                          background: 'rgba(255, 255, 255, 0.95)',
+                          borderRadius: '10px',
+                          padding: '3px 8px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.03)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = l.accentColor;
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                          e.currentTarget.style.boxShadow = `0 3px 8px ${l.accentColor}22`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = `${l.accentColor}33`;
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.03)';
+                        }}
+                        title={`Bấm vào tiêu đề ${l.shortLabel} để mở modal xử lý hậu kỳ cho layer này`}
+                      >
                         <span style={{ fontSize: '0.85rem' }}>{l.emoji}</span>
                         <span style={{ fontSize: '0.74rem', fontWeight: 800, color: l.accentColor }}>{l.shortLabel}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <i className="bi bi-sliders2" style={{ fontSize: '0.65rem', color: l.accentColor, marginLeft: '2px' }}></i>
+                      </button>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                         {onRegenerateLayer && (
                           <button
                             type="button"
@@ -528,53 +558,20 @@ export default function ResultCard({
                       </div>
                     </div>
 
-                    {/* Thumbnail box (Nhấp để đổi ảnh) */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <div
-                        onClick={() => fileInputRefs[l.id]?.current?.click()}
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '8px',
-                          background: '#e2e8f0',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          overflow: 'hidden',
-                          border: '1px solid #cbd5e1',
-                          position: 'relative'
-                        }}
-                        title="Nhấp để tải hoặc thay đổi ảnh cho layer này"
-                      >
-                        {l.image ? (
-                          <img
-                            src={l.image}
-                            alt={l.shortLabel}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover'
-                            }}
-                          />
-                        ) : (
-                          <i className="bi bi-image" style={{ color: '#94a3b8', fontSize: '0.9rem' }}></i>
-                        )}
-                        <input
-                          ref={fileInputRefs[l.id]}
-                          type="file"
-                          accept="image/*"
-                          style={{ display: 'none' }}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file && onReplaceLayerImage) {
-                              onReplaceLayerImage(l.id, file);
-                            }
-                            e.target.value = '';
-                          }}
-                        />
-                      </div>
-                    </div>
+                    {/* Hidden input for replacing image */}
+                    <input
+                      ref={fileInputRefs[l.id]}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file && onReplaceLayerImage) {
+                          onReplaceLayerImage(l.id, file);
+                        }
+                        e.target.value = '';
+                      }}
+                    />
 
                     {/* Opacity Slider (Bỏ chữ "Opacity", chỉ hiện phần trăm và thanh trượt) */}
                     <div style={{ marginTop: '2px' }}>
@@ -692,6 +689,18 @@ export default function ResultCard({
           )}
         </button>
       </div>
+
+      {/* Liquid Modal Xử Lý Hậu Kỳ Cho Từng Layer (Khung / Thân Báo) */}
+      <LayerPostProcessModal
+        isOpen={Boolean(selectedLayerForModal)}
+        onClose={() => setSelectedLayerForModal(null)}
+        layer={layers?.[selectedLayerForModal]}
+        onUpdateLayer={onUpdateLayer}
+        onReplaceLayerImage={onReplaceLayerImage}
+        onRegenerateLayer={onRegenerateLayer}
+        onOpenLightbox={onOpenLightbox}
+        isGenerating={isGenerating}
+      />
     </div>
   );
 }

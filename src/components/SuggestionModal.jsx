@@ -1,158 +1,278 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import Tooltip from './Tooltip';
 
-// Curated sample images specifically for school wall newspapers (Báo Tường)
+// Curated sample images specifically for school wall newspapers (Báo Tường) from Downloads/refs (30 mẫu thực tế)
 const CURATED_PAPER_IMAGES = [
-  // 1. Mẫu Khung & Viền chữ U
   {
-    id: 'sample_border_1',
-    category: 'border',
-    categoryLabel: 'Khung & Viền Chữ U',
-    emoji: '🌸',
-    title: 'Viền chữ U ngược hoa văn hồng pastel',
-    description: 'Viền chữ U ngược hoa văn màu hồng phấn thanh lịch, để trống giữa',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792065850552.png'
-  },
-  {
-    id: 'sample_border_2',
-    category: 'border',
-    categoryLabel: 'Khung & Viền Chữ U',
-    emoji: '🌸',
-    title: 'Viền hoa sen truyền thống uốn lượn',
-    description: 'Họa tiết hoa sen hồng dáng chữ U mềm mại trang trọng',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792064570391.png'
-  },
-  {
-    id: 'sample_border_3',
-    category: 'border',
-    categoryLabel: 'Khung & Viền Chữ U',
-    emoji: '🌸',
-    title: 'Viền hoa hồng leo học trò',
-    description: 'Viền hoa hồng leo uốn lượn đỉnh và 2 cạnh bên mỏng nhẹ',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792064360186.png'
-  },
-  {
-    id: 'sample_border_4',
-    category: 'border',
-    categoryLabel: 'Khung & Viền Chữ U',
-    emoji: '🌸',
-    title: 'Viền pastel tối giản hiện đại',
-    description: 'Khung viền chữ U gam màu nhẹ nhàng tinh xảo cho báo tường',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792059008858.png'
-  },
-
-  // 2. Mẫu Tiêu đề Header
-  {
-    id: 'sample_header_1',
-    category: 'header',
-    categoryLabel: 'Đầu Báo (Header)',
-    emoji: '🏷️',
-    title: 'Header "TRI ÂN THẦY CÔ" Thư pháp',
-    description: 'Chữ thư pháp nghệ thuật uốn lượn trang trọng mạ vàng',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792057672254.png'
-  },
-  {
-    id: 'sample_header_2',
-    category: 'header',
-    categoryLabel: 'Đầu Báo (Header)',
-    emoji: '🏷️',
-    title: 'Header "CHẮP CÁNH ƯỚC MƠ"',
-    description: 'Tiêu đề cánh chim bồ câu trắng và trang sách mở trang trọng',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792057432368.png'
-  },
-  {
-    id: 'sample_header_3',
-    category: 'header',
-    categoryLabel: 'Đầu Báo (Header)',
-    emoji: '🏷️',
-    title: 'Header "NẮNG SÂN TRƯỜNG"',
-    description: 'Chữ nghệ thuật tươi sáng điểm xuyết hoa phượng và hoa điệp',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792057236108.png'
-  },
-  {
-    id: 'sample_header_4',
-    category: 'header',
-    categoryLabel: 'Đầu Báo (Header)',
-    emoji: '🏷️',
-    title: 'Header "MÁI TRƯỜNG MẾN YÊU"',
-    description: 'Biểu tượng bảng đen, phấn trắng, bình hoa học trò ấm áp',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792055056049.png'
-  },
-
-  // 3. Mẫu Thân Báo (Body)
-  {
-    id: 'sample_body_1',
-    category: 'body',
-    categoryLabel: 'Thân Báo (Body)',
-    emoji: '📄',
-    title: 'Thân báo 4 ô cân đối tiêu chuẩn',
-    description: 'Phân chia ô xã luận, góc thơ, lời ngỏ, tranh ảnh và dòng kẻ',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792065850313.png'
-  },
-  {
-    id: 'sample_body_2',
-    category: 'body',
-    categoryLabel: 'Thân Báo (Body)',
-    emoji: '📄',
-    title: 'Thân báo nền trắng thoáng đãng',
-    description: 'Bố cục các khung bài viết ngay ngắn chừa chỗ viết bài',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792064569037.png'
-  },
-  {
-    id: 'sample_body_3',
-    category: 'body',
-    categoryLabel: 'Thân Báo (Body)',
-    emoji: '📄',
-    title: 'Thân báo 6 ô sinh động học sinh',
-    description: 'Phân bố ô xã luận, thơ, đố vui, góc học tập và ảnh kỷ niệm',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792064360193.png'
-  },
-  {
-    id: 'sample_body_4',
-    category: 'body',
-    categoryLabel: 'Thân Báo (Body)',
-    emoji: '📄',
-    title: 'Khung giấy kẻ ô viết tay',
-    description: 'Dòng kẻ giấy tập học trò chừa chỗ dán ảnh và viết tay',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792054482125.png'
-  },
-
-  // 4. Mẫu Báo Tường Hoàn Chỉnh
-  {
-    id: 'sample_full_1',
+    id: 'ref_01',
     category: 'full',
     categoryLabel: 'Báo Tường Hoàn Chỉnh',
     emoji: '📰',
-    title: 'Báo Tường Tri Ân Thầy Cô Hoàn Chỉnh',
-    description: 'Tác phẩm hoàn chỉnh phối ghép viền U ngược, tiêu đề và thân báo',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792053426801.png'
+    title: 'Mặt Trời Trên Bục Giảng',
+    description: 'Báo tường 20/11 lớp 11A5 với tranh phấn bảng, lời ngỏ, góc truyện cười, thanh âm mùa tri ân, khoảnh khắc vàng',
+    url: '/refs/ref_01.jpg'
   },
   {
-    id: 'sample_full_2',
+    id: 'ref_02',
     category: 'full',
     categoryLabel: 'Báo Tường Hoàn Chỉnh',
     emoji: '📰',
-    title: 'Báo Tường Chào Mừng 20/11 Lớp Học',
-    description: 'Tác phẩm báo tường phong cách trang trọng kỷ niệm ngày nhà giáo',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792053102440.png'
+    title: 'Tri Ân Nguồn Sáng - Vững Bước Tương Lai',
+    description: 'Mô hình 3D bản đồ Việt Nam, trống đồng, hoa sen, kỷ niệm 50 năm truyền thống',
+    url: '/refs/ref_02.jpg'
   },
   {
-    id: 'sample_full_3',
+    id: 'ref_03',
+    category: 'header',
+    categoryLabel: 'Đầu Báo (Header)',
+    emoji: '🏷️',
+    title: 'Header "Uống Nước Nhớ Nguồn"',
+    description: 'Tiêu đề thư pháp xanh dương uốn lượn, cầu vồng, cá voi, cuốn sách tri thức mở',
+    url: '/refs/ref_03.jpg'
+  },
+  {
+    id: 'ref_04',
+    category: 'body',
+    categoryLabel: 'Thân Báo (Body)',
+    emoji: '📄',
+    title: 'Bố Cục Thân Báo Đa Năng',
+    description: 'Phân chia ô xã luận, lời ngỏ, góc truyện tranh, cửa sổ kỷ niệm và dải phim ký ức',
+    url: '/refs/ref_04.jpg'
+  },
+  {
+    id: 'ref_05',
     category: 'full',
     categoryLabel: 'Báo Tường Hoàn Chỉnh',
     emoji: '📰',
-    title: 'Báo Tường Nắng Sân Trường',
-    description: 'Tác phẩm nghệ thuật tươi sáng đầy nhiệt huyết tuổi học trò',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792053029478.png'
+    title: 'Người Lái Đò Tiếp Bước',
+    description: 'Mô hình 3D rồng phượng, viền hoa tím, chân dung Bác Hồ, Đại tướng Võ Nguyên Giáp',
+    url: '/refs/ref_05.jpg'
   },
   {
-    id: 'sample_full_4',
+    id: 'ref_06',
+    category: 'body',
+    categoryLabel: 'Thân Báo (Body)',
+    emoji: '📄',
+    title: 'Cánh Buồm Tri Thức (Bút Chì Cổ Điển)',
+    description: 'Bố cục thân báo hình con thuyền với từng cánh buồm là bài viết, phong cách mực tàu',
+    url: '/refs/ref_06.jpg'
+  },
+  {
+    id: 'ref_07',
     category: 'full',
     categoryLabel: 'Báo Tường Hoàn Chỉnh',
     emoji: '📰',
-    title: 'Báo Tường Chắp Cánh Ước Mơ A0',
-    description: 'Tác phẩm chuẩn in ấn khổ lớn độ phân giải cao 300 DPI',
-    url: 'https://paper.toolxprint.com/images/preview_job_1792052962188.png'
+    title: 'Cánh Buồm Tri Thức Vượt Sóng',
+    description: 'Cờ đỏ sao vàng, sóng biển nổi 3D, cánh buồm giấy bài viết và hoa văn tre trúc',
+    url: '/refs/ref_07.jpg'
+  },
+  {
+    id: 'ref_08',
+    category: 'border',
+    categoryLabel: 'Khung & Viền',
+    emoji: '🌸',
+    title: 'Khung Tán Bàng Xanh Mát & Bồ Câu',
+    description: 'Viền chữ U tán lá bàng rợp bóng sân trường, chim bồ câu trắng chao liệng',
+    url: '/refs/ref_08.jpg'
+  },
+  {
+    id: 'ref_09',
+    category: 'header',
+    categoryLabel: 'Đầu Báo (Header)',
+    emoji: '🏷️',
+    title: 'Header "Nhớ Ơn Thầy Cô" & Cuốn Thư',
+    description: 'Chữ thư pháp nghệ thuật, hai dải lụa chiếu chỉ vàng "Nhất tự vi sư, Bán tự vi sư"',
+    url: '/refs/ref_09.jpg'
+  },
+  {
+    id: 'ref_10',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Màu Thời Gian 12A8',
+    description: 'Cuốn sách mở, đồng hồ cát, hộp thư góp ý, bó hoa hồng và các ô văn nghệ',
+    url: '/refs/ref_10.jpg'
+  },
+  {
+    id: 'ref_11',
+    category: 'border',
+    categoryLabel: 'Khung & Viền',
+    emoji: '🌸',
+    title: 'Khung Viền Hoa Hướng Dương "Ươm Mầm"',
+    description: 'Viền bạc hoa văn, bông hướng dương lớn Tôn Sư Trọng Đạo, ô viết hình lá cây',
+    url: '/refs/ref_11.jpg'
+  },
+  {
+    id: 'ref_12',
+    category: 'border',
+    categoryLabel: 'Khung & Viền',
+    emoji: '🌸',
+    title: 'Khung Câu Đối Đỏ "Bến Đò Tri Ân"',
+    description: 'Nền nhung đen hoa sen hồng tao nhã, hai câu đối thư pháp đỏ trang trọng',
+    url: '/refs/ref_12.jpg'
+  },
+  {
+    id: 'ref_13',
+    category: 'border',
+    categoryLabel: 'Khung & Viền',
+    emoji: '🌸',
+    title: 'Khung Viền Rặng Tre Xanh & Mai Vàng',
+    description: 'Khung viền rặng tre Việt Nam xanh mát, hoa mai vàng và búp măng non',
+    url: '/refs/ref_13.jpg'
+  },
+  {
+    id: 'ref_14',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Tóc Xanh - Tà Áo Dài Thướt Tha',
+    description: 'Tranh cô giáo tà áo dài trắng, hoa hướng dương rực rỡ, các ô lời ngỏ & tản văn',
+    url: '/refs/ref_14.jpg'
+  },
+  {
+    id: 'ref_15',
+    category: 'body',
+    categoryLabel: 'Thân Báo (Body)',
+    emoji: '📄',
+    title: 'Bố Cục 6 Ô "Ước Mơ Xanh"',
+    description: 'Sắp xếp 6 ô giấy kẻ tiêu chuẩn chừa chỗ viết bài ngay ngắn, điểm xuyết hoa hồng & tulip',
+    url: '/refs/ref_15.jpg'
+  },
+  {
+    id: 'ref_16',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Biết Ơn Thầy Cô Giáo - Ánh Bình Minh',
+    description: 'Ánh mặt trời rạng rỡ, viền quả trám câu đối hai bên, ô chữ 20/11 và nhạc Bụi Phấn',
+    url: '/refs/ref_16.jpg'
+  },
+  {
+    id: 'ref_17',
+    category: 'border',
+    categoryLabel: 'Khung & Viền',
+    emoji: '🌸',
+    title: 'Khung Viền 3D "Ơn Cô Nghĩa Thầy"',
+    description: 'Hoa hướng dương nổi 3D đỉnh đầu, các khung viền hoa sen uốn lượn chừa chỗ viết bài',
+    url: '/refs/ref_17.jpg'
+  },
+  {
+    id: 'ref_18',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Sáng Tạo Mô Hình Báo Tường Thuyền Hải Quân',
+    description: 'Mô hình con tàu khát vọng cống hiến, cột mốc Đảo Trường Sa, sóng biển 3D',
+    url: '/refs/ref_18.jpg'
+  },
+  {
+    id: 'ref_19',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Hiến Chương Nhà Giáo - Đầm Sen Thủy Mặc',
+    description: 'Hoa sen trắng xanh tinh tế, câu đối thư pháp chữ Nôm hai bên, tranh trường xưa chân trang',
+    url: '/refs/ref_19.jpg'
+  },
+  {
+    id: 'ref_20',
+    category: 'body',
+    categoryLabel: 'Thân Báo (Body)',
+    emoji: '📄',
+    title: 'Bố Cục Cánh Sen Hồng Nở Xòe',
+    description: 'Thiết kế các cánh hoa sen hồng nở xòe chính là từng ô bài viết: Thơ, Xã luận, Lời ngỏ',
+    url: '/refs/ref_20.jpg'
+  },
+  {
+    id: 'ref_21',
+    category: 'body',
+    categoryLabel: 'Thân Báo (Body)',
+    emoji: '📄',
+    title: 'Bố Cục Giấy Ô Ly "Nâng Cánh Ước Mơ"',
+    description: 'Các khung bài viết giấy kẻ ô ly học trò được bo viền hoa hồng, hoa cúc thủ công tinh tế',
+    url: '/refs/ref_21.jpg'
+  },
+  {
+    id: 'ref_22',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Khởi Nguyên Hữu Nghị & Nghệ Thuật',
+    description: 'Báo tường giao lưu văn hóa, nhịp cầu ngôn ngữ, tranh minh họa từ trái tim đến trái tim',
+    url: '/refs/ref_22.jpg'
+  },
+  {
+    id: 'ref_23',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Người Khai Sáng - Cô Giáo Đầm Sen',
+    description: 'Tranh cô giáo áo dài xanh giữa đầm sen hồng, các ô Sóng ân, Xã luận, Tháng năm học trò',
+    url: '/refs/ref_23.jpg'
+  },
+  {
+    id: 'ref_24',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Khát Vọng Cống Hiến Đảo Trường Sa',
+    description: 'Thiết kế đồ họa hiện đại hình cánh buồm tàu hải quân, cờ Tổ Quốc, người lính đảo',
+    url: '/refs/ref_24.jpg'
+  },
+  {
+    id: 'ref_25',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Cánh Buồm Ước Mơ Khối 5',
+    description: 'Tranh màu nước con thuyền vượt sóng lớn, hoa hồng vàng rực rỡ, bài Người mẹ thứ hai',
+    url: '/refs/ref_25.jpg'
+  },
+  {
+    id: 'ref_26',
+    category: 'border',
+    categoryLabel: 'Khung & Viền',
+    emoji: '🌸',
+    title: 'Khung Hoa Đào Hồng "Thắp Sáng Ước Mơ"',
+    description: 'Tán hoa đào nở rộ đỉnh đầu, hoa giấy 3D trắng, các ô giấy craft màu nâu viết chữ tay',
+    url: '/refs/ref_26.jpg'
+  },
+  {
+    id: 'ref_27',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Vạt Nắng Bên Thềm Cũ',
+    description: 'Mái trường ngói đỏ, cờ đỏ sao vàng, mô hình sân trường 3D bật mở độc đáo',
+    url: '/refs/ref_27.jpg'
+  },
+  {
+    id: 'ref_28',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Tiến Bước Chi Đoàn 12A2',
+    description: 'Báo tường mô hình tròn cánh buồm bản đồ Việt Nam, băng rôn Nhất tự vi sư đỏ',
+    url: '/refs/ref_28.jpg'
+  },
+  {
+    id: 'ref_29',
+    category: 'header',
+    categoryLabel: 'Đầu Báo (Header)',
+    emoji: '🏷️',
+    title: 'Header "Chuyến Đò Tri Ân" Thư Pháp',
+    description: 'Dòng sông quê hương, cô lái đò áo hồng, cuốn sách mở Tấm lòng thầy cô',
+    url: '/refs/ref_29.jpg'
+  },
+  {
+    id: 'ref_30',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Vững Bước Tương Lai - Kỷ Niệm 50 Năm',
+    description: 'Mô hình 3D hoa sen, biểu tượng 50 năm UED, bản đồ đất nước non sông gấm vóc',
+    url: '/refs/ref_30.jpg'
   }
 ];
 
@@ -388,13 +508,13 @@ export default function SuggestionModal({
     onClose();
   };
 
-  return (
+  return ReactDOM.createPortal(
     <div
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 99999,
-        background: 'rgba(15, 23, 42, 0.75)',
+        zIndex: 9999999,
+        background: 'rgba(15, 23, 42, 0.8)',
         backdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
@@ -948,6 +1068,7 @@ export default function SuggestionModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
