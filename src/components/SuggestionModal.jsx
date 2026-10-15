@@ -1,0 +1,953 @@
+import React, { useState, useEffect } from 'react';
+import Tooltip from './Tooltip';
+
+// Curated sample images specifically for school wall newspapers (Báo Tường)
+const CURATED_PAPER_IMAGES = [
+  // 1. Mẫu Khung & Viền chữ U
+  {
+    id: 'sample_border_1',
+    category: 'border',
+    categoryLabel: 'Khung & Viền Chữ U',
+    emoji: '🌸',
+    title: 'Viền chữ U ngược hoa văn hồng pastel',
+    description: 'Viền chữ U ngược hoa văn màu hồng phấn thanh lịch, để trống giữa',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792065850552.png'
+  },
+  {
+    id: 'sample_border_2',
+    category: 'border',
+    categoryLabel: 'Khung & Viền Chữ U',
+    emoji: '🌸',
+    title: 'Viền hoa sen truyền thống uốn lượn',
+    description: 'Họa tiết hoa sen hồng dáng chữ U mềm mại trang trọng',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792064570391.png'
+  },
+  {
+    id: 'sample_border_3',
+    category: 'border',
+    categoryLabel: 'Khung & Viền Chữ U',
+    emoji: '🌸',
+    title: 'Viền hoa hồng leo học trò',
+    description: 'Viền hoa hồng leo uốn lượn đỉnh và 2 cạnh bên mỏng nhẹ',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792064360186.png'
+  },
+  {
+    id: 'sample_border_4',
+    category: 'border',
+    categoryLabel: 'Khung & Viền Chữ U',
+    emoji: '🌸',
+    title: 'Viền pastel tối giản hiện đại',
+    description: 'Khung viền chữ U gam màu nhẹ nhàng tinh xảo cho báo tường',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792059008858.png'
+  },
+
+  // 2. Mẫu Tiêu đề Header
+  {
+    id: 'sample_header_1',
+    category: 'header',
+    categoryLabel: 'Đầu Báo (Header)',
+    emoji: '🏷️',
+    title: 'Header "TRI ÂN THẦY CÔ" Thư pháp',
+    description: 'Chữ thư pháp nghệ thuật uốn lượn trang trọng mạ vàng',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792057672254.png'
+  },
+  {
+    id: 'sample_header_2',
+    category: 'header',
+    categoryLabel: 'Đầu Báo (Header)',
+    emoji: '🏷️',
+    title: 'Header "CHẮP CÁNH ƯỚC MƠ"',
+    description: 'Tiêu đề cánh chim bồ câu trắng và trang sách mở trang trọng',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792057432368.png'
+  },
+  {
+    id: 'sample_header_3',
+    category: 'header',
+    categoryLabel: 'Đầu Báo (Header)',
+    emoji: '🏷️',
+    title: 'Header "NẮNG SÂN TRƯỜNG"',
+    description: 'Chữ nghệ thuật tươi sáng điểm xuyết hoa phượng và hoa điệp',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792057236108.png'
+  },
+  {
+    id: 'sample_header_4',
+    category: 'header',
+    categoryLabel: 'Đầu Báo (Header)',
+    emoji: '🏷️',
+    title: 'Header "MÁI TRƯỜNG MẾN YÊU"',
+    description: 'Biểu tượng bảng đen, phấn trắng, bình hoa học trò ấm áp',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792055056049.png'
+  },
+
+  // 3. Mẫu Thân Báo (Body)
+  {
+    id: 'sample_body_1',
+    category: 'body',
+    categoryLabel: 'Thân Báo (Body)',
+    emoji: '📄',
+    title: 'Thân báo 4 ô cân đối tiêu chuẩn',
+    description: 'Phân chia ô xã luận, góc thơ, lời ngỏ, tranh ảnh và dòng kẻ',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792065850313.png'
+  },
+  {
+    id: 'sample_body_2',
+    category: 'body',
+    categoryLabel: 'Thân Báo (Body)',
+    emoji: '📄',
+    title: 'Thân báo nền trắng thoáng đãng',
+    description: 'Bố cục các khung bài viết ngay ngắn chừa chỗ viết bài',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792064569037.png'
+  },
+  {
+    id: 'sample_body_3',
+    category: 'body',
+    categoryLabel: 'Thân Báo (Body)',
+    emoji: '📄',
+    title: 'Thân báo 6 ô sinh động học sinh',
+    description: 'Phân bố ô xã luận, thơ, đố vui, góc học tập và ảnh kỷ niệm',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792064360193.png'
+  },
+  {
+    id: 'sample_body_4',
+    category: 'body',
+    categoryLabel: 'Thân Báo (Body)',
+    emoji: '📄',
+    title: 'Khung giấy kẻ ô viết tay',
+    description: 'Dòng kẻ giấy tập học trò chừa chỗ dán ảnh và viết tay',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792054482125.png'
+  },
+
+  // 4. Mẫu Báo Tường Hoàn Chỉnh
+  {
+    id: 'sample_full_1',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Báo Tường Tri Ân Thầy Cô Hoàn Chỉnh',
+    description: 'Tác phẩm hoàn chỉnh phối ghép viền U ngược, tiêu đề và thân báo',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792053426801.png'
+  },
+  {
+    id: 'sample_full_2',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Báo Tường Chào Mừng 20/11 Lớp Học',
+    description: 'Tác phẩm báo tường phong cách trang trọng kỷ niệm ngày nhà giáo',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792053102440.png'
+  },
+  {
+    id: 'sample_full_3',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Báo Tường Nắng Sân Trường',
+    description: 'Tác phẩm nghệ thuật tươi sáng đầy nhiệt huyết tuổi học trò',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792053029478.png'
+  },
+  {
+    id: 'sample_full_4',
+    category: 'full',
+    categoryLabel: 'Báo Tường Hoàn Chỉnh',
+    emoji: '📰',
+    title: 'Báo Tường Chắp Cánh Ước Mơ A0',
+    description: 'Tác phẩm chuẩn in ấn khổ lớn độ phân giải cao 300 DPI',
+    url: 'https://paper.toolxprint.com/images/preview_job_1792052962188.png'
+  }
+];
+
+// Curated prompt suggestions for each of the 4 tabs
+const PROMPT_SUGGESTIONS = {
+  border: {
+    label: 'Đường Viền (Border)',
+    emoji: '🌸',
+    accentColor: '#f43f5e',
+    items: [
+      {
+        id: 'p_b_1',
+        title: 'Viền chữ U ngược hoa văn hồng pastel',
+        badge: 'Khuyên Dùng',
+        text: 'Tôi muốn tạo viền hình vuông, viền hoa văn màu hồng, lưu ý viền hình chữ u (u ngược). Viền dày tối đa 1% chiều rộng của ảnh. Toàn bộ phần thân giữa để trống màu trắng tinh.',
+        tags: ['Chữ U ngược', 'Màu hồng', 'Độ dày ≤ 1%', 'Trống giữa']
+      },
+      {
+        id: 'p_b_2',
+        title: 'Viền hoa hồng leo uốn lượn chữ U',
+        badge: 'Học Trò',
+        text: 'Đường viền hoa hồng leo uốn lượn chữ U ngược màu hồng phấn nhẹ nhàng, nét vẽ thanh lịch mỏng nhẹ ôm quanh đỉnh và 2 cạnh bên, chừa toàn bộ khoảng trống ở giữa để viết bài.',
+        tags: ['Hoa hồng leo', 'Uốn lượn', 'Hồng phấn', 'Mỏng nhẹ']
+      },
+      {
+        id: 'p_b_3',
+        title: 'Viền hoa sen hồng truyền thống Việt Nam',
+        badge: 'Trang Trọng',
+        text: 'Đường viền hoa văn hoa sen hồng thanh tao cách điệu chữ U ngược, phong cách nghệ thuật trang trọng truyền thống Việt Nam dọc theo 2 bên và đỉnh báo tường, nét viền mỏng ≤ 1%.',
+        tags: ['Hoa sen', 'Truyền thống', 'Trang trọng', '20/11']
+      },
+      {
+        id: 'p_b_4',
+        title: 'Viền pastel tối giản hiện đại',
+        badge: 'Hiện Đại',
+        text: 'Đường viền chữ U ngược phong cách tối giản màu pastel, viền đôi thanh mảnh mạ vàng hồng nhẹ nhàng, các góc bo tròn mềm mại, để trống không gian bên trong.',
+        tags: ['Tối giản', 'Vàng hồng', 'Pastel', 'Bo góc']
+      }
+    ]
+  },
+  header: {
+    label: 'Header (Đầu Báo)',
+    emoji: '🏷️',
+    accentColor: '#8b5cf6',
+    items: [
+      {
+        id: 'p_h_1',
+        title: 'Tiêu đề "TRI ÂN THẦY CÔ" Thư pháp',
+        badge: 'Khuyên Dùng',
+        text: 'Tiêu đề đầu báo tường nổi bật: "TRI ÂN THẦY CÔ", kiểu chữ thư pháp nghệ thuật uốn lượn trang trọng, trang trí hoa văn mềm mại, điểm xuyết hoa sen và ánh sáng rực rỡ.',
+        tags: ['TRI ÂN THẦY CÔ', 'Thư pháp', 'Trang trọng', 'Hoa sen']
+      },
+      {
+        id: 'p_h_2',
+        title: 'Tiêu đề "CHẮP CÁNH ƯỚC MƠ"',
+        badge: 'Nghệ Thuật',
+        text: 'Tiêu đề đầu báo tường: "CHẮP CÁNH ƯỚC MƠ", chữ nghệ thuật 3D uốn lượn cách điệu hình cánh chim bồ câu trắng và trang sách mở, sắc màu tươi sáng rạng rỡ.',
+        tags: ['CHẮP CÁNH ƯỚC MƠ', 'Chim bồ câu', 'Trang sách', '3D']
+      },
+      {
+        id: 'p_h_3',
+        title: 'Tiêu đề "NẮNG SÂN TRƯỜNG"',
+        badge: 'Tuổi Học Trò',
+        text: 'Tiêu đề đầu báo tường: "NẮNG SÂN TRƯỜNG", kiểu chữ thư pháp học trò thanh thoát, điểm xuyết hoa phượng đỏ, hoa điệp vàng và tia nắng ban mai mềm mại.',
+        tags: ['NẮNG SÂN TRƯỜNG', 'Hoa phượng', 'Điệp vàng', 'Ánh nắng']
+      },
+      {
+        id: 'p_h_4',
+        title: 'Tiêu đề "MÁI TRƯỜNG MẾN YÊU"',
+        badge: 'Ấm Áp',
+        text: 'Tiêu đề nghệ thuật: "MÁI TRƯỜNG MẾN YÊU", biểu tượng chiếc bảng đen, phấn trắng, bình hoa và trang vở học trò, viền chữ ánh kim trang trọng chào mừng ngày 20/11.',
+        tags: ['MÁI TRƯỜNG MẾN YÊU', 'Bảng đen', 'Phấn trắng', '20/11']
+      }
+    ]
+  },
+  footer: {
+    label: 'Footer (Chân Báo)',
+    emoji: '📝',
+    accentColor: '#06b6d4',
+    items: [
+      {
+        id: 'p_f_1',
+        title: 'Dải ruy băng Chi đoàn 20/11',
+        badge: 'Khuyên Dùng',
+        text: 'Chân trang báo: "Chi đoàn Thanh niên • Báo tường Chào mừng ngày 20/11", dải ruy băng mềm mại và hoa góc đáy thanh lịch nhẹ nhàng.',
+        tags: ['Chi đoàn', 'Băng rôn', '20/11', 'Góc đáy']
+      },
+      {
+        id: 'p_f_2',
+        title: 'Tập thể Lớp thân tặng',
+        badge: 'Lớp Học',
+        text: 'Chân trang báo tường: "Tập thể Học sinh thân tặng Thầy Cô kính yêu", hoa văn trang trí đối xứng ở hai góc đáy trang nhã, màu sắc pastel thanh thoát.',
+        tags: ['Tập thể lớp', 'Thân tặng', 'Đối xứng', 'Pastel']
+      },
+      {
+        id: 'p_f_3',
+        title: 'Kỷ niệm Ngày Nhà giáo Việt Nam',
+        badge: 'Trang Trọng',
+        text: 'Dải chân trang báo tường trang trọng với dòng chữ "Kỷ niệm Ngày Nhà giáo Việt Nam 20/11", biểu tượng ngọn đuốc tri thức và cánh hoa sen ở góc đáy.',
+        tags: ['Ngày Nhà giáo', 'Ngọn đuốc', 'Cánh sen', 'Trang trọng']
+      }
+    ]
+  },
+  body: {
+    label: 'Body Trang (Thân Báo)',
+    emoji: '📄',
+    accentColor: '#f59e0b',
+    items: [
+      {
+        id: 'p_b_1',
+        title: 'Bố cục 4 ô tiêu chuẩn trên nền giấy trắng',
+        badge: 'Khuyên Dùng',
+        text: 'Thân báo tường ở giữa: phân bố các ô bài xã luận, góc thơ ca, lời ngỏ và tranh ảnh, bố cục thoáng đãng sạch sẽ trên nền giấy trắng để trình bày nội dung bài viết.',
+        tags: ['4 ô tiêu chuẩn', 'Xã luận', 'Góc thơ', 'Lời ngỏ', 'Nền trắng']
+      },
+      {
+        id: 'p_b_2',
+        title: 'Bố cục 6 ô học trò sinh động',
+        badge: 'Phong Phú',
+        text: 'Bố cục thân báo tường học trò sinh động 6 ô: Ô bài Xã luận trang trọng, Góc thơ ca học trò, Ô Lời ngỏ tâm tình, Góc câu đố vui học tập, Khung dán ảnh kỷ niệm và Lời chúc thầy cô.',
+        tags: ['6 ô sinh động', 'Câu đố', 'Ảnh kỷ niệm', 'Lời chúc']
+      },
+      {
+        id: 'p_b_3',
+        title: 'Khung giấy kẻ ô chừa chỗ viết tay',
+        badge: 'Dễ Viết Bài',
+        text: 'Thân báo tường phân chia các khung bài viết giấy kẻ ngang ngay ngắn, chừa nhiều khoảng trắng sạch sẽ thoáng đãng để học sinh dán ảnh kỷ niệm và viết tay chữ đẹp.',
+        tags: ['Giấy kẻ ngang', 'Viết tay', 'Khoảng trắng', 'Dán ảnh']
+      },
+      {
+        id: 'p_b_4',
+        title: 'Bố cục nghệ thuật kết hợp tranh minh họa',
+        badge: 'Sáng Tạo',
+        text: 'Bố cục thân báo tường nghệ thuật: các ô bài viết lồng ghép các hình vẽ minh họa học trò, hoa phượng, ngọn bút và con thuyền tri thức nhẹ nhàng trên nền giấy trắng tinh khiết.',
+        tags: ['Tranh minh họa', 'Con thuyền', 'Ngọn bút', 'Nghệ thuật']
+      }
+    ]
+  }
+};
+
+export default function SuggestionModal({
+  isOpen,
+  onClose,
+  activeSection = 'border',
+  onApplyPrompt,
+  onSelectSampleImage,
+  showToast,
+  onOpenLightbox
+}) {
+  const [modalTab, setModalTab] = useState('images'); // 'images' | 'prompts'
+  const [imageCategory, setImageCategory] = useState('all'); // 'all' | 'border' | 'header' | 'body' | 'full'
+  const [promptCategory, setPromptCategory] = useState(activeSection || 'border');
+  const [apiImages, setApiImages] = useState([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+
+  // Sync initial tab when opening
+  useEffect(() => {
+    if (isOpen) {
+      if (activeSection && PROMPT_SUGGESTIONS[activeSection]) {
+        setPromptCategory(activeSection);
+      }
+    }
+  }, [isOpen, activeSection]);
+
+  // Fetch recent images from VPS gallery if available
+  useEffect(() => {
+    if (!isOpen) return;
+    setLoadingImages(true);
+    fetch('/api/gallery')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const vpsMapped = data.slice(0, 16).map((item, idx) => ({
+            id: 'vps_' + (item.id || idx),
+            category: 'full',
+            categoryLabel: 'Từ Thư Viện VPS',
+            emoji: '☁️',
+            title: item.prompt ? item.prompt.slice(0, 40) + '...' : `Tác phẩm VPS #${idx + 1}`,
+            description: item.style || 'Chuẩn in 300 DPI',
+            url: item.vpsUrl || item.thumbnail || (item.filename ? `/images/${item.filename}` : '')
+          })).filter((i) => Boolean(i.url));
+          setApiImages(vpsMapped);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingImages(false));
+  }, [isOpen]);
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  // Filtered images list
+  const allImages = [...CURATED_PAPER_IMAGES, ...apiImages];
+  const filteredImages = imageCategory === 'all'
+    ? allImages
+    : allImages.filter((img) => img.category === imageCategory);
+
+  const handleCopyPrompt = (text) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    if (showToast) showToast('Đã sao chép nội dung prompt vào clipboard!', 'success');
+  };
+
+  const handleApply = (sectionKey, promptText) => {
+    if (onApplyPrompt) {
+      onApplyPrompt(sectionKey, promptText);
+    }
+    if (showToast) {
+      const sectionName = PROMPT_SUGGESTIONS[sectionKey]?.label || sectionKey;
+      showToast(`✓ Đã áp dụng mẫu prompt vào phần [${sectionName}]!`, 'success');
+    }
+    onClose();
+  };
+
+  const handlePickImage = (imgUrl, title) => {
+    if (!imgUrl) return;
+    if (onSelectSampleImage) {
+      onSelectSampleImage(activeSection || 'border', imgUrl, title);
+    }
+    if (showToast) {
+      const sectionName = PROMPT_SUGGESTIONS[activeSection]?.label || activeSection;
+      showToast(`✓ Đã chọn ảnh mẫu cho phần [${sectionName}]!`, 'success');
+    }
+    onClose();
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 99999,
+        background: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px'
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="liquid-card"
+        style={{
+          width: '100%',
+          maxWidth: '820px',
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+          background: '#ffffff',
+          borderRadius: '24px',
+          padding: '0',
+          overflow: 'hidden',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+          animation: 'modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Top Header */}
+        <div
+          style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #ffffff 100%)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.2rem',
+                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.35)'
+              }}
+            >
+              <i className="bi bi-lightbulb-fill"></i>
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+                Gợi Ý Thiết Kế Báo Tường
+              </h2>
+              <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: '#64748b' }}>
+                Thư viện hình ảnh mẫu báo tường & các bộ prompt gợi ý tương ứng từng tab
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              border: 'none',
+              background: 'rgba(0, 0, 0, 0.06)',
+              color: '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              transition: 'all 0.15s ease'
+            }}
+            title="Đóng (Phím Esc)"
+          >
+            <i className="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        {/* 2 Primary Mode Tabs: [Thư Viện Ảnh] vs [Prompt Gợi Ý] */}
+        <div
+          style={{
+            display: 'flex',
+            borderBottom: '1px solid #e2e8f0',
+            background: '#f8fafc',
+            padding: '4px 16px',
+            gap: '8px'
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setModalTab('images')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 18px',
+              border: 'none',
+              background: 'transparent',
+              borderBottom: modalTab === 'images' ? '3px solid #f59e0b' : '3px solid transparent',
+              color: modalTab === 'images' ? '#b45309' : '#64748b',
+              fontWeight: modalTab === 'images' ? 800 : 600,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <i className="bi bi-images" style={{ fontSize: '1rem', color: modalTab === 'images' ? '#d97706' : '#94a3b8' }}></i>
+            <span>1. Thư Viện Hình Ảnh Báo Tường</span>
+            <span
+              style={{
+                fontSize: '0.68rem',
+                background: modalTab === 'images' ? '#fde68a' : '#e2e8f0',
+                color: modalTab === 'images' ? '#92400e' : '#64748b',
+                padding: '1px 8px',
+                borderRadius: '9999px',
+                fontWeight: 700
+              }}
+            >
+              {allImages.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setModalTab('prompts')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 18px',
+              border: 'none',
+              background: 'transparent',
+              borderBottom: modalTab === 'prompts' ? '3px solid #8b5cf6' : '3px solid transparent',
+              color: modalTab === 'prompts' ? '#6d28d9' : '#64748b',
+              fontWeight: modalTab === 'prompts' ? 800 : 600,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <i className="bi bi-card-text" style={{ fontSize: '1rem', color: modalTab === 'prompts' ? '#8b5cf6' : '#94a3b8' }}></i>
+            <span>2. Prompt Gợi Ý Từng Tab</span>
+            <span
+              style={{
+                fontSize: '0.68rem',
+                background: modalTab === 'prompts' ? '#ede9fe' : '#e2e8f0',
+                color: modalTab === 'prompts' ? '#6d28d9' : '#64748b',
+                padding: '1px 8px',
+                borderRadius: '9999px',
+                fontWeight: 700
+              }}
+            >
+              4 Phần
+            </span>
+          </button>
+        </div>
+
+        {/* Modal Scrollable Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', minHeight: '380px' }}>
+          {/* TAB 1: THƯ VIỆN HÌNH ẢNH MẪU */}
+          {modalTab === 'images' && (
+            <div>
+              {/* Image Category Filter Pills */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+                {[
+                  { key: 'all', label: 'Tất cả mẫu', emoji: '🌟' },
+                  { key: 'border', label: 'Khung & Viền Chữ U', emoji: '🌸' },
+                  { key: 'header', label: 'Tiêu Đề Đầu Báo', emoji: '🏷️' },
+                  { key: 'body', label: 'Thân Báo Tường', emoji: '📄' },
+                  { key: 'full', label: 'Báo Tường Hoàn Chỉnh', emoji: '📰' }
+                ].map((cat) => (
+                  <button
+                    key={cat.key}
+                    type="button"
+                    onClick={() => setImageCategory(cat.key)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '5px 12px',
+                      borderRadius: '9999px',
+                      border: imageCategory === cat.key ? '1.5px solid #f59e0b' : '1px solid #e2e8f0',
+                      background: imageCategory === cat.key ? '#fffbeb' : '#ffffff',
+                      color: imageCategory === cat.key ? '#b45309' : '#475569',
+                      fontSize: '0.74rem',
+                      fontWeight: imageCategory === cat.key ? 800 : 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span>{cat.emoji}</span>
+                    <span>{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Grid of Sample Images */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+                  gap: '12px'
+                }}
+              >
+                {filteredImages.map((img) => (
+                  <div
+                    key={img.id}
+                    style={{
+                      background: '#ffffff',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                      transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                    }}
+                  >
+                    {/* Thumbnail Image */}
+                    <div
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '140px',
+                        background: '#f1f5f9',
+                        overflow: 'hidden',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => onOpenLightbox && onOpenLightbox(img.url, img.title)}
+                      title="Bấm để phóng to xem chi tiết"
+                    >
+                      <img
+                        src={img.url}
+                        alt={img.title}
+                        loading="lazy"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          background: '#ffffff'
+                        }}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '6px',
+                          left: '6px',
+                          background: 'rgba(15, 23, 42, 0.75)',
+                          backdropFilter: 'blur(4px)',
+                          color: '#ffffff',
+                          fontSize: '0.62rem',
+                          fontWeight: 700,
+                          padding: '2px 6px',
+                          borderRadius: '6px'
+                        }}
+                      >
+                        {img.emoji} {img.categoryLabel}
+                      </div>
+
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '6px',
+                          right: '6px',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: 'rgba(15, 23, 42, 0.65)',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.7rem'
+                        }}
+                        title="Xem phóng to"
+                      >
+                        <i className="bi bi-arrows-fullscreen"></i>
+                      </div>
+                    </div>
+
+                    {/* Image details & Pick CTA */}
+                    <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                      <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>
+                        {img.title}
+                      </div>
+                      <div style={{ fontSize: '0.65rem', color: '#64748b', lineHeight: 1.3, flex: 1 }}>
+                        {img.description}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handlePickImage(img.url, img.title)}
+                        style={{
+                          marginTop: '6px',
+                          width: '100%',
+                          padding: '6px 8px',
+                          borderRadius: '10px',
+                          background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                          border: 'none',
+                          color: '#ffffff',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '5px',
+                          boxShadow: '0 2px 6px rgba(37, 99, 235, 0.3)'
+                        }}
+                      >
+                        <i className="bi bi-plus-circle-fill"></i>
+                        <span>Chọn làm ảnh mẫu</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: PROMPT GỢI Ý THEO TỪNG PHẦN */}
+          {modalTab === 'prompts' && (
+            <div>
+              {/* 4 Section Tabs */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: '6px',
+                  marginBottom: '16px'
+                }}
+              >
+                {['border', 'header', 'footer', 'body'].map((secKey) => {
+                  const sec = PROMPT_SUGGESTIONS[secKey];
+                  const isActive = promptCategory === secKey;
+                  return (
+                    <button
+                      key={secKey}
+                      type="button"
+                      onClick={() => setPromptCategory(secKey)}
+                      style={{
+                        padding: '8px 6px',
+                        borderRadius: '12px',
+                        border: isActive ? `2px solid ${sec.accentColor}` : '1px solid #e2e8f0',
+                        background: isActive ? '#f8fafc' : '#ffffff',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '2px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <span style={{ fontSize: '1.1rem' }}>{sec.emoji}</span>
+                      <span
+                        style={{
+                          fontSize: '0.72rem',
+                          fontWeight: isActive ? 800 : 600,
+                          color: isActive ? sec.accentColor : '#64748b',
+                          textAlign: 'center',
+                          lineHeight: 1.2
+                        }}
+                      >
+                        {sec.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Suggestions List for Selected Section */}
+              {PROMPT_SUGGESTIONS[promptCategory] && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '1.1rem' }}>{PROMPT_SUGGESTIONS[promptCategory].emoji}</span>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 800, color: PROMPT_SUGGESTIONS[promptCategory].accentColor }}>
+                        Các mẫu prompt cho phần {PROMPT_SUGGESTIONS[promptCategory].label}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                      Bấm "Chèn vào ô nhập" để tự động áp dụng
+                    </span>
+                  </div>
+
+                  {PROMPT_SUGGESTIONS[promptCategory].items.map((item) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        background: '#ffffff',
+                        border: '1.5px solid #e2e8f0',
+                        borderRadius: '16px',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                        transition: 'border-color 0.15s ease'
+                      }}
+                    >
+                      {/* Item Header */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
+                            {item.title}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '0.62rem',
+                              fontWeight: 700,
+                              padding: '2px 7px',
+                              borderRadius: '9999px',
+                              background: '#eff6ff',
+                              color: '#2563eb',
+                              border: '1px solid #bfdbfe'
+                            }}
+                          >
+                            {item.badge}
+                          </span>
+                        </div>
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyPrompt(item.text)}
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1',
+                              background: '#f8fafc',
+                              color: '#475569',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                            title="Sao chép nội dung prompt"
+                          >
+                            <i className="bi bi-clipboard"></i>
+                            <span>Chép</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleApply(promptCategory, item.text)}
+                            style={{
+                              padding: '4px 12px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              background: `linear-gradient(135deg, ${PROMPT_SUGGESTIONS[promptCategory].accentColor} 0%, #db2777 100%)`,
+                              color: '#ffffff',
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                            }}
+                          >
+                            <i className="bi bi-arrow-down-left-square-fill"></i>
+                            <span>Chèn vào ô nhập</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Prompt Text Box */}
+                      <div
+                        style={{
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '10px',
+                          padding: '8px 10px',
+                          fontSize: '0.78rem',
+                          color: '#334155',
+                          lineHeight: '1.45',
+                          fontFamily: 'inherit'
+                        }}
+                      >
+                        {item.text}
+                      </div>
+
+                      {/* Tag pills */}
+                      {item.tags && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {item.tags.map((t) => (
+                            <span
+                              key={t}
+                              style={{
+                                fontSize: '0.64rem',
+                                color: '#64748b',
+                                background: '#f1f5f9',
+                                padding: '1px 6px',
+                                borderRadius: '6px'
+                              }}
+                            >
+                              #{t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div
+          style={{
+            padding: '10px 20px',
+            borderTop: '1px solid #e2e8f0',
+            background: '#f8fafc',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+            💡 Mẹo: Bạn có thể chọn ảnh mẫu hoặc chèn prompt gợi ý, sau đó tùy chỉnh thêm theo ý muốn.
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding: '6px 16px',
+              borderRadius: '10px',
+              border: '1px solid #cbd5e1',
+              background: '#ffffff',
+              color: '#334155',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

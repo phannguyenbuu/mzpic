@@ -863,6 +863,26 @@ export default function App() {
     showToast('Đã gỡ ảnh tham chiếu', 'info');
   };
 
+  const handleSelectSampleImage = (section, imgUrl, title) => {
+    const sectionNames = {
+      border: 'Đường Viền',
+      header: 'Header',
+      footer: 'Footer',
+      body: 'Body Trang'
+    };
+    const newImg = {
+      id: `sample_${section}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      url: imgUrl,
+      name: title || 'Mẫu báo tường',
+      section
+    };
+    if (section === 'border') setBorderImages((prev) => [...prev, newImg]);
+    else if (section === 'header') setHeaderImages((prev) => [...prev, newImg]);
+    else if (section === 'footer') setFooterImages((prev) => [...prev, newImg]);
+    else if (section === 'body') setBodyImages((prev) => [...prev, newImg]);
+    showToast(`✓ Đã thêm ảnh mẫu vào phần [${sectionNames[section] || section}]!`, 'success');
+  };
+
   // Handle Reference Image Upload (Ảnh cũ để AI sửa - hỗ trợ nhiều ảnh)
   const handleUploadReferenceImage = (file) => {
     if (!file.type.startsWith('image/')) {
@@ -1693,6 +1713,8 @@ export default function App() {
                 setActivePromptSection={setActivePromptSection}
                 onUploadSectionImages={handleUploadSectionImages}
                 onRemoveSectionImage={handleRemoveSectionImage}
+                onSelectSampleImage={handleSelectSampleImage}
+                showToast={showToast}
                 autoUpscaleA0={autoUpscaleA0}
                 setAutoUpscaleA0={setAutoUpscaleA0}
               />

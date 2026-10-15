@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Tooltip from './Tooltip';
+import SuggestionModal from './SuggestionModal';
 import { calculatePixels } from '../data/presets';
 import { extractImageFromPasteEvent, readImageFromClipboard } from '../utils/clipboard';
 
@@ -61,10 +62,13 @@ export default function PromptCard({
   setActivePromptSection,
   onUploadSectionImages,
   onRemoveSectionImage,
+  onSelectSampleImage,
+  showToast,
   autoUpscaleA0 = true,
   setAutoUpscaleA0
 }) {
   const [localSection, setLocalSection] = useState('border');
+  const [suggestionModalOpen, setSuggestionModalOpen] = useState(false);
   const currentSection = activePromptSection || localSection;
   const setSection = setActivePromptSection || setLocalSection;
   const fileInputRef = useRef(null);
@@ -248,6 +252,14 @@ export default function PromptCard({
     } else if (!currentVal.includes(tag)) {
       curSec.setPrompt(`${currentVal.trim()}, ${tag}`);
     }
+  };
+
+  const handleApplyPrompt = (sectionKey, promptText) => {
+    if (sectionKey === 'border' && setBorderPrompt) setBorderPrompt(promptText);
+    else if (sectionKey === 'header' && setHeaderPrompt) setHeaderPrompt(promptText);
+    else if (sectionKey === 'footer' && setFooterPrompt) setFooterPrompt(promptText);
+    else if (sectionKey === 'body' && setBodyPrompt) setBodyPrompt(promptText);
+    else if (curSec.setPrompt) curSec.setPrompt(promptText);
   };
 
   const handleKeyDown = (e) => {
@@ -477,49 +489,15 @@ export default function PromptCard({
         </div>
       </div>
 
-      {/* Active Section Header Banner */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '6px 12px',
-              background: curSec.activeBg,
-              borderRadius: '12px',
-              border: `1px solid ${curSec.borderColor}`,
-              marginBottom: '8px'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '1rem' }}>{curSec.emoji}</span>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: curSec.accentColor }}>
-                Phần: {curSec.label}
-              </span>
-            </div>
-            <span
-              style={{
-                fontSize: '0.66rem',
-                fontWeight: 700,
-                color: curSec.accentColor,
-                background: 'rgba(255, 255, 255, 0.85)',
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                border: `1px solid ${curSec.borderColor}`
-              }}
-            >
-              {curSec.badgeText}
-            </span>
-          </div>
-
-          {/* Hidden File Input for Active Section */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleSectionUpload}
-            style={{ display: 'none' }}
-          />
+      {/* Hidden File Input for Active Section */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleSectionUpload}
+        style={{ display: 'none' }}
+      />
 
           {/* Multi-Image Strip or Upload Button */}
           {curSec.images && curSec.images.length > 0 ? (
@@ -675,6 +653,32 @@ export default function PromptCard({
                   <span style={{ fontSize: '0.55rem', fontWeight: 700 }}>Paste</span>
                 </button>
               </Tooltip>
+
+              {/* Suggestion Library Button slot */}
+              <Tooltip text={`Mở Thư viện hình ảnh mẫu & Gợi ý prompt cho ${curSec.label}`}>
+                <button
+                  type="button"
+                  onClick={() => setSuggestionModalOpen(true)}
+                  style={{
+                    width: '48px',
+                    height: '76px',
+                    flexShrink: 0,
+                    borderRadius: '12px',
+                    border: '1.5px solid #f59e0b',
+                    background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
+                    color: '#b45309',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    gap: '3px'
+                  }}
+                >
+                  <i className="bi bi-lightbulb-fill" style={{ fontSize: '1rem', color: '#d97706' }}></i>
+                  <span style={{ fontSize: '0.58rem', fontWeight: 800 }}>Gợi ý</span>
+                </button>
+              </Tooltip>
             </div>
           ) : (
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
@@ -724,6 +728,32 @@ export default function PromptCard({
                   <span>Paste (Ctrl+V)</span>
                 </button>
               </Tooltip>
+
+              <button
+                type="button"
+                onClick={() => setSuggestionModalOpen(true)}
+                className="liquid-pill-btn"
+                style={{
+                  width: 'auto',
+                  padding: '7px 14px',
+                  justifyContent: 'center',
+                  fontSize: '0.76rem',
+                  fontWeight: 800,
+                  border: '1.5px solid #f59e0b',
+                  background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
+                  color: '#b45309',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 6px rgba(245, 158, 11, 0.15)',
+                  cursor: 'pointer'
+                }}
+                title="Mở Thư viện hình ảnh mẫu báo tường & Gợi ý prompt"
+              >
+                <i className="bi bi-lightbulb-fill" style={{ color: '#d97706' }}></i>
+                <span>Gợi ý</span>
+              </button>
             </div>
           )}
 
@@ -838,43 +868,91 @@ export default function PromptCard({
             </div>
           </div>
 
-          {/* Quick Tags Suggestions for this section */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: curSec.accentColor, alignSelf: 'center', marginRight: '2px' }}>
-              Gợi ý:
-            </span>
-            {curSec.tags.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => handleTagClick(tag)}
+          {/* Nút Gợi ý rõ ràng: Thư viện hình ảnh báo tường & Prompt gợi ý tương ứng từng tab */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginTop: '10px', marginBottom: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setSuggestionModalOpen(true)}
+              className="liquid-pill-btn"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 18px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fde68a 100%)',
+                border: '1.5px solid #f59e0b',
+                color: '#b45309',
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                boxShadow: '0 3px 10px rgba(245, 158, 11, 0.2)',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 158, 11, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 3px 10px rgba(245, 158, 11, 0.2)';
+              }}
+            >
+              <span
                 style={{
-                  fontSize: '0.64rem',
-                  padding: '2px 8px',
-                  borderRadius: '8px',
-                  border: `1px solid ${curSec.borderColor}`,
-                  background: 'rgba(255, 255, 255, 0.95)',
-                  color: '#475569',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = curSec.accentColor;
-                  e.currentTarget.style.color = curSec.accentColor;
-                  e.currentTarget.style.background = curSec.activeBg;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = curSec.borderColor;
-                  e.currentTarget.style.color = '#475569';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.82rem',
+                  boxShadow: '0 2px 5px rgba(217, 119, 6, 0.35)'
                 }}
               >
-                + {tag}
+                <i className="bi bi-lightbulb-fill"></i>
+              </span>
+              <span>Gợi ý ({curSec.shortLabel})</span>
+              <span
+                style={{
+                  fontSize: '0.66rem',
+                  fontWeight: 700,
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  color: '#92400e',
+                  padding: '2px 8px',
+                  borderRadius: '9999px',
+                  border: '1px solid #fcd34d'
+                }}
+              >
+                Thư viện ảnh & Prompt
+              </span>
+            </button>
+
+            {curSec.prompt && curSec.prompt.trim() && (
+              <button
+                type="button"
+                onClick={() => curSec.setPrompt && curSec.setPrompt('')}
+                style={{
+                  fontSize: '0.68rem',
+                  color: '#94a3b8',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title="Xóa nội dung prompt ô này"
+              >
+                <i className="bi bi-eraser"></i>
+                <span>Xóa prompt</span>
               </button>
-            ))}
+            )}
           </div>
-
-
 
           {/* Slim Liquid Progress Bar */}
           {isGenerating && (
@@ -896,6 +974,17 @@ export default function PromptCard({
               )}
             </div>
           )}
+
+      {/* Modal Gợi Ý Thiết Kế: 2 Tabs (1. Thư viện hình ảnh mẫu báo tường, 2. Prompt gợi ý tương ứng từng tab) */}
+      <SuggestionModal
+        isOpen={suggestionModalOpen}
+        onClose={() => setSuggestionModalOpen(false)}
+        activeSection={currentSection}
+        onApplyPrompt={handleApplyPrompt}
+        onSelectSampleImage={onSelectSampleImage}
+        showToast={showToast}
+        onOpenLightbox={onOpenLightbox}
+      />
     </div>
   );
 }
