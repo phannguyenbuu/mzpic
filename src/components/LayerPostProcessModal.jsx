@@ -19,6 +19,7 @@ export default function LayerPostProcessModal({
   onOpenMockup3D,
   onRemoveBg,
   onDownload,
+  onDownloadPdf,
   transparentBg = false
 }) {
   const fileInputRef = useRef(null);
@@ -564,6 +565,40 @@ export default function LayerPostProcessModal({
                 <i className="bi bi-transparency"></i>
               </button>
             )}
+            {/* Nút Tải PDF A0 */}
+            <button
+              type="button"
+              onClick={() => {
+                if (layer.image && onDownloadPdf) {
+                  onDownloadPdf(layer.image);
+                } else if (onDownloadPdf) {
+                  onDownloadPdf();
+                }
+              }}
+              disabled={!layer.image || isGenerating}
+              className="liquid-icon-btn"
+              title="Tải layer này dưới dạng PDF chuẩn in A0 (841 × 1189 mm)"
+              style={{
+                marginLeft: 'auto',
+                flexShrink: 0,
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                color: '#ffffff',
+                border: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '0 8px',
+                height: '32px',
+                borderRadius: '10px',
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                boxShadow: '0 2px 8px rgba(220, 38, 38, 0.35)'
+              }}
+            >
+              <i className="bi bi-file-earmark-pdf-fill" style={{ fontSize: '0.85rem' }}></i>
+              <span>PDF A0</span>
+            </button>
+
             <button
               type="button"
               onClick={() => {
@@ -580,9 +615,9 @@ export default function LayerPostProcessModal({
               }}
               disabled={!layer.image || isGenerating}
               className="liquid-icon-btn primary-download"
-              title="Tải về layer này"
+              title="Tải về file ảnh layer này"
               style={{
-                marginLeft: 'auto',
+                marginLeft: '6px',
                 flexShrink: 0,
                 background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 50%, #4f46e5 100%)',
                 color: '#ffffff',

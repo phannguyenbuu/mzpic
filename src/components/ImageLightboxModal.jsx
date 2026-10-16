@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Tooltip from './Tooltip';
+import { exportToA0Pdf } from '../utils/pdfExport';
 
 export default function ImageLightboxModal({ isOpen, imageUrl, title = 'Ảnh Gốc', onClose, onOpenEdit }) {
   const [scale, setScale] = useState(1);
@@ -164,6 +165,21 @@ export default function ImageLightboxModal({ isOpen, imageUrl, title = 'Ảnh G�
     }
   };
 
+  const handleDownloadPdf = async (e) => {
+    if (e) e.stopPropagation();
+    if (!imageUrl) return;
+    try {
+      await exportToA0Pdf(imageUrl, {
+        width: 841,
+        height: 1189,
+        filename: `${(title || 'BaoTuong').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF]/g, '_')}_A0_841x1189mm.pdf`,
+        title: title || 'Báo Tường A0 (841 × 1189 mm)'
+      });
+    } catch (err) {
+      console.error('Lỗi xuất PDF A0:', err);
+    }
+  };
+
   return (
     <div
       style={{
@@ -265,6 +281,30 @@ export default function ImageLightboxModal({ isOpen, imageUrl, title = 'Ảnh G�
               </button>
             </Tooltip>
           )}
+
+          <Tooltip text="Tải file PDF chuẩn in ấn A0 (841 × 1189 mm)">
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#ffffff',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)'
+              }}
+            >
+              <i className="bi bi-file-earmark-pdf-fill"></i>
+              <span>PDF A0</span>
+            </button>
+          </Tooltip>
 
           <Tooltip text="Tải trực tiếp ảnh về máy">
             <button
@@ -442,6 +482,30 @@ export default function ImageLightboxModal({ isOpen, imageUrl, title = 'Ảnh G�
           </Tooltip>
 
           <div style={{ width: '1px', height: '18px', background: 'rgba(255, 255, 255, 0.15)' }} />
+
+          <Tooltip text="Tải file PDF chuẩn in ấn A0 (841 × 1189 mm)">
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '6px 14px',
+                borderRadius: '9999px',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                border: 'none',
+                color: '#ffffff',
+                cursor: 'pointer',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                boxShadow: '0 2px 8px rgba(220, 38, 38, 0.4)'
+              }}
+            >
+              <i className="bi bi-file-earmark-pdf-fill"></i>
+              <span>PDF A0</span>
+            </button>
+          </Tooltip>
 
           <Tooltip text="Tải ảnh về máy">
             <button

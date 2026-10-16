@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import Tooltip from './Tooltip';
+import { exportToA0Pdf } from '../utils/pdfExport';
 
 // Curated sample images specifically for school wall newspapers (Báo Tường) from Downloads/refs (30 mẫu thực tế)
 const CURATED_PAPER_IMAGES = [
@@ -427,6 +428,7 @@ export default function SuggestionModal({
   onOpenMockup3D,
   onRemoveBg,
   onDownload,
+  onDownloadPdf,
   onDownloadWithGenAiUpscale,
   aiUpscaleState,
   resultImage,
@@ -572,6 +574,26 @@ export default function SuggestionModal({
       onDownloadWithGenAiUpscale();
     } else if (onDownload) {
       onDownload();
+    }
+  };
+
+  const handleActionDownloadPdf = async () => {
+    const targetUrl = selectedImage?.url || resultImage;
+    if (!targetUrl) return;
+
+    if (showToast) showToast('📄 Đang chuẩn bị file PDF chuẩn in A0 (841 × 1189 mm)...', 'info');
+
+    try {
+      await exportToA0Pdf(targetUrl, {
+        width: 841,
+        height: 1189,
+        filename: `${selectedImage?.id || 'BaoTuong'}_A0_841x1189mm.pdf`,
+        title: selectedImage?.title || 'Báo Tường Mẫu A0 (841 × 1189 mm)'
+      });
+      if (showToast) showToast(`🎉 Đã tải file PDF A0 "${selectedImage?.title || 'Báo Tường'}" thành công!`, 'success');
+    } catch (e) {
+      console.error('Lỗi xuất PDF mẫu:', e);
+      if (showToast) showToast('Lỗi xuất PDF: ' + e.message, 'error');
     }
   };
 
@@ -1209,6 +1231,34 @@ export default function SuggestionModal({
                 <i className="bi bi-transparency"></i>
               </button>
             )}
+
+            {/* Nút Tải file PDF chuẩn in A0 (841 x 1189 mm) */}
+            <button
+              type="button"
+              onClick={handleActionDownloadPdf}
+              disabled={!targetImageUrl}
+              className="liquid-icon-btn"
+              title="Tải ảnh mẫu này dưới dạng PDF chuẩn in A0 (841 × 1189 mm)"
+              style={{
+                marginLeft: 'auto',
+                flexShrink: 0,
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                color: '#ffffff',
+                border: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '0 9px',
+                height: '32px',
+                borderRadius: '10px',
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                boxShadow: '0 2px 8px rgba(220, 38, 38, 0.35)'
+              }}
+            >
+              <i className="bi bi-file-earmark-pdf-fill" style={{ fontSize: '0.85rem' }}></i>
+              <span>PDF A0</span>
+            </button>
 
             {/* Nút Tải về (Không có chữ, chỉ dùng icon, cùng hàng ngang, đẩy sang phải) */}
             <button

@@ -24,6 +24,7 @@ import { getPromptTemplates, savePromptTemplates, getGeneralComment, saveGeneral
 import { createRenderJob, formatReferenceImageUrl, extractJobImageUrl } from './utils/api';
 import { requestAiUpscale, upscaleImageToHighRes, downloadFile } from './utils/upscale';
 import { compositeLayersToDataUrl } from './utils/compositeLayers';
+import { exportToA0Pdf } from './utils/pdfExport';
 import { getStoredUser, logoutUser, fetchMzPicSettings, fetchMzPicPrompts } from './utils/agentApi';
 
 // Demo Before/After samples for initial User Gallery display
@@ -1445,7 +1446,7 @@ export default function App() {
       showToast('🎉 Đã kích nét AI chuẩn in A0 300 DPI và tải file về máy thành công!', 'success');
     } catch (err) {
       console.warn('Lỗi kích nét AI khi download:', err);
-      showToast(`Máy chủ GPU bận: ${err.message}. Đang tải trực tiếp bản tổng hợp 4 layer...`, 'warning');
+      showToast(`Máy chủ GPU bận: ${err.message}. Đang tải trực tiếp bản thiết kế...`, 'warning');
       try {
         const fallbackData = await compositeLayersToDataUrl(
           Object.values(layers),
@@ -1542,6 +1543,47 @@ export default function App() {
       console.warn('Lỗi API kích nét GPU, tải ảnh kết quả hiện tại:', e);
       downloadFile(resultImage, fileName);
       showToast('✅ Đã tải file ảnh!', 'success');
+    }
+  };
+
+  // Xuất và tải file PDF chuẩn in ấn A0 (841 x 1189 mm)
+  const handleDownloadPdf = async (customImageUrl = null) => {
+    const targetSource = customImageUrl || upscaledImageRef.current || resultImage || layers?.body?.image || layers?.frame?.image;
+    if (!targetSource) {
+      showToast('Chưa có bản thiết kế để xuất file PDF!', 'warning');
+      return;
+    }
+
+    showToast('📄 Đang chuẩn bị xuất file PDF chuẩn in A0 (841 × 1189 mm)...', 'info');
+
+    try {
+      let finalImg = targetSource;
+
+      // Nếu không chỉ định ảnh riêng và có các layer trong bảng vẽ, tổng hợp nét cao
+      if (!customImageUrl && (layers?.body?.image || layers?.frame?.image)) {
+        const targetW = calculatePixels(841, 'mm', 300);
+        const targetH = calculatePixels(1189, 'mm', 300);
+        finalImg = await compositeLayersToDataUrl(
+          Object.values(layers),
+          upscaledImageRef.current || resultImage,
+          targetW,
+          targetH
+        );
+      }
+
+      const fileName = `BaoTuong_A0_841x1189mm_ChuanIn_${Date.now()}.pdf`;
+
+      await exportToA0Pdf(finalImg, {
+        width: 841,
+        height: 1189,
+        filename: fileName,
+        title: prompt ? `Báo Tường: ${prompt.slice(0, 50)}` : 'Báo Tường Học Đường A0 (841 × 1189 mm)'
+      });
+
+      showToast('🎉 Đã tải file PDF chuẩn in A0 (841 × 1189 mm) thành công!', 'success');
+    } catch (err) {
+      console.error('Lỗi xuất PDF A0:', err);
+      showToast(`❌ Lỗi xuất file PDF: ${err.message}`, 'error');
     }
   };
 
@@ -1642,6 +1684,7 @@ export default function App() {
                 onOpenEdit={() => setEditModalOpen(true)}
                 onOpenMockup3D={handleOpenMockup3D}
                 onDownload={handleDownload}
+                onDownloadPdf={handleDownloadPdf}
                 onRemoveBg={handleRemoveBg}
                 onOpenLightbox={handleOpenLightbox}
                 onOpenResize={() => handleOpenResize('result')}
@@ -1694,6 +1737,7 @@ export default function App() {
                 onOpenMockup3D={handleOpenMockup3D}
                 onRemoveBg={handleRemoveBg}
                 onDownload={handleDownload}
+                onDownloadPdf={handleDownloadPdf}
                 onDownloadWithGenAiUpscale={handleDownloadWithGenAiUpscale}
                 aiUpscaleState={aiUpscaleState}
                 resultImage={resultImage}

@@ -27,7 +27,8 @@ export default function ResultCard({
   onUpdateLayer,
   onReplaceLayerImage,
   onRegenerateLayer,
-  onDownloadWithGenAiUpscale
+  onDownloadWithGenAiUpscale,
+  onDownloadPdf
 }) {
   const [layersExpanded, setLayersExpanded] = useState(true);
   const [selectedLayerForModal, setSelectedLayerForModal] = useState(null);
@@ -101,7 +102,7 @@ export default function ResultCard({
               Chưa có kết quả thiết kế
             </div>
             <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>
-              Nhập nội dung 4 tab và bấm <strong>Tạo Ảnh</strong> để xuất 4 layer báo tường
+              Nhập nội dung các tab và bấm <strong>Tạo Ảnh</strong> để xuất bản thiết kế báo tường
             </div>
           </div>
         )}
@@ -152,7 +153,7 @@ export default function ResultCard({
               <i className="bi bi-arrow-repeat spin" style={{ fontSize: '1.8rem' }}></i>
             </div>
             <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>
-              Đang tạo bản thiết kế 4 layer...
+              Đang tạo bản thiết kế...
             </div>
           </div>
         )}
@@ -169,7 +170,7 @@ export default function ResultCard({
               justifyContent: 'center',
               cursor: 'zoom-in'
             }}
-            onClick={() => onOpenLightbox && onOpenLightbox(resultImage || layers?.body?.image || layers?.border?.image, 'Kết Quả 4 Layer Báo Tường')}
+            onClick={() => onOpenLightbox && onOpenLightbox(resultImage || layers?.body?.image || layers?.border?.image, 'Kết Quả Báo Tường')}
           >
             {/* Fallback Base Composite Image: Chỉ hiện khi KHÔNG có layer riêng lẻ nào */}
             {!hasIndividualLayers && resultImage && (
@@ -682,15 +683,45 @@ export default function ResultCard({
           </button>
         )}
 
-        {/* Nút Tải về (Không có chữ, chỉ dùng icon, cùng hàng ngang, đẩy sang phải) */}
+        {/* Nút Tải file PDF chuẩn in ấn A0 (841 x 1189 mm) */}
+        <button
+          type="button"
+          onClick={onDownloadPdf}
+          disabled={!hasAnyLayerImage || isGenerating}
+          className="liquid-icon-btn"
+          title="Tải file PDF chuẩn in ấn A0 (841 × 1189 mm)"
+          style={{
+            marginLeft: 'auto',
+            flexShrink: 0,
+            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            color: '#ffffff',
+            border: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '0 10px',
+            height: '34px',
+            borderRadius: '12px',
+            fontSize: '0.72rem',
+            fontWeight: 800,
+            cursor: (!hasAnyLayerImage || isGenerating) ? 'not-allowed' : 'pointer',
+            opacity: (!hasAnyLayerImage || isGenerating) ? 0.5 : 1,
+            boxShadow: '0 2px 8px rgba(220, 38, 38, 0.35)'
+          }}
+        >
+          <i className="bi bi-file-earmark-pdf-fill" style={{ fontSize: '0.92rem' }}></i>
+          <span>PDF A0</span>
+        </button>
+
+        {/* Nút Tải về Ảnh PNG (Kích nét AI 300 DPI) */}
         <button
           type="button"
           onClick={onDownloadWithGenAiUpscale || onDownload}
           disabled={!hasAnyLayerImage || isGenerating || aiUpscaleState?.isUpscaling}
           className="liquid-icon-btn primary-download"
-          title={aiUpscaleState?.isUpscaling ? `Đang kích nét AI (${aiUpscaleState.progress}%)...` : "Tải về (Kích nét AI)"}
+          title={aiUpscaleState?.isUpscaling ? `Đang kích nét AI (${aiUpscaleState.progress}%)...` : "Tải file ảnh PNG (Kích nét AI 300 DPI)"}
           style={{
-            marginLeft: 'auto',
+            marginLeft: '6px',
             flexShrink: 0,
             background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 50%, #4f46e5 100%)',
             color: '#ffffff',
@@ -721,6 +752,7 @@ export default function ResultCard({
         onOpenMockup3D={onOpenMockup3D}
         onRemoveBg={onRemoveBg}
         onDownload={onDownload}
+        onDownloadPdf={onDownloadPdf}
         transparentBg={transparentBg}
       />
     </div>

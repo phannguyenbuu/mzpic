@@ -43,6 +43,7 @@ export default function PromptCard({
   onOpenMockup3D,
   onRemoveBg,
   onDownload,
+  onDownloadPdf,
   onDownloadWithGenAiUpscale,
   aiUpscaleState,
   resultImage,
@@ -826,6 +827,7 @@ export default function PromptCard({
         onOpenMockup3D={onOpenMockup3D}
         onRemoveBg={onRemoveBg}
         onDownload={onDownload}
+        onDownloadPdf={onDownloadPdf}
         onDownloadWithGenAiUpscale={onDownloadWithGenAiUpscale}
         aiUpscaleState={aiUpscaleState}
         resultImage={resultImage}
