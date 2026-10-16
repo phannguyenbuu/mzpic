@@ -21,10 +21,10 @@ import AdminSection from './components/AdminSection';
 import UserGalleryModal from './components/UserGalleryModal';
 import { DESIGN_PRESETS, convertDimension, calculatePixels } from './data/presets';
 import { getPromptTemplates, savePromptTemplates, getGeneralComment, saveGeneralComment } from './data/promptTemplates';
+import { WALLPAPER_COLOR_TONES } from './data/colorTones';
 import { createRenderJob, formatReferenceImageUrl, extractJobImageUrl } from './utils/api';
 import { requestAiUpscale, upscaleImageToHighRes, downloadFile } from './utils/upscale';
 import { compositeLayersToDataUrl } from './utils/compositeLayers';
-import { exportToA0Pdf } from './utils/pdfExport';
 import { getStoredUser, logoutUser, fetchMzPicSettings, fetchMzPicPrompts } from './utils/agentApi';
 
 // Demo Before/After samples for initial User Gallery display
@@ -176,6 +176,39 @@ export default function App() {
 
   const [activePromptSection, setActivePromptSection] = useState('border'); // 'border' | 'header' | 'footer' | 'body'
   const [autoUpscaleA0, setAutoUpscaleA0] = useState(true);
+
+  // Tính năng Làm đẹp từ hệ thống & Chọn tông màu cho báo tường (Multi-select)
+  const [systemBeautify, setSystemBeautify] = useState(() => {
+    const saved = localStorage.getItem('schoolpaper_system_beautify');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [selectedColorTones, setSelectedColorTones] = useState(() => {
+    try {
+      const saved = localStorage.getItem('schoolpaper_selected_color_tones');
+      return saved ? JSON.parse(saved) : ['red', 'yellow'];
+    } catch (e) {
+      return ['red', 'yellow'];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('schoolpaper_system_beautify', String(systemBeautify));
+  }, [systemBeautify]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('schoolpaper_selected_color_tones', JSON.stringify(selectedColorTones));
+    } catch (e) {}
+  }, [selectedColorTones]);
+
+  const getSelectedColorToneNames = useCallback(() => {
+    if (!selectedColorTones || selectedColorTones.length === 0) return '';
+    const names = selectedColorTones.map((idOrName) => {
+      const found = WALLPAPER_COLOR_TONES.find((c) => c.id === idOrName || c.name === idOrName);
+      return found ? found.name : idOrName;
+    });
+    return names.join(', ');
+  }, [selectedColorTones]);
 
   // 2 Layer Architecture (Khung Trang Trí + Thân Báo Tường) cho Hậu Kỳ Báo Tường
   const [layers, setLayers] = useState({
@@ -816,6 +849,8 @@ export default function App() {
     setProgress(0);
     setProgressText('');
     setMockupUrl(null);
+    setSystemBeautify(true);
+    setSelectedColorTones(['red', 'yellow']);
     showToast('Đã reset toàn bộ 4 phần báo tường về mặc định!', 'info');
   };
 
@@ -989,24 +1024,46 @@ export default function App() {
   // Hàm tạo prompt cho Layer Khung (Border + Header + Footer)
   const buildFramePrompt = () => {
     const parts = [];
+    const colorText = getSelectedColorToneNames();
+
+    // 1. Đường viền
     if (borderPrompt && borderPrompt.trim()) {
       parts.push(`[1. ĐƯỜNG VIỀN BÁO TƯỜNG]: ${borderPrompt.trim()}`);
     } else {
       parts.push(`[1. ĐƯỜNG VIỀN BÁO TƯỜNG]: Viền hoa văn màu hồng pastel dáng chữ U ngược (inverted U-shape pink ornamental border on top and both sides), độ dày đường viền tối đa không quá 1% chiều rộng bức ảnh.`);
     }
 
-    if (headerPrompt && headerPrompt.trim()) {
-      parts.push(`[2. TIÊU ĐỀ ĐẦU BÁO (HEADER)]: ${headerPrompt.trim()}`);
-    } else {
-      parts.push(`[2. TIÊU ĐỀ ĐẦU BÁO (HEADER)]: "TRI ÂN THẦY CÔ", kiểu chữ thư pháp nghệ thuật uốn lượn trang trọng, trang trí hoa văn mềm mại ở đỉnh báo.`);
-    }
+    // 2. Tiêu đề Header
+    let currentHeaderPrompt = headerPrompt && headerPrompt.trim()
+      ? headerPrompt.trim()
+      : '"TRI ÂN THẦY CÔ", kiểu chữ thư pháp nghệ thuật uốn lượn trang trọng, trang trí hoa văn mềm mại ở đỉnh báo.';
 
-    if (footerPrompt && footerPrompt.trim()) {
-      parts.push(`[3. CHÂN TRANG BÁO (FOOTER)]: ${footerPrompt.trim()}`);
+    if (systemBeautify) {
+      if (!currentHeaderPrompt.includes('Kích thước header chiếm 1/4') && !currentHeaderPrompt.includes('hình ảnh cổ động')) {
+        currentHeaderPrompt += `\n[LÀM ĐẸP TỪ HỆ THỐNG - HEADER]: Dựa theo nội dung hãy tạo hình ảnh cổ động phù hợp vào. Kích thước header chiếm 1/4 kích thước`;
+      }
+    }
+    parts.push(`[2. TIÊU ĐỀ ĐẦU BÁO (HEADER)]: ${currentHeaderPrompt}`);
+
+    // 3. Chân trang Footer
+    let currentFooterPrompt = footerPrompt && footerPrompt.trim()
+      ? footerPrompt.trim()
+      : 'Chân trang báo: "Chi đoàn Thanh niên • Báo tường Chào mừng ngày 20/11", hoa văn góc đáy thanh lịch nhẹ nhàng.';
+
+    if (systemBeautify) {
+      if (!currentFooterPrompt.includes('hình ảnh cổ động phù hợp vào 2 bên')) {
+        currentFooterPrompt += `\n[LÀM ĐẸP TỪ HỆ THỐNG - FOOTER]: Dựa theo nội dung hãy tạo hình ảnh cổ động phù hợp vào 2 bên.`;
+      }
+    }
+    parts.push(`[3. CHÂN TRANG BÁO (FOOTER)]: ${currentFooterPrompt}`);
+
+    // 4. Tông màu chủ đạo
+    if (colorText) {
+      parts.push(`[TÔNG MÀU CHỦ ĐẠO BÁO TƯỜNG]: Phối hợp các tông màu chủ đạo: ${colorText} xuyên suốt đường viền, tiêu đề, hoa văn trang trí và hình ảnh cổ động, tạo nên tổng thể hài hòa, tươi sáng, trang trọng.`);
     }
 
     parts.push(
-      `[YÊU CẦU ĐẶC BIỆT BẮT BUỘC]: Chỉ vẽ khung trang trí viền hoa văn chữ U ngược, tiêu đề đầu báo nổi bật ở đỉnh, dải chân trang ở đáy. Toàn bộ phần thân giữa (body center) hoàn toàn trống màu trắng tinh khiết (pure solid white empty center), không vẽ ô kẻ, không có chữ hay tranh ở giữa để chừa không gian ghép layer thân báo vào sau.`
+      `[YÊU CẦU ĐẶC BIỆT BẮT BUỘC]: Chỉ vẽ khung trang trí viền hoa văn chữ U ngược, tiêu đề đầu báo nổi bật ở đỉnh (kích thước header chiếm 1/4 kích thước), dải chân trang với hình ảnh cổ động phù hợp ở 2 bên đáy. Toàn bộ phần thân giữa (body center) hoàn toàn trống màu trắng tinh khiết (pure solid white empty center), không vẽ ô kẻ, không có chữ hay tranh ở giữa để chừa không gian ghép layer thân báo vào sau.`
     );
 
     return parts.join('\n\n');
@@ -1015,10 +1072,20 @@ export default function App() {
   // Hàm tạo prompt cho Layer Thân Báo (Body)
   const buildBodyPrompt = () => {
     const parts = [];
+    const colorText = getSelectedColorToneNames();
+
     if (bodyPrompt && bodyPrompt.trim()) {
       parts.push(`[THÂN BÁO TƯỜNG (BODY TRANG)]: ${bodyPrompt.trim()}`);
     } else {
       parts.push(`[THÂN BÁO TƯỜNG (BODY TRANG)]: Bố cục thân báo tường học trò: phân chia các ô bài xã luận, góc thơ ca, lời ngỏ và tranh ảnh học trò, các khung giấy kẻ ô ngay ngắn chừa trống để học sinh viết bài.`);
+    }
+
+    if (systemBeautify) {
+      parts.push(`[LÀM ĐẸP TỪ HỆ THỐNG - THÂN BÁO]: Bố cục thân báo tường trình bày hài hòa, cân đối với header chiếm 1/4 ở trên và hình ảnh cổ động 2 bên chân báo.`);
+    }
+
+    if (colorText) {
+      parts.push(`[TÔNG MÀU HÀI HÒA]: Các ô bài viết, khung viền ô kẻ và hình vẽ minh họa đồng điệu với tông màu chủ đạo: ${colorText} trên nền giấy trắng sáng.`);
     }
 
     parts.push(
@@ -1446,7 +1513,7 @@ export default function App() {
       showToast('🎉 Đã kích nét AI chuẩn in A0 300 DPI và tải file về máy thành công!', 'success');
     } catch (err) {
       console.warn('Lỗi kích nét AI khi download:', err);
-      showToast(`Máy chủ GPU bận: ${err.message}. Đang tải trực tiếp bản thiết kế...`, 'warning');
+      showToast(`Máy chủ GPU bận: ${err.message}. Đang tải trực tiếp bản tổng hợp 4 layer...`, 'warning');
       try {
         const fallbackData = await compositeLayersToDataUrl(
           Object.values(layers),
@@ -1543,47 +1610,6 @@ export default function App() {
       console.warn('Lỗi API kích nét GPU, tải ảnh kết quả hiện tại:', e);
       downloadFile(resultImage, fileName);
       showToast('✅ Đã tải file ảnh!', 'success');
-    }
-  };
-
-  // Xuất và tải file PDF chuẩn in ấn A0 (841 x 1189 mm)
-  const handleDownloadPdf = async (customImageUrl = null) => {
-    const targetSource = customImageUrl || upscaledImageRef.current || resultImage || layers?.body?.image || layers?.frame?.image;
-    if (!targetSource) {
-      showToast('Chưa có bản thiết kế để xuất file PDF!', 'warning');
-      return;
-    }
-
-    showToast('📄 Đang chuẩn bị xuất file PDF chuẩn in A0 (841 × 1189 mm)...', 'info');
-
-    try {
-      let finalImg = targetSource;
-
-      // Nếu không chỉ định ảnh riêng và có các layer trong bảng vẽ, tổng hợp nét cao
-      if (!customImageUrl && (layers?.body?.image || layers?.frame?.image)) {
-        const targetW = calculatePixels(841, 'mm', 300);
-        const targetH = calculatePixels(1189, 'mm', 300);
-        finalImg = await compositeLayersToDataUrl(
-          Object.values(layers),
-          upscaledImageRef.current || resultImage,
-          targetW,
-          targetH
-        );
-      }
-
-      const fileName = `BaoTuong_A0_841x1189mm_ChuanIn_${Date.now()}.pdf`;
-
-      await exportToA0Pdf(finalImg, {
-        width: 841,
-        height: 1189,
-        filename: fileName,
-        title: prompt ? `Báo Tường: ${prompt.slice(0, 50)}` : 'Báo Tường Học Đường A0 (841 × 1189 mm)'
-      });
-
-      showToast('🎉 Đã tải file PDF chuẩn in A0 (841 × 1189 mm) thành công!', 'success');
-    } catch (err) {
-      console.error('Lỗi xuất PDF A0:', err);
-      showToast(`❌ Lỗi xuất file PDF: ${err.message}`, 'error');
     }
   };
 
@@ -1684,7 +1710,6 @@ export default function App() {
                 onOpenEdit={() => setEditModalOpen(true)}
                 onOpenMockup3D={handleOpenMockup3D}
                 onDownload={handleDownload}
-                onDownloadPdf={handleDownloadPdf}
                 onRemoveBg={handleRemoveBg}
                 onOpenLightbox={handleOpenLightbox}
                 onOpenResize={() => handleOpenResize('result')}
@@ -1737,7 +1762,6 @@ export default function App() {
                 onOpenMockup3D={handleOpenMockup3D}
                 onRemoveBg={handleRemoveBg}
                 onDownload={handleDownload}
-                onDownloadPdf={handleDownloadPdf}
                 onDownloadWithGenAiUpscale={handleDownloadWithGenAiUpscale}
                 aiUpscaleState={aiUpscaleState}
                 resultImage={resultImage}
@@ -1770,6 +1794,10 @@ export default function App() {
                 showToast={showToast}
                 autoUpscaleA0={autoUpscaleA0}
                 setAutoUpscaleA0={setAutoUpscaleA0}
+                systemBeautify={systemBeautify}
+                setSystemBeautify={setSystemBeautify}
+                selectedColorTones={selectedColorTones}
+                setSelectedColorTones={setSelectedColorTones}
               />
             </>
           )}

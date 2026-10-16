@@ -3,6 +3,7 @@ import Tooltip from './Tooltip';
 import SuggestionModal from './SuggestionModal';
 import { calculatePixels } from '../data/presets';
 import { extractImageFromPasteEvent, readImageFromClipboard } from '../utils/clipboard';
+import { WALLPAPER_COLOR_TONES } from '../data/colorTones';
 
 export default function PromptCard({
   prompt,
@@ -75,7 +76,11 @@ export default function PromptCard({
   onSelectSampleImage,
   showToast,
   autoUpscaleA0 = true,
-  setAutoUpscaleA0
+  setAutoUpscaleA0,
+  systemBeautify = true,
+  setSystemBeautify,
+  selectedColorTones = [],
+  setSelectedColorTones
 }) {
   const [localSection, setLocalSection] = useState('border');
   const [suggestionModalOpen, setSuggestionModalOpen] = useState(false);
@@ -509,6 +514,242 @@ export default function PromptCard({
         style={{ display: 'none' }}
       />
 
+      {/* KHỐI LÀM ĐẸP TỪ HỆ THỐNG & CHỌN TÔNG MÀU BÁO TƯỜNG (Multi-select) */}
+      <div
+        className="liquid-beautify-box"
+        style={{
+          margin: '0 0 10px 0',
+          padding: '10px 14px',
+          background: 'rgba(255, 255, 255, 0.72)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1.5px solid rgba(226, 232, 240, 0.9)',
+          borderRadius: '18px',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)'
+        }}
+      >
+        {/* Hàng 1: Checkbox "Làm đẹp từ hệ thống" & Trạng thái */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            flexWrap: 'wrap',
+            paddingBottom: '8px',
+            borderBottom: '1px solid rgba(226, 232, 240, 0.6)'
+          }}
+        >
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '9px',
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={Boolean(systemBeautify)}
+              onChange={(e) => setSystemBeautify && setSystemBeautify(e.target.checked)}
+              style={{ display: 'none' }}
+            />
+            {/* Custom Liquid Switch */}
+            <div
+              style={{
+                width: '38px',
+                height: '22px',
+                borderRadius: '9999px',
+                background: systemBeautify
+                  ? 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)'
+                  : 'rgba(203, 213, 225, 0.8)',
+                padding: '2px',
+                transition: 'all 0.25s ease',
+                display: 'flex',
+                alignItems: 'center',
+                boxShadow: systemBeautify ? '0 2px 8px rgba(236, 72, 153, 0.4)' : 'none'
+              }}
+            >
+              <div
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  transform: systemBeautify ? 'translateX(16px)' : 'translateX(0)',
+                  transition: 'transform 0.25s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.62rem',
+                  color: systemBeautify ? '#ec4899' : '#94a3b8'
+                }}
+              >
+                {systemBeautify ? <i className="bi bi-check" style={{ fontWeight: 900 }}></i> : null}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <i className="bi bi-stars" style={{ color: '#ec4899', fontSize: '1rem' }}></i>
+              <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>
+                Làm đẹp từ hệ thống
+              </span>
+              <span
+                style={{
+                  fontSize: '0.64rem',
+                  padding: '2px 7px',
+                  borderRadius: '9999px',
+                  background: systemBeautify ? 'rgba(236, 72, 153, 0.12)' : 'rgba(148, 163, 184, 0.15)',
+                  color: systemBeautify ? '#be185d' : '#64748b',
+                  fontWeight: 700
+                }}
+              >
+                {systemBeautify ? 'Tự động tối ưu' : 'Tắt'}
+              </span>
+            </div>
+          </label>
+
+          {/* Prompt quick preview hint */}
+          <div
+            style={{
+              fontSize: '0.72rem',
+              color: '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <i className="bi bi-info-circle" style={{ color: '#3b82f6' }}></i>
+            <span>Header 1/4 & Footer cổ động 2 bên</span>
+          </div>
+        </div>
+
+        {/* Hàng 2: Chọn tông màu cho báo tường (Có thể chọn nhiều màu) */}
+        <div style={{ marginTop: '8px' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '6px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <i className="bi bi-palette2" style={{ color: '#8b5cf6', fontSize: '0.88rem' }}></i>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155' }}>
+                Tông màu báo tường:
+              </span>
+              <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500 }}>
+                (chọn nhiều màu)
+              </span>
+              {selectedColorTones && selectedColorTones.length > 0 && (
+                <span
+                  style={{
+                    fontSize: '0.64rem',
+                    background: '#ede9fe',
+                    color: '#6d28d9',
+                    fontWeight: 800,
+                    padding: '1px 6px',
+                    borderRadius: '9999px'
+                  }}
+                >
+                  {selectedColorTones.length} màu
+                </span>
+              )}
+            </div>
+
+            {selectedColorTones && selectedColorTones.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedColorTones && setSelectedColorTones([])}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  color: '#94a3b8',
+                  fontSize: '0.68rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: '2px 4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px'
+                }}
+                title="Bỏ chọn tất cả màu"
+              >
+                <i className="bi bi-x-circle"></i>
+                <span>Bỏ chọn</span>
+              </button>
+            )}
+          </div>
+
+          {/* Color Swatch Chips */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '6px',
+              alignItems: 'center'
+            }}
+          >
+            {WALLPAPER_COLOR_TONES.map((color) => {
+              const isSelected = selectedColorTones && (selectedColorTones.includes(color.id) || selectedColorTones.includes(color.name));
+              return (
+                <button
+                  key={color.id}
+                  type="button"
+                  onClick={() => {
+                    if (!setSelectedColorTones) return;
+                    if (isSelected) {
+                      setSelectedColorTones(selectedColorTones.filter((c) => c !== color.id && c !== color.name));
+                    } else {
+                      setSelectedColorTones([...(selectedColorTones || []), color.id]);
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '3px 8px 3px 6px',
+                    borderRadius: '9999px',
+                    border: isSelected ? `1.5px solid ${color.hex}` : '1px solid rgba(226, 232, 240, 0.9)',
+                    background: isSelected ? color.bgLight : 'rgba(255, 255, 255, 0.85)',
+                    color: isSelected ? color.textHex : '#475569',
+                    fontSize: '0.72rem',
+                    fontWeight: isSelected ? 800 : 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    boxShadow: isSelected ? `0 2px 6px ${color.hex}33` : 'none',
+                    userSelect: 'none'
+                  }}
+                  title={color.desc}
+                >
+                  <span
+                    style={{
+                      width: '12px',
+                      height: '12px',
+                      borderRadius: '50%',
+                      background: color.hex,
+                      border: color.id === 'white' ? '1px solid #cbd5e1' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.55rem',
+                      color: '#ffffff',
+                      flexShrink: 0
+                    }}
+                  >
+                    {isSelected && <i className="bi bi-check" style={{ lineHeight: 1 }}></i>}
+                  </span>
+                  <span>{color.shortName}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
           {/* Multi-Image Strip or Upload Button */}
           {curSec.images && curSec.images.length > 0 ? (
             <div
@@ -832,6 +1073,10 @@ export default function PromptCard({
         aiUpscaleState={aiUpscaleState}
         resultImage={resultImage}
         transparentBg={transparentBg}
+        systemBeautify={systemBeautify}
+        setSystemBeautify={setSystemBeautify}
+        selectedColorTones={selectedColorTones}
+        setSelectedColorTones={setSelectedColorTones}
       />
     </div>
   );

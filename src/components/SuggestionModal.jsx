@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import Tooltip from './Tooltip';
 import { exportToA0Pdf } from '../utils/pdfExport';
+import { WALLPAPER_COLOR_TONES } from '../data/colorTones';
 
 // Curated sample images specifically for school wall newspapers (Báo Tường) from Downloads/refs (30 mẫu thực tế)
 const CURATED_PAPER_IMAGES = [
@@ -320,6 +321,13 @@ const PROMPT_SUGGESTIONS = {
     accentColor: '#8b5cf6',
     items: [
       {
+        id: 'p_h_beautify',
+        title: 'Làm Đẹp Hệ Thống (Header 1/4 & Cổ Động)',
+        badge: 'Hệ Thống Làm Đẹp',
+        text: 'Dựa theo nội dung hãy tạo hình ảnh cổ động phù hợp vào. Kích thước header chiếm 1/4 kích thước',
+        tags: ['Hệ Thống', 'Header 1/4', 'Hình ảnh cổ động', 'Chuẩn báo tường']
+      },
+      {
         id: 'p_h_1',
         title: 'Tiêu đề "TRI ÂN THẦY CÔ" Thư pháp',
         badge: 'Khuyên Dùng',
@@ -354,6 +362,13 @@ const PROMPT_SUGGESTIONS = {
     emoji: '📝',
     accentColor: '#06b6d4',
     items: [
+      {
+        id: 'p_f_beautify',
+        title: 'Làm Đẹp Hệ Thống (Cổ Động 2 Bên)',
+        badge: 'Hệ Thống Làm Đẹp',
+        text: 'Dựa theo nội dung hãy tạo hình ảnh cổ động phù hợp vào 2 bên.',
+        tags: ['Hệ Thống', 'Cổ động 2 bên', 'Chân báo', 'Cân đối']
+      },
       {
         id: 'p_f_1',
         title: 'Dải ruy băng Chi đoàn 20/11',
@@ -432,7 +447,11 @@ export default function SuggestionModal({
   onDownloadWithGenAiUpscale,
   aiUpscaleState,
   resultImage,
-  transparentBg = false
+  transparentBg = false,
+  systemBeautify = true,
+  setSystemBeautify,
+  selectedColorTones = [],
+  setSelectedColorTones
 }) {
   const [modalTab, setModalTab] = useState('images'); // 'images' | 'prompts'
   const [imageCategory, setImageCategory] = useState('all'); // 'all' | 'border' | 'header' | 'body' | 'full'
@@ -963,6 +982,126 @@ export default function SuggestionModal({
           {/* TAB 2: PROMPT GỢI Ý THEO TỪNG PHẦN */}
           {modalTab === 'prompts' && (
             <div>
+              {/* Box Làm Đẹp Từ Hệ Thống & Tông Màu Báo Tường */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #fff7ed 0%, #fef2f2 50%, #faf5ff 100%)',
+                  border: '1.5px solid #fecdd3',
+                  borderRadius: '16px',
+                  padding: '12px 14px',
+                  marginBottom: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}
+              >
+                {/* Hàng 1: Checkbox Làm đẹp từ hệ thống */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(systemBeautify)}
+                      onChange={(e) => setSystemBeautify && setSystemBeautify(e.target.checked)}
+                      style={{ width: '16px', height: '16px', accentColor: '#ec4899', cursor: 'pointer' }}
+                    />
+                    <i className="bi bi-stars" style={{ color: '#ec4899', fontSize: '1rem' }}></i>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>
+                      Làm đẹp từ hệ thống
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.64rem',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '9999px',
+                        background: systemBeautify ? '#fce7f3' : '#f1f5f9',
+                        color: systemBeautify ? '#be185d' : '#64748b'
+                      }}
+                    >
+                      {systemBeautify ? 'Đang bật' : 'Đang tắt'}
+                    </span>
+                  </label>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    Header 1/4 & Footer cổ động 2 bên
+                  </span>
+                </div>
+
+                {/* Hàng 2: Tông màu báo tường (chọn nhiều màu) */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <i className="bi bi-palette2" style={{ color: '#8b5cf6', fontSize: '0.85rem' }}></i>
+                      <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#334155' }}>
+                        Tông màu sử dụng cho báo tường:
+                      </span>
+                      <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                        (chọn nhiều màu)
+                      </span>
+                      {selectedColorTones && selectedColorTones.length > 0 && (
+                        <span style={{ fontSize: '0.64rem', background: '#ede9fe', color: '#6d28d9', fontWeight: 800, padding: '1px 6px', borderRadius: '9999px' }}>
+                          {selectedColorTones.length} màu
+                        </span>
+                      )}
+                    </div>
+                    {selectedColorTones && selectedColorTones.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedColorTones && setSelectedColorTones([])}
+                        style={{ border: 'none', background: 'none', color: '#94a3b8', fontSize: '0.68rem', cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        Bỏ chọn
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                    {WALLPAPER_COLOR_TONES.map((color) => {
+                      const isSelected = selectedColorTones && (selectedColorTones.includes(color.id) || selectedColorTones.includes(color.name));
+                      return (
+                        <button
+                          key={color.id}
+                          type="button"
+                          onClick={() => {
+                            if (!setSelectedColorTones) return;
+                            if (isSelected) {
+                              setSelectedColorTones(selectedColorTones.filter((c) => c !== color.id && c !== color.name));
+                            } else {
+                              setSelectedColorTones([...(selectedColorTones || []), color.id]);
+                            }
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '3px 8px',
+                            borderRadius: '9999px',
+                            border: isSelected ? `1.5px solid ${color.hex}` : '1px solid #e2e8f0',
+                            background: isSelected ? color.bgLight : '#ffffff',
+                            color: isSelected ? color.textHex : '#475569',
+                            fontSize: '0.7rem',
+                            fontWeight: isSelected ? 800 : 600,
+                            cursor: 'pointer',
+                            boxShadow: isSelected ? `0 1px 4px ${color.hex}44` : 'none'
+                          }}
+                          title={color.desc}
+                        >
+                          <span
+                            style={{
+                              width: '10px',
+                              height: '10px',
+                              borderRadius: '50%',
+                              background: color.hex,
+                              border: color.id === 'white' ? '1px solid #cbd5e1' : 'none'
+                            }}
+                          />
+                          <span>{color.shortName}</span>
+                          {isSelected && <i className="bi bi-check" style={{ fontSize: '0.8rem', lineHeight: 1 }}></i>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
               {/* 4 Section Tabs */}
               <div
                 style={{
