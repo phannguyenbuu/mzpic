@@ -1,11 +1,14 @@
 /**
- * agentApi.js - Quản lý kết nối tới agentapi.quanlymay.com
+ * agentApi.js - Quản lý kết nối tới adm.toolxprint.com
  * Đồng bộ toàn bộ Cài đặt (Settings), Mẫu Prompt, Người dùng (Users), và Xác thực Google Auth
  */
 
-const BASE_URL = window.location.origin.includes('mzpic.com')
+const BASE_URL = (typeof window !== 'undefined' && (
+  window.location.origin.includes('toolxprint.com') ||
+  window.location.origin.includes('mzpic.com')
+))
   ? '/agent-api'
-  : 'https://agentapi.quanlymay.com';
+  : 'https://adm.toolxprint.com';
 
 const AUTH_TOKEN_KEY = 'mzpic_auth_token';
 const USER_KEY = 'mzpic_user';

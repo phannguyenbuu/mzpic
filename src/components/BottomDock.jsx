@@ -2,10 +2,15 @@ import React from 'react';
 import Tooltip from './Tooltip';
 
 export default function BottomDock({ activeTab, setActiveTab }) {
-  const isAgentApi = typeof window !== 'undefined' && (
+  const isAdmHost = typeof window !== 'undefined' && (
+    window.location.host.includes('adm.') ||
     window.location.host.includes('agentapi') ||
     window.location.pathname.includes('/mzpic')
   );
+
+  const targetStudioUrl = typeof window !== 'undefined' && window.location.host.includes('toolxprint')
+    ? 'https://paper.toolxprint.com'
+    : 'https://mzpic.com';
 
   const items = [
     {
@@ -13,14 +18,14 @@ export default function BottomDock({ activeTab, setActiveTab }) {
       label: 'Ảnh Đơn',
       icon: 'bi-stars',
       hint: 'Tạo & Sửa ấn phẩm đơn lẻ',
-      url: isAgentApi ? 'https://mzpic.com/single' : null
+      url: isAdmHost ? `${targetStudioUrl}/single` : null
     },
     {
       id: 'batch',
       label: 'Hàng Loạt',
       icon: 'bi-stack',
       hint: 'Sửa ấn phẩm hàng loạt theo danh sách',
-      url: isAgentApi ? 'https://mzpic.com/batch' : null
+      url: isAdmHost ? `${targetStudioUrl}/batch` : null
     },
     {
       id: 'upscale',
@@ -28,7 +33,7 @@ export default function BottomDock({ activeTab, setActiveTab }) {
       icon: 'bi-arrows-angle-expand',
       badge: '8X',
       hint: 'Kích nét siêu phân giải 2X, 4X, 8X',
-      url: isAgentApi ? 'https://mzpic.com/upscale' : null
+      url: isAdmHost ? `${targetStudioUrl}/upscale` : null
     }
   ];
 

@@ -151,7 +151,7 @@ export default function GoogleAuthModal({ isOpen, onClose, onLogin, showToast, i
         : {
             id: 'token_usr_' + cleanToken.slice(-6),
             name: 'Token User',
-            email: 'token@agentapi.quanlymay.com',
+            email: 'token@adm.toolxprint.com',
             avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80',
             role: 'admin',
             token: cleanToken,
@@ -238,7 +238,7 @@ export default function GoogleAuthModal({ isOpen, onClose, onLogin, showToast, i
             Đăng Nhập Tài Khoản
           </div>
           <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
-            Đồng bộ dữ liệu & quản lý prompt qua <b>agentapi.quanlymay.com</b>
+            Đồng bộ dữ liệu & quản lý prompt qua <b>adm.toolxprint.com</b>
           </div>
         </div>
 
@@ -504,7 +504,7 @@ export default function GoogleAuthModal({ isOpen, onClose, onLogin, showToast, i
               </div>
               <div style={{ display: 'inline-block', padding: '8px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(`https://agentapi.quanlymay.com/mzpic?token=${qrToken}`)}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(`https://adm.toolxprint.com?token=${qrToken}`)}`}
                   alt="QR Login"
                   style={{ width: '120px', height: '120px', display: 'block' }}
                 />

@@ -107,8 +107,8 @@ const getInitialTab = () => {
   const host = typeof window !== 'undefined' ? window.location.host.toLowerCase() : '';
   const path = typeof window !== 'undefined' ? (window.location.pathname.toLowerCase().replace(/\/$/, '') || '/') : '/';
   
-  // Nếu mở trên agentapi.quanlymay.com hoặc path là /mzpic -> Vào thẳng tab Quản Trị
-  if (host.includes('agentapi') || path.includes('mzpic') || path.includes('admin')) {
+  // Nếu mở trên adm.toolxprint.com, agentapi hoặc path là /mzpic, /admin -> Vào thẳng tab Quản Trị
+  if (host.includes('adm.') || host.includes('admin') || host.includes('agentapi') || path.includes('mzpic') || path.includes('admin')) {
     return 'admin';
   }
 
@@ -371,7 +371,7 @@ export default function App() {
     return DEFAULT_DEMO_GALLERY;
   });
 
-  // Đồng bộ cài đặt & Mẫu Prompt từ agentapi.quanlymay.com khi mở ứng dụng
+  // Đồng bộ cài đặt & Mẫu Prompt từ adm.toolxprint.com khi mở ứng dụng
   useEffect(() => {
     fetchMzPicSettings().then((s) => {
       if (s) {

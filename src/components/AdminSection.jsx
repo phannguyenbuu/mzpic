@@ -43,7 +43,7 @@ export default function AdminSection({
   const [settings, setSettings] = useState({
     googleClientId: '475773389104-4frju27uljiuj0mtihidgude16ghr39t.apps.googleusercontent.com',
     googleClientSecret: '',
-    agentApiEndpoint: 'https://agentapi.quanlymay.com',
+    agentApiEndpoint: 'https://adm.toolxprint.com',
     apiEndpoint: 'https://genai.toolxprint.com',
     defaultPresetId: 'flyer_a4',
     defaultStyleId: 'none',
@@ -114,7 +114,7 @@ export default function AdminSection({
     setIsSavingSettings(true);
     try {
       await saveMzPicSettings(settings);
-      if (showToast) showToast('✅ Đã lưu cài đặt lên agentapi.quanlymay.com!', 'success');
+      if (showToast) showToast('✅ Đã lưu cài đặt lên adm.toolxprint.com!', 'success');
     } catch (err) {
       if (showToast) showToast(`Lỗi lưu cài đặt: ${err.message}`, 'error');
     } finally {
@@ -130,7 +130,7 @@ export default function AdminSection({
         templates: promptTemplates,
         generalComment: generalComment
       });
-      if (showToast) showToast('✅ Đã đồng bộ mẫu Prompt lên agentapi.quanlymay.com!', 'success');
+      if (showToast) showToast('✅ Đã đồng bộ mẫu Prompt lên adm.toolxprint.com!', 'success');
     } catch (err) {
       if (showToast) showToast(`Lỗi lưu prompt: ${err.message}`, 'error');
     } finally {
@@ -443,7 +443,7 @@ export default function AdminSection({
                 Quản Trị Người Dùng ({usersList.length} tài khoản)
               </div>
               <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
-                Dữ liệu được lưu trữ trực tiếp trên PostgreSQL của agentapi.quanlymay.com
+                Dữ liệu được lưu trữ trực tiếp trên PostgreSQL của adm.toolxprint.com
               </div>
             </div>
 
@@ -759,7 +759,7 @@ export default function AdminSection({
                 Cài Đặt Hệ Thống School Paper
               </div>
               <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
-                Đồng bộ cấu hình trung tâm tại agentapi.quanlymay.com
+                Đồng bộ cấu hình trung tâm tại adm.toolxprint.com
               </div>
             </div>
 

@@ -247,12 +247,16 @@ export default function Navbar({
                       type="button"
                       onClick={() => {
                         setUserMenuOpen(false);
-                        setActiveTab('admin');
+                        if (typeof window !== 'undefined' && window.location.host.includes('paper.toolxprint.com')) {
+                          window.location.href = 'https://adm.toolxprint.com';
+                        } else {
+                          setActiveTab('admin');
+                        }
                       }}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
+                        justifyContent: 'space-between',
                         padding: '7px 10px',
                         borderRadius: '8px',
                         border: 'none',
@@ -266,8 +270,13 @@ export default function Navbar({
                       onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
-                      <i className="bi bi-sliders text-blue-600"></i>
-                      <span>Cài đặt & Quản trị</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <i className="bi bi-sliders text-blue-600"></i>
+                        <span>Cài đặt & Quản trị</span>
+                      </div>
+                      <span style={{ fontSize: '0.6rem', color: '#2563eb', background: '#eff6ff', padding: '1px 6px', borderRadius: '9999px', fontWeight: 700 }}>
+                        adm.toolxprint.com
+                      </span>
                     </button>
 
                     <button
