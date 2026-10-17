@@ -981,6 +981,20 @@ export default function App() {
     return (val || 0).toLocaleString('vi-VN') + 'đ';
   };
 
+  // Tính toán kích thước an toàn cho Canvas preview trên trình duyệt (tối đa 2480px để chống Out of Memory)
+  const getSafeCanvasDimensions = (w, h, u, maxDim = 2480) => {
+    const rawW = calculatePixels(w || 841, u || 'mm', 300);
+    const rawH = calculatePixels(h || 1189, u || 'mm', 300);
+    if (rawW <= maxDim && rawH <= maxDim) {
+      return { targetW: rawW, targetH: rawH };
+    }
+    const scale = Math.min(maxDim / rawW, maxDim / rawH);
+    return {
+      targetW: Math.max(1, Math.round(rawW * scale)),
+      targetH: Math.max(1, Math.round(rawH * scale))
+    };
+  };
+
   // Mapping aspect ratio to ToolXPrint VPS format
   const getVPSAspectRatio = () => {
     if (aspectRatio === 'square') return '1:1';
@@ -1141,9 +1155,8 @@ export default function App() {
             }
           };
 
-          // Tự động re-composite sang resultImage
-          const targetW = calculatePixels(width || 841, unit || 'mm', 300);
-          const targetH = calculatePixels(height || 1189, unit || 'mm', 300);
+          // Tự động re-composite sang resultImage an toàn không tràn RAM
+          const { targetW, targetH } = getSafeCanvasDimensions(width || 841, height || 1189, unit || 'mm');
           compositeLayersToDataUrl(Object.values(updated), img, targetW, targetH)
             .then((data) => setResultImage(data))
             .catch(() => {});
@@ -1277,9 +1290,8 @@ export default function App() {
       setProgress(100);
       setProgressText('Đang ghép 2 layer hoàn thiện...');
 
-      // Ghép composite preview chất lượng cao
-      const targetW = calculatePixels(width || 841, unit || 'mm', 300);
-      const targetH = calculatePixels(height || 1189, unit || 'mm', 300);
+      // Ghép composite preview chất lượng cao an toàn chống Out of Memory
+      const { targetW, targetH } = getSafeCanvasDimensions(width || 841, height || 1189, unit || 'mm');
 
       const activeLayerList = [
         { id: 'body', image: finalBody, opacity: layers.body.opacity ?? 11, visible: true, zIndex: 1 },
@@ -1473,8 +1485,8 @@ export default function App() {
     try {
       setAiUpscaleState({ isUpscaling: true, progress: 10, stepText: 'Đang kích nét...' });
 
-      const targetW = calculatePixels(width || 841, unit || 'mm', 300);
-      const targetH = calculatePixels(height || 1189, unit || 'mm', 300);
+      const fullPrintW = calculatePixels(width || 841, unit || 'mm', 300);
+      const { targetW, targetH } = getSafeCanvasDimensions(width || 841, height || 1189, unit || 'mm');
 
       const compositeDataUrl = await compositeLayersToDataUrl(
         Object.values(layers),
@@ -1489,7 +1501,7 @@ export default function App() {
         scale: 4,
         modelId: 'digital-art-4x',
         printDpi: 300,
-        customWidth: targetW,
+        customWidth: fullPrintW,
         onProgress: (p) => {
           setAiUpscaleState({
             isUpscaling: true,
@@ -1515,11 +1527,12 @@ export default function App() {
       console.warn('Lỗi kích nét AI khi download:', err);
       showToast(`Máy chủ GPU bận: ${err.message}. Đang tải trực tiếp bản tổng hợp 4 layer...`, 'warning');
       try {
+        const { targetW: fbW, targetH: fbH } = getSafeCanvasDimensions(width || 841, height || 1189, unit || 'mm');
         const fallbackData = await compositeLayersToDataUrl(
           Object.values(layers),
           resultImage,
-          calculatePixels(width || 841, unit || 'mm', 300),
-          calculatePixels(height || 1189, unit || 'mm', 300)
+          fbW,
+          fbH
         );
         const a = document.createElement('a');
         a.href = fallbackData;

@@ -27,14 +27,25 @@ function loadImage(src) {
  * @returns {Promise<string>} Base64 PNG dataUrl
  */
 export async function compositeLayersToDataUrl(layersList = [], fallbackImage = null, targetWidth = 2480, targetHeight = 3508) {
+  // GIỚI HẠN AN TOÀN TRÁNH TRÀN BỘ NHỚ TRÌNH DUYỆT (BROWSER OUT OF MEMORY)
+  // Nếu targetWidth/Height quá lớn (ví dụ chuẩn A0 300DPI = 9933x14043 px = 558MB VRAM), tự động scale an toàn tối đa 2480px (~18MB VRAM)
+  const MAX_SAFE_CANVAS_DIM = 2480;
+  let finalW = targetWidth || 2480;
+  let finalH = targetHeight || 3508;
+  if (finalW > MAX_SAFE_CANVAS_DIM || finalH > MAX_SAFE_CANVAS_DIM) {
+    const scale = Math.min(MAX_SAFE_CANVAS_DIM / finalW, MAX_SAFE_CANVAS_DIM / finalH);
+    finalW = Math.max(1, Math.round(finalW * scale));
+    finalH = Math.max(1, Math.round(finalH * scale));
+  }
+
   const canvas = document.createElement('canvas');
-  canvas.width = targetWidth;
-  canvas.height = targetHeight;
+  canvas.width = finalW;
+  canvas.height = finalH;
   const ctx = canvas.getContext('2d');
 
   // Background is solid white by default for print
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, targetWidth, targetHeight);
+  ctx.fillRect(0, 0, finalW, finalH);
 
   // Filter visible layers that have an image and opacity > 0
   const activeLayers = (layersList || [])
@@ -45,11 +56,10 @@ export async function compositeLayersToDataUrl(layersList = [], fallbackImage = 
     // If no individual layer images but fallback exists, draw fallback
     const fbImg = await loadImage(fallbackImage);
     if (fbImg) {
-      ctx.drawImage(fbImg, 0, 0, targetWidth, targetHeight);
+      ctx.drawImage(fbImg, 0, 0, finalW, finalH);
     }
   } else {
     // Draw active layers in order with their opacity over white background
-
     for (const layer of activeLayers) {
       const img = await loadImage(layer.image);
       if (img) {
@@ -61,11 +71,22 @@ export async function compositeLayersToDataUrl(layersList = [], fallbackImage = 
         } else {
           ctx.globalCompositeOperation = 'source-over';
         }
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+        ctx.drawImage(img, 0, 0, finalW, finalH);
         ctx.restore();
       }
     }
   }
 
-  return canvas.toDataURL('image/png');
+  let dataUrl = '';
+  try {
+    dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+  } catch (err) {
+    dataUrl = canvas.toDataURL('image/png');
+  }
+
+  // Giải phóng ngay lập tức buffer GPU của Canvas để trình duyệt không bị giữ bộ nhớ
+  canvas.width = 1;
+  canvas.height = 1;
+
+  return dataUrl;
 }
