@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Tooltip from './Tooltip';
 import { calculatePixels, convertDimension, DESIGN_PRESETS } from '../data/presets';
 
+import { requestAiUpscale, downloadFile } from '../utils/upscale';
+
 export default function ExactResizeModal({
   isOpen,
   mode = 'result', // 'result' (hậu kỳ) | 'input' (lúc nhập ảnh)
@@ -20,6 +22,9 @@ export default function ExactResizeModal({
   const [lockRatio, setLockRatio] = useState(true);
   const [naturalDimensions, setNaturalDimensions] = useState({ width: 0, height: 0 });
   const [aspectRatioValue, setAspectRatioValue] = useState(1);
+  const [isUpscaling, setIsUpscaling] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [stepText, setStepText] = useState('');
 
   // Load natural dimensions of the image if available
   useEffect(() => {
@@ -43,6 +48,9 @@ export default function ExactResizeModal({
       setUnit(currentUnit || 'mm');
       setDpi(300);
       setLockRatio(true);
+      setIsUpscaling(false);
+      setProgress(0);
+      setStepText('');
       if (currentWidth && currentHeight && currentHeight > 0) {
         setAspectRatioValue(currentWidth / currentHeight);
       }
@@ -91,92 +99,78 @@ export default function ExactResizeModal({
   const targetPxW = calculatePixels(width, unit, dpi);
   const targetPxH = calculatePixels(height, unit, dpi);
 
-  // High-Quality Multi-Step Canvas Scaling (Bicubic-like Smoothing)
-  const performCanvasResize = () => {
-    return new Promise((resolve, reject) => {
-      if (!imageUrl) {
-        resolve(null);
-        return;
-      }
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        let curCanvas = document.createElement('canvas');
-        curCanvas.width = img.naturalWidth;
-        curCanvas.height = img.naturalHeight;
-        let curCtx = curCanvas.getContext('2d');
-        curCtx.imageSmoothingEnabled = true;
-        curCtx.imageSmoothingQuality = 'high';
-        curCtx.drawImage(img, 0, 0);
-
-        let curW = img.naturalWidth;
-        let curH = img.naturalHeight;
-        const finalW = Math.max(1, targetPxW);
-        const finalH = Math.max(1, targetPxH);
-
-        // Step-down scaling by 50% iteratively if downscaling significantly
-        while (curW * 0.5 > finalW && curH * 0.5 > finalH) {
-          const nextW = Math.round(curW * 0.5);
-          const nextH = Math.round(curH * 0.5);
-          const stepCanvas = document.createElement('canvas');
-          stepCanvas.width = nextW;
-          stepCanvas.height = nextH;
-          const stepCtx = stepCanvas.getContext('2d');
-          stepCtx.imageSmoothingEnabled = true;
-          stepCtx.imageSmoothingQuality = 'high';
-          stepCtx.drawImage(curCanvas, 0, 0, nextW, nextH);
-
-          curCanvas = stepCanvas;
-          curW = nextW;
-          curH = nextH;
-        }
-
-        // Final Canvas draw
-        const finalCanvas = document.createElement('canvas');
-        finalCanvas.width = finalW;
-        finalCanvas.height = finalH;
-        const finalCtx = finalCanvas.getContext('2d');
-        finalCtx.imageSmoothingEnabled = true;
-        finalCtx.imageSmoothingQuality = 'high';
-        finalCtx.drawImage(curCanvas, 0, 0, curW, curH, 0, 0, finalW, finalH);
-
-        const dataUrl = finalCanvas.toDataURL('image/png', 0.95);
-        resolve(dataUrl);
-      };
-      img.onerror = reject;
-      img.src = imageUrl;
-    });
-  };
-
   const handleApply = async () => {
-    let resizedDataUrl = null;
     if (mode === 'result' && imageUrl) {
-      resizedDataUrl = await performCanvasResize();
+      setIsUpscaling(true);
+      setProgress(10);
+      setStepText('Đang gửi yêu cầu lên GPU AI Kích Nét (genai.toolxprint)...');
+      try {
+        const upscaled = await requestAiUpscale(imageUrl, {
+          scale: 4,
+          customWidth: targetPxW,
+          printDpi: dpi,
+          modelId: 'digital-art-4x',
+          onProgress: ({ progress: p, current_step }) => {
+            setProgress(p);
+            setStepText(current_step);
+          }
+        });
+        const finalUrl = upscaled.downloadUrl || upscaled.url;
+        if (onApplyResize) {
+          onApplyResize({
+            width,
+            height,
+            unit,
+            dpi,
+            pixelsW: targetPxW,
+            pixelsH: targetPxH,
+            resizedDataUrl: finalUrl
+          });
+        }
+        if (onClose) onClose();
+      } catch (err) {
+        alert('Lỗi kích nét AI GPU: ' + err.message);
+      } finally {
+        setIsUpscaling(false);
+      }
+    } else {
+      if (onApplyResize) {
+        onApplyResize({
+          width,
+          height,
+          unit,
+          dpi,
+          pixelsW: targetPxW,
+          pixelsH: targetPxH
+        });
+      }
+      if (onClose) onClose();
     }
-    if (onApplyResize) {
-      onApplyResize({
-        width,
-        height,
-        unit,
-        dpi,
-        pixelsW: targetPxW,
-        pixelsH: targetPxH,
-        resizedDataUrl
-      });
-    }
-    if (onClose) onClose();
   };
 
   const handleDownloadDirect = async () => {
-    const resizedDataUrl = await performCanvasResize();
-    if (resizedDataUrl) {
-      const fileName = `SchoolPaper_Resized_${width}x${height}${unit}_${dpi}DPI.png`;
-      const a = document.createElement('a');
-      a.href = resizedDataUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+    if (!imageUrl) return;
+    setIsUpscaling(true);
+    setProgress(10);
+    setStepText('Đang gửi ảnh tới GPU AI Kích Nét (genai.toolxprint)...');
+    try {
+      const upscaled = await requestAiUpscale(imageUrl, {
+        scale: 4,
+        customWidth: targetPxW,
+        printDpi: dpi,
+        modelId: 'digital-art-4x',
+        onProgress: ({ progress: p, current_step }) => {
+          setProgress(p);
+          setStepText(current_step);
+        }
+      });
+      const finalUrl = upscaled.downloadUrl || upscaled.url;
+      const fileName = `SchoolPaper_${width}x${height}${unit}_${dpi}DPI_GPU_${Date.now()}.png`;
+      downloadFile(finalUrl, fileName);
+    } catch (err) {
+      alert('Lỗi kích nét AI GPU: ' + err.message);
+    } finally {
+      setIsUpscaling(false);
     }
   };
 
@@ -231,11 +225,11 @@ export default function ExactResizeModal({
             </div>
             <div>
               <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
-                {mode === 'result' ? 'Chỉnh Kích Thước Hậu Kỳ Chuẩn In' : 'Cài Đặt Kích Thước Chuẩn In'}
+                {mode === 'result' ? 'Chỉnh Kích Thước & Kích Nét AI Chuẩn In' : 'Cài Đặt Kích Thước Chuẩn In'}
               </div>
               <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
                 {naturalDimensions.width > 0 && `Gốc: ${naturalDimensions.width}×${naturalDimensions.height} px • `}
-                Thiết lập kích thước in chính xác và nội suy độ nét cao
+                Xử lý siêu phân giải qua GPU AI Kích Nét (genai.toolxprint)
               </div>
             </div>
           </div>
@@ -441,7 +435,7 @@ export default function ExactResizeModal({
               Điểm ảnh xuất xưởng (Output Pixels):
             </div>
             <div style={{ fontSize: '0.7rem', color: '#475569', marginTop: '2px' }}>
-              Nội suy Bicubic làm mịn đường nét và giữ chuẩn sắc nét in
+              Xử lý siêu phân giải qua GPU AI Kích Nét (NVIDIA GeForce GTX 1080 Ti)
             </div>
           </div>
           <div
@@ -460,6 +454,34 @@ export default function ExactResizeModal({
           </div>
         </div>
 
+        {/* GPU Upscale Progress Bar */}
+        {isUpscaling && (
+          <div
+            style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '12px',
+              padding: '10px 14px',
+              marginBottom: '16px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#166534', marginBottom: '6px' }}>
+              <span>🚀 {stepText || 'GPU AI đang kết xuất...'}</span>
+              <span>{progress}%</span>
+            </div>
+            <div style={{ width: '100%', height: '8px', background: '#dcfce7', borderRadius: '4px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${progress}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #10b981, #059669)',
+                  transition: 'width 0.3s ease'
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
           <div>
@@ -467,11 +489,20 @@ export default function ExactResizeModal({
               <button
                 type="button"
                 onClick={handleDownloadDirect}
+                disabled={isUpscaling}
                 className="liquid-pill-btn"
-                style={{ fontSize: '0.78rem', padding: '8px 14px', color: '#047857', borderColor: '#a7f3d0', background: '#ecfdf5' }}
+                style={{
+                  fontSize: '0.78rem',
+                  padding: '8px 14px',
+                  color: '#047857',
+                  borderColor: '#a7f3d0',
+                  background: '#ecfdf5',
+                  opacity: isUpscaling ? 0.6 : 1,
+                  cursor: isUpscaling ? 'not-allowed' : 'pointer'
+                }}
               >
-                <i className="bi bi-download"></i>
-                <span>Tải Về File Này Ngay</span>
+                <i className="bi bi-cpu"></i>
+                <span>{isUpscaling ? 'Đang Kích Nét GPU...' : 'Kích Nét & Tải Về Ngay'}</span>
               </button>
             )}
           </div>
@@ -480,6 +511,7 @@ export default function ExactResizeModal({
             <button
               type="button"
               onClick={onClose}
+              disabled={isUpscaling}
               className="liquid-pill-btn"
               style={{ fontSize: '0.8rem', padding: '8px 16px' }}
             >
@@ -488,11 +520,26 @@ export default function ExactResizeModal({
             <button
               type="button"
               onClick={handleApply}
+              disabled={isUpscaling}
               className="liquid-pill-btn active"
-              style={{ fontSize: '0.8rem', padding: '8px 20px', fontWeight: 800, background: '#2563eb', color: '#ffffff' }}
+              style={{
+                fontSize: '0.8rem',
+                padding: '8px 20px',
+                fontWeight: 800,
+                background: '#2563eb',
+                color: '#ffffff',
+                opacity: isUpscaling ? 0.6 : 1,
+                cursor: isUpscaling ? 'not-allowed' : 'pointer'
+              }}
             >
               <i className="bi bi-check2-circle"></i>
-              <span>{mode === 'result' ? 'Áp Dụng Cho Ấn Phẩm' : 'Áp Dụng Kích Thước'}</span>
+              <span>
+                {isUpscaling
+                  ? 'Đang Kích Nét...'
+                  : mode === 'result'
+                  ? 'Kích Nét GPU & Áp Dụng'
+                  : 'Áp Dụng Kích Thước'}
+              </span>
             </button>
           </div>
         </div>

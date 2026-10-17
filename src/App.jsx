@@ -981,20 +981,6 @@ export default function App() {
     return (val || 0).toLocaleString('vi-VN') + 'đ';
   };
 
-  // Tính toán kích thước an toàn cho Canvas preview trên trình duyệt (tối đa 2480px để chống Out of Memory)
-  const getSafeCanvasDimensions = (w, h, u, maxDim = 2480) => {
-    const rawW = calculatePixels(w || 841, u || 'mm', 300);
-    const rawH = calculatePixels(h || 1189, u || 'mm', 300);
-    if (rawW <= maxDim && rawH <= maxDim) {
-      return { targetW: rawW, targetH: rawH };
-    }
-    const scale = Math.min(maxDim / rawW, maxDim / rawH);
-    return {
-      targetW: Math.max(1, Math.round(rawW * scale)),
-      targetH: Math.max(1, Math.round(rawH * scale))
-    };
-  };
-
   // Mapping aspect ratio to ToolXPrint VPS format
   const getVPSAspectRatio = () => {
     if (aspectRatio === 'square') return '1:1';
@@ -1155,9 +1141,8 @@ export default function App() {
             }
           };
 
-          // Tự động re-composite sang resultImage an toàn không tràn RAM
-          const { targetW, targetH } = getSafeCanvasDimensions(width || 841, height || 1189, unit || 'mm');
-          compositeLayersToDataUrl(Object.values(updated), img, targetW, targetH)
+          // Tự động re-composite sang resultImage ở độ phân giải gốc (không upscale bằng JS)
+          compositeLayersToDataUrl(Object.values(updated), img)
             .then((data) => setResultImage(data))
             .catch(() => {});
 
@@ -1290,9 +1275,7 @@ export default function App() {
       setProgress(100);
       setProgressText('Đang ghép 2 layer hoàn thiện...');
 
-      // Ghép composite preview chất lượng cao an toàn chống Out of Memory
-      const { targetW, targetH } = getSafeCanvasDimensions(width || 841, height || 1189, unit || 'mm');
-
+      // Ghép composite preview ở độ phân giải gốc của ảnh AI (không phóng to bằng Canvas JS)
       const activeLayerList = [
         { id: 'body', image: finalBody, opacity: layers.body.opacity ?? 11, visible: true, zIndex: 1 },
         { id: 'frame', image: finalFrame, opacity: layers.frame.opacity ?? 100, visible: true, zIndex: 2, blendMode: 'multiply' }
@@ -1300,9 +1283,7 @@ export default function App() {
 
       const compositePreview = await compositeLayersToDataUrl(
         activeLayerList,
-        finalFrame || finalBody,
-        targetW,
-        targetH
+        finalFrame || finalBody
       );
 
       setResultImage(compositePreview);
@@ -1350,22 +1331,18 @@ export default function App() {
         setHeight(1189);
         setUnit('mm');
 
-        setAiUpscaleState({
-          isUpscaling: true,
-          progress: 5,
-          stepText: 'Đang kích nét...',
-          jobId: null
-        });
+        const fullPrintW = calculatePixels(841, 'mm', 300);
 
         upscalePromiseRef.current = requestAiUpscale(compositePreview, {
           scale: 4,
           modelId: 'digital-art-4x',
           printDpi: 300,
-          onProgress: ({ progress, jobId }) => {
+          customWidth: fullPrintW,
+          onProgress: ({ progress, jobId, current_step }) => {
             setAiUpscaleState({
               isUpscaling: true,
               progress,
-              stepText: 'Đang kích nét...',
+              stepText: current_step || 'GPU AI đang kết xuất A0...',
               jobId
             });
           }
@@ -1486,17 +1463,16 @@ export default function App() {
       setAiUpscaleState({ isUpscaling: true, progress: 10, stepText: 'Đang kích nét...' });
 
       const fullPrintW = calculatePixels(width || 841, unit || 'mm', 300);
-      const { targetW, targetH } = getSafeCanvasDimensions(width || 841, height || 1189, unit || 'mm');
 
+      // Ghép layer ở độ phân giải gốc của ảnh, hoàn toàn không upscale bằng canvas
       const compositeDataUrl = await compositeLayersToDataUrl(
         Object.values(layers),
-        resultImage,
-        targetW,
-        targetH
+        resultImage
       );
 
-      setAiUpscaleState({ isUpscaling: true, progress: 25, stepText: 'Đang kích nét...' });
+      setAiUpscaleState({ isUpscaling: true, progress: 25, stepText: 'Đang gửi lên GPU AI Kích Nét (genai.toolxprint)...' });
 
+      // Gọi dịch vụ GPU AI Upscale trên máy chủ NVIDIA GTX 1080 Ti
       const upscaled = await requestAiUpscale(compositeDataUrl, {
         scale: 4,
         modelId: 'digital-art-4x',
@@ -1506,7 +1482,7 @@ export default function App() {
           setAiUpscaleState({
             isUpscaling: true,
             progress: Math.min(95, Math.max(25, p.progress || 35)),
-            stepText: 'Đang kích nét...'
+            stepText: p.current_step || 'GPU AI đang kết xuất A0 300 DPI...'
           });
         }
       });
@@ -1514,32 +1490,19 @@ export default function App() {
       const finalUrl = upscaled.downloadUrl || compositeDataUrl;
       const fileName = `SchoolPaper_A0_300DPI_${Date.now()}.png`;
 
-      const a = document.createElement('a');
-      a.href = finalUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      downloadFile(finalUrl, fileName);
 
-      setAiUpscaleState({ isUpscaling: false, progress: 100, stepText: 'Hoàn tất kích nét!' });
+      setAiUpscaleState({ isUpscaling: false, progress: 100, stepText: 'Hoàn tất kích nét GPU!' });
       showToast('🎉 Đã kích nét AI chuẩn in A0 300 DPI và tải file về máy thành công!', 'success');
     } catch (err) {
       console.warn('Lỗi kích nét AI khi download:', err);
-      showToast(`Máy chủ GPU bận: ${err.message}. Đang tải trực tiếp bản tổng hợp 4 layer...`, 'warning');
+      showToast(`Máy chủ GPU bận: ${err.message}. Đang tải trực tiếp bản xem trước...`, 'warning');
       try {
-        const { targetW: fbW, targetH: fbH } = getSafeCanvasDimensions(width || 841, height || 1189, unit || 'mm');
         const fallbackData = await compositeLayersToDataUrl(
           Object.values(layers),
-          resultImage,
-          fbW,
-          fbH
+          resultImage
         );
-        const a = document.createElement('a');
-        a.href = fallbackData;
-        a.download = `SchoolPaper_Layers_${Date.now()}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        downloadFile(fallbackData, `SchoolPaper_Layers_${Date.now()}.png`);
       } catch (e2) {
         showToast('Lỗi khi xuất ảnh: ' + e2.message, 'error');
       }
