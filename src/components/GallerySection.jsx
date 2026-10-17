@@ -138,7 +138,7 @@ export default function GallerySection({ onOpenInStudio, showToast, onOpenLightb
           <div style={{ fontSize: '0.85rem', fontWeight: 700, marginTop: '8px' }}>Không có ấn phẩm nào</div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+        <div className="gallery-responsive-grid">
           {paginatedItems.map((item) => {
             const thumbUrl = item.thumbnail || item.vpsUrl || (item.filename ? `/images/${item.filename}` : '');
             const fullUrl = item.vpsUrl || (item.filename ? `/images/${item.filename}` : '') || thumbUrl;

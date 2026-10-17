@@ -38,8 +38,8 @@ export default function WorkersSection({ showToast }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      {/* Metrics Row (Squircle Cards inspired by Image 2 & 4) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+      {/* Metrics Row (Squircle Cards) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
         {/* Workers online */}
         <div
           className="liquid-squircle-tile gradient-cyber-emerald"

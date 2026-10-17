@@ -95,42 +95,174 @@ body {
   100% { transform: translate(30px, -50px) scale(1.2); }
 }
 
-/* Mobile & PC Narrow Shell */
+/* ===================================================================
+   PC & RESPONSIVE APP SHELL (FULL TRANG PC WEB)
+   =================================================================== */
 .liquid-app-shell {
   width: 100%;
-  max-width: 440px;
   min-height: 100vh;
   margin: 0 auto;
   position: relative;
   z-index: 10;
   display: flex;
   flex-direction: column;
-  background: rgba(248, 250, 252, 0.82);
+  background: rgba(248, 250, 252, 0.94);
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
-  box-shadow: 0 0 80px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2);
-  padding-bottom: 28px;
+  box-shadow: none;
+  padding-bottom: 32px;
   border-radius: 0;
   border: none;
 }
 
-@media (max-width: 480px) {
+@media (min-width: 1024px) {
   .liquid-app-shell {
-    max-width: 100%;
-    box-shadow: none;
-    border-radius: 0;
-    border: none;
+    max-width: 1560px;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.05);
   }
 }
 
-@media (min-width: 481px) {
-  body {
-    padding: 0;
+.liquid-main-content {
+  padding: 14px 16px 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .liquid-main-content {
+    padding: 22px 28px 40px;
   }
-  .liquid-app-shell {
-    border-radius: 0;
-    border: none;
-    min-height: 100vh;
+}
+
+/* Desktop Navbar Navigation Tabs (Hiện đầy đủ trên PC Web) */
+.desktop-navbar-tabs {
+  display: none;
+}
+
+@media (min-width: 860px) {
+  .desktop-navbar-tabs {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(241, 245, 249, 0.9);
+    padding: 4px 6px;
+    border-radius: 9999px;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+  }
+  .mobile-nav-center {
+    display: none !important;
+  }
+}
+
+.desktop-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #475569;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
+}
+
+.desktop-tab-btn:hover {
+  color: #1e293b;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.desktop-tab-btn.active {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
+}
+
+/* Studio 2-Column Grid on PC Web */
+.studio-grid-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .studio-grid-wrapper {
+    display: grid;
+    grid-template-columns: minmax(460px, 520px) 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  
+  .studio-grid-editor {
+    order: 1;
+  }
+  
+  .studio-grid-preview {
+    order: 2;
+    position: sticky;
+    top: 76px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .studio-grid-preview {
+    order: -1;
+  }
+}
+
+/* Responsive Gallery Grid */
+.gallery-responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .gallery-responsive-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .gallery-responsive-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1380px) {
+  .gallery-responsive-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 18px;
+  }
+}
+
+/* Responsive Admin Prompts Grid */
+.admin-prompts-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .admin-prompts-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .admin-prompts-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
   }
 }
 

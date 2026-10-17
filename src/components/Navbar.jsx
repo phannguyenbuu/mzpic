@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import Tooltip from './Tooltip';
 
+const NAV_TABS = [
+  { id: 'single', label: 'Tạo Ảnh', icon: 'bi-stars', hint: 'Studio tạo & sửa ấn phẩm' },
+  { id: 'batch', label: 'Hàng Loạt', icon: 'bi-stack', hint: 'Sửa ấn phẩm hàng loạt' },
+  { id: 'upscale', label: 'Kích Nét 8X', icon: 'bi-arrows-angle-expand', hint: 'Kích nét siêu phân giải AI 300 DPI' },
+  { id: 'library', label: 'Thư Viện', icon: 'bi-grid-3x3-gap-fill', hint: 'Kho ấn phẩm đã render' },
+  { id: 'admin', label: 'Quản Trị', icon: 'bi-sliders', hint: 'Cài đặt, Người dùng, Mẫu Prompt' },
+  { id: 'devices', label: 'Worker AI', icon: 'bi-cpu-fill', hint: 'Hệ thống máy & Extension' },
+  { id: 'docs', label: 'API', icon: 'bi-code-slash', hint: 'Tài liệu tích hợp API' },
+];
+
 export default function Navbar({
   walletBalance,
   onOpenTopup,
@@ -27,7 +37,7 @@ export default function Navbar({
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        background: 'rgba(248, 250, 252, 0.92)',
+        background: 'rgba(248, 250, 252, 0.94)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(226, 232, 240, 0.85)',
@@ -46,8 +56,27 @@ export default function Navbar({
         </div>
       </Tooltip>
 
-      {/* Center: Gallery Button (Ở giữa Header) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Center: Desktop Navigation Tabs (Full PC Web) */}
+      <nav className="desktop-navbar-tabs" aria-label="Menu chính PC Web">
+        {NAV_TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <Tooltip key={tab.id} text={tab.hint} position="bottom">
+              <button
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`desktop-tab-btn ${isActive ? 'active' : ''}`}
+              >
+                <i className={`bi ${tab.icon}`}></i>
+                <span>{tab.label}</span>
+              </button>
+            </Tooltip>
+          );
+        })}
+      </nav>
+
+      {/* Mobile Center: Gallery Button */}
+      <div className="mobile-nav-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Tooltip text="Gallery tác phẩm đã biến đổi của bạn (Before / After slider)" position="bottom">
           <button
             type="button"
@@ -247,11 +276,7 @@ export default function Navbar({
                       type="button"
                       onClick={() => {
                         setUserMenuOpen(false);
-                        if (typeof window !== 'undefined' && window.location.host.includes('paper.toolxprint.com')) {
-                          window.location.href = 'https://adm.toolxprint.com';
-                        } else {
-                          setActiveTab('admin');
-                        }
+                        setActiveTab('admin');
                       }}
                       style={{
                         display: 'flex',
@@ -275,7 +300,7 @@ export default function Navbar({
                         <span>Cài đặt & Quản trị</span>
                       </div>
                       <span style={{ fontSize: '0.6rem', color: '#2563eb', background: '#eff6ff', padding: '1px 6px', borderRadius: '9999px', fontWeight: 700 }}>
-                        adm.toolxprint.com
+                        Admin
                       </span>
                     </button>
 

@@ -106,15 +106,18 @@ const TAB_TO_ROUTE = {
 const getInitialTab = () => {
   const host = typeof window !== 'undefined' ? window.location.host.toLowerCase() : '';
   const path = typeof window !== 'undefined' ? (window.location.pathname.toLowerCase().replace(/\/$/, '') || '/') : '/';
-  
-  // Nếu mở trên adm.toolxprint.com, agentapi hoặc path là /mzpic, /admin -> Vào thẳng tab Quản Trị
+  const hash = typeof window !== 'undefined' ? window.location.hash.toLowerCase().replace(/^#\/?/, '/') : '';
+
+  // 1. Kiểm tra path hoặc hash cụ thể (khác root /)
+  if (path !== '/' && ROUTE_MAP[path]) return ROUTE_MAP[path];
+  if (hash && hash !== '/' && ROUTE_MAP[hash]) return ROUTE_MAP[hash];
+
+  // 2. Mặc định vào tab admin khi truy cập root adm.toolxprint.com
   if (host.includes('adm.') || host.includes('admin') || host.includes('agentapi') || path.includes('mzpic') || path.includes('admin')) {
     return 'admin';
   }
 
   if (ROUTE_MAP[path]) return ROUTE_MAP[path];
-  const hash = window.location.hash.toLowerCase().replace(/^#\/?/, '/');
-  if (ROUTE_MAP[hash]) return ROUTE_MAP[hash];
   return 'single';
 };
 
@@ -1669,113 +1672,117 @@ export default function App() {
         />
 
         {/* Content based on Active Tab */}
-        <main style={{ padding: '12px 14px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <main className="liquid-main-content">
           {activeTab === 'single' && (
-            <>
-              {/* Top Focal Stage: Result & High-res preview */}
-              <ResultCard
-                resultImage={resultImage}
-                isGenerating={isGenerating}
-                referenceImage={referenceImage}
-                width={width}
-                height={height}
-                unit={unit}
-                transparentBg={transparentBg}
-                presetId={selectedPresetId}
-                fileMeta={fileMeta}
-                onOpenEdit={() => setEditModalOpen(true)}
-                onOpenMockup3D={handleOpenMockup3D}
-                onDownload={handleDownload}
-                onRemoveBg={handleRemoveBg}
-                onOpenLightbox={handleOpenLightbox}
-                onOpenResize={() => handleOpenResize('result')}
-                onOpenColorGrading={handleOpenColorGrading}
-                onUpscaleA0={handleUpscaleA0}
-                aiUpscaleState={aiUpscaleState}
-                layers={layers}
-                onUpdateLayer={handleUpdateLayer}
-                onReplaceLayerImage={handleReplaceLayerImage}
-                onRegenerateLayer={handleRegenerateLayer}
-                onDownloadWithGenAiUpscale={handleDownloadWithGenAiUpscale}
-              />
+            <div className="studio-grid-wrapper">
+              {/* Cột 1 (Trái trên PC): Prompt & Khổ In Studio Controls */}
+              <div className="studio-grid-editor">
+                <PromptCard
+                  prompt={prompt}
+                  setPrompt={setPrompt}
+                  onResetSession={handleResetSession}
+                  onGenerate={() => handleGenerate()}
+                  isGenerating={isGenerating}
+                  progress={progress}
+                  progressText={progressText}
+                  templates={promptTemplates}
+                  selectedTemplateId={selectedTemplateId}
+                  onSelectTemplateId={handleSelectTemplateId}
+                  onOpenAdmin={() => setAdminModalOpen(true)}
+                  referenceImage={referenceImage}
+                  referenceImages={referenceImages}
+                  onUploadReferenceImage={handleUploadReferenceImage}
+                  onUploadReferenceImages={handleUploadReferenceImages}
+                  onRemoveReferenceImage={handleRemoveReferenceImage}
+                  selectedPresetId={selectedPresetId}
+                  onSelectPreset={handleSelectPreset}
+                  width={width}
+                  height={height}
+                  setWidth={setWidth}
+                  setHeight={setHeight}
+                  unit={unit}
+                  onUnitChange={handleUnitChange}
+                  aspectRatio={aspectRatio}
+                  onAspectRatioChange={handleAspectRatioChange}
+                  transparentBg={transparentBg}
+                  setTransparentBg={setTransparentBg}
+                  onOpenLightbox={handleOpenLightbox}
+                  onOpenCropRotate={handleOpenCropRotate}
+                  onOpenExactResize={() => handleOpenResize('input')}
+                  onOpenEdit={() => setEditModalOpen(true)}
+                  onOpenResize={() => handleOpenResize('result')}
+                  onOpenColorGrading={handleOpenColorGrading}
+                  onOpenMockup3D={handleOpenMockup3D}
+                  onRemoveBg={handleRemoveBg}
+                  onDownload={handleDownload}
+                  onDownloadWithGenAiUpscale={handleDownloadWithGenAiUpscale}
+                  aiUpscaleState={aiUpscaleState}
+                  resultImage={resultImage}
+                  // 4 Tabs: Đường Viền, Header, Footer, Body
+                  borderPrompt={borderPrompt}
+                  setBorderPrompt={setBorderPrompt}
+                  borderImages={borderImages}
+                  borderTransparency={borderTransparency}
+                  setBorderTransparency={setBorderTransparency}
+                  headerPrompt={headerPrompt}
+                  setHeaderPrompt={setHeaderPrompt}
+                  headerImages={headerImages}
+                  headerTransparency={headerTransparency}
+                  setHeaderTransparency={setHeaderTransparency}
+                  footerPrompt={footerPrompt}
+                  setFooterPrompt={setFooterPrompt}
+                  footerImages={footerImages}
+                  footerTransparency={footerTransparency}
+                  setFooterTransparency={setFooterTransparency}
+                  bodyPrompt={bodyPrompt}
+                  setBodyPrompt={setBodyPrompt}
+                  bodyImages={bodyImages}
+                  bodyTransparency={bodyTransparency}
+                  setBodyTransparency={setBodyTransparency}
+                  activePromptSection={activePromptSection}
+                  setActivePromptSection={setActivePromptSection}
+                  onUploadSectionImages={handleUploadSectionImages}
+                  onRemoveSectionImage={handleRemoveSectionImage}
+                  onSelectSampleImage={handleSelectSampleImage}
+                  showToast={showToast}
+                  autoUpscaleA0={autoUpscaleA0}
+                  setAutoUpscaleA0={setAutoUpscaleA0}
+                  systemBeautify={systemBeautify}
+                  setSystemBeautify={setSystemBeautify}
+                  selectedColorTones={selectedColorTones}
+                  setSelectedColorTones={setSelectedColorTones}
+                />
+              </div>
 
-              {/* Prompt & Khổ In Unified 2-Tab Liquid Card */}
-              <PromptCard
-                prompt={prompt}
-                setPrompt={setPrompt}
-                onResetSession={handleResetSession}
-                onGenerate={() => handleGenerate()}
-                isGenerating={isGenerating}
-                progress={progress}
-                progressText={progressText}
-                templates={promptTemplates}
-                selectedTemplateId={selectedTemplateId}
-                onSelectTemplateId={handleSelectTemplateId}
-                onOpenAdmin={() => setAdminModalOpen(true)}
-                referenceImage={referenceImage}
-                referenceImages={referenceImages}
-                onUploadReferenceImage={handleUploadReferenceImage}
-                onUploadReferenceImages={handleUploadReferenceImages}
-                onRemoveReferenceImage={handleRemoveReferenceImage}
-                selectedPresetId={selectedPresetId}
-                onSelectPreset={handleSelectPreset}
-                width={width}
-                height={height}
-                setWidth={setWidth}
-                setHeight={setHeight}
-                unit={unit}
-                onUnitChange={handleUnitChange}
-                aspectRatio={aspectRatio}
-                onAspectRatioChange={handleAspectRatioChange}
-                transparentBg={transparentBg}
-                setTransparentBg={setTransparentBg}
-                onOpenLightbox={handleOpenLightbox}
-                onOpenCropRotate={handleOpenCropRotate}
-                onOpenExactResize={() => handleOpenResize('input')}
-                onOpenEdit={() => setEditModalOpen(true)}
-                onOpenResize={() => handleOpenResize('result')}
-                onOpenColorGrading={handleOpenColorGrading}
-                onOpenMockup3D={handleOpenMockup3D}
-                onRemoveBg={handleRemoveBg}
-                onDownload={handleDownload}
-                onDownloadWithGenAiUpscale={handleDownloadWithGenAiUpscale}
-                aiUpscaleState={aiUpscaleState}
-                resultImage={resultImage}
-                // 4 Tabs: Đường Viền, Header, Footer, Body
-                borderPrompt={borderPrompt}
-                setBorderPrompt={setBorderPrompt}
-                borderImages={borderImages}
-                borderTransparency={borderTransparency}
-                setBorderTransparency={setBorderTransparency}
-                headerPrompt={headerPrompt}
-                setHeaderPrompt={setHeaderPrompt}
-                headerImages={headerImages}
-                headerTransparency={headerTransparency}
-                setHeaderTransparency={setHeaderTransparency}
-                footerPrompt={footerPrompt}
-                setFooterPrompt={setFooterPrompt}
-                footerImages={footerImages}
-                footerTransparency={footerTransparency}
-                setFooterTransparency={setFooterTransparency}
-                bodyPrompt={bodyPrompt}
-                setBodyPrompt={setBodyPrompt}
-                bodyImages={bodyImages}
-                bodyTransparency={bodyTransparency}
-                setBodyTransparency={setBodyTransparency}
-                activePromptSection={activePromptSection}
-                setActivePromptSection={setActivePromptSection}
-                onUploadSectionImages={handleUploadSectionImages}
-                onRemoveSectionImage={handleRemoveSectionImage}
-                onSelectSampleImage={handleSelectSampleImage}
-                showToast={showToast}
-                autoUpscaleA0={autoUpscaleA0}
-                setAutoUpscaleA0={setAutoUpscaleA0}
-                systemBeautify={systemBeautify}
-                setSystemBeautify={setSystemBeautify}
-                selectedColorTones={selectedColorTones}
-                setSelectedColorTones={setSelectedColorTones}
-              />
-            </>
+              {/* Cột 2 (Phải trên PC): Result & High-res preview */}
+              <div className="studio-grid-preview">
+                <ResultCard
+                  resultImage={resultImage}
+                  isGenerating={isGenerating}
+                  referenceImage={referenceImage}
+                  width={width}
+                  height={height}
+                  unit={unit}
+                  transparentBg={transparentBg}
+                  presetId={selectedPresetId}
+                  fileMeta={fileMeta}
+                  onOpenEdit={() => setEditModalOpen(true)}
+                  onOpenMockup3D={handleOpenMockup3D}
+                  onDownload={handleDownload}
+                  onRemoveBg={handleRemoveBg}
+                  onOpenLightbox={handleOpenLightbox}
+                  onOpenResize={() => handleOpenResize('result')}
+                  onOpenColorGrading={handleOpenColorGrading}
+                  onUpscaleA0={handleUpscaleA0}
+                  aiUpscaleState={aiUpscaleState}
+                  layers={layers}
+                  onUpdateLayer={handleUpdateLayer}
+                  onReplaceLayerImage={handleReplaceLayerImage}
+                  onRegenerateLayer={handleRegenerateLayer}
+                  onDownloadWithGenAiUpscale={handleDownloadWithGenAiUpscale}
+                />
+              </div>
+            </div>
           )}
 
           {/* Tab: BATCH */}
